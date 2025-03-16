@@ -1,0 +1,446 @@
+{% extends 'users/base.html' %}
+
+{% block title %}Clients - Perspective Tracker{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1>Clients</h1>
+        </div>
+        <div class="col-md-4 text-end">
+            {% if user.is_superuser or user.role.name == 'admin' or user.role.name == 'staff' %}
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addClientModal">
+                    <i class="bi bi-plus-lg" aria-hidden="true"></i> Add Client
+                </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    {% if clients %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <caption class="visually-hidden">List of clients with their contact information and actions</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Company Name</th>
+                                        <th scope="col">Contact</th>
+                                        <th scope="col">Email</th>
+                                        <th scope="col">Point of Contact</th>
+                                        <th scope="col">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for client in clients %}
+                                        <tr>
+                                            <td>
+                                                <a href="{% url 'client_detail' client.pk %}">
+                                                    {{ client.company_name }}
+                                                </a>
+                                            </td>
+                                            <td>{{ client.contact_name }}</td>
+                                            <td>
+                                                <a href="mailto:{{ client.email }}">{{ client.email }}</a>
+                                            </td>
+                                            <td>
+                                                {% if client.point_of_contact %}
+                                                    {{ client.point_of_contact.first_name }} {{ client.point_of_contact.last_name }}
+                                                {% else %}
+                                                    <span class="text-muted">Not assigned</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <div class="btn-group" role="group" aria-label="Actions for {{ client.company_name }}">
+                                                    <a href="{% url 'client_detail' client.pk %}" class="btn btn-sm btn-outline-secondary">
+                                                        <i class="bi bi-eye" aria-hidden="true"></i>
+                                                        <span class="visually-hidden">View {{ client.company_name }}</span>
+                                                    </a>
+                                                    {% if user.is_superuser or user.role.name == 'admin' or user.role.name == 'staff' %}
+                                                        <button type="button" class="btn btn-sm btn-outline-primary edit-client-btn" 
+                                                                data-bs-toggle="modal" data-bs-target="#editClientModal" 
+                                                                data-client-id="{{ client.pk }}"
+                                                                data-client-company="{{ client.company_name }}"
+                                                                data-client-contact="{{ client.contact_name }}"
+                                                                data-client-email="{{ client.email }}"
+                                                                data-client-website="{{ client.website|default:'' }}"
+                                                                data-client-poc="{{ client.point_of_contact.pk|default:'' }}">
+                                                            <i class="bi bi-pencil" aria-hidden="true"></i>
+                                                            <span class="visually-hidden">Edit {{ client.company_name }}</span>
+                                                        </button>
+                                                    {% endif %}
+                                                    {% if user.is_superuser or user.role.name == 'admin' %}
+                                                        <button type="button" class="btn btn-sm btn-outline-danger delete-client-btn" 
+                                                                data-bs-toggle="modal" data-bs-target="#deleteClientModal" 
+                                                                data-client-id="{{ client.pk }}"
+                                                                data-client-name="{{ client.company_name }}">
+                                                            <i class="bi bi-trash" aria-hidden="true"></i>
+                                                            <span class="visually-hidden">Delete {{ client.company_name }}</span>
+                                                        </button>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <p class="text-muted mb-3">No clients found.</p>
+                            {% if user.is_superuser or user.role.name == 'admin' or user.role.name == 'staff' %}
+                                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addClientModal">
+                                    <i class="bi bi-plus-lg" aria-hidden="true"></i> Add Your First Client
+                                </button>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Client Modal -->
+<div class="modal fade" id="addClientModal" tabindex="-1" aria-labelledby="addClientModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="addClientModalLabel">Add New Client</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'client_create' %}" id="addClientForm">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <div id="addClientFormErrors" class="alert alert-danger d-none" role="alert"></div>
+                    <div class="mb-3">
+                        <label for="id_company_name" class="form-label">Company Name</label>
+                        <input type="text" name="company_name" id="id_company_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_contact_name" class="form-label">Contact Name</label>
+                        <input type="text" name="contact_name" id="id_contact_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_email" class="form-label">Email</label>
+                        <input type="email" name="email" id="id_email" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_website" class="form-label">Website (optional)</label>
+                        <input type="url" name="website" id="id_website" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_point_of_contact" class="form-label">Point of Contact</label>
+                        <select name="point_of_contact" id="id_point_of_contact" class="form-select" required>
+                            <option value="">---------</option>
+                            {% for user in staff_users %}
+                                <option value="{{ user.pk }}">{{ user.first_name }} {{ user.last_name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Select a staff member or administrator as the point of contact.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Client Modal -->
+<div class="modal fade" id="editClientModal" tabindex="-1" aria-labelledby="editClientModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="editClientModalLabel">Edit Client</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" id="editClientForm">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <div id="editClientFormErrors" class="alert alert-danger d-none" role="alert"></div>
+                    <div class="mb-3">
+                        <label for="edit_company_name" class="form-label">Company Name</label>
+                        <input type="text" name="company_name" id="edit_company_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_contact_name" class="form-label">Contact Name</label>
+                        <input type="text" name="contact_name" id="edit_contact_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_email" class="form-label">Email</label>
+                        <input type="email" name="email" id="edit_email" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_website" class="form-label">Website (optional)</label>
+                        <input type="url" name="website" id="edit_website" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_point_of_contact" class="form-label">Point of Contact</label>
+                        <select name="point_of_contact" id="edit_point_of_contact" class="form-select" required>
+                            <option value="">---------</option>
+                            {% for user in staff_users %}
+                                <option value="{{ user.pk }}">{{ user.first_name }} {{ user.last_name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Select a staff member or administrator as the point of contact.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Client Modal -->
+<div class="modal fade" id="deleteClientModal" tabindex="-1" aria-labelledby="deleteClientModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="deleteClientModalLabel">Delete Client</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger" role="alert">
+                    <h3 class="h6 alert-heading">Warning!</h3>
+                    <p>Are you sure you want to delete <strong id="deleteClientName"></strong>? This action cannot be undone.</p>
+                    <p>All associated notes and data will be permanently deleted.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="post" id="deleteClientForm">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Helper function to display form errors
+        function displayFormErrors(errorContainer, errors) {
+            errorContainer.innerHTML = '';
+            errorContainer.classList.remove('d-none');
+            
+            if (typeof errors === 'object') {
+                const ul = document.createElement('ul');
+                ul.className = 'mb-0';
+                
+                for (const field in errors) {
+                    const li = document.createElement('li');
+                    li.textContent = `${field}: ${errors[field].join(' ')}`;
+                    ul.appendChild(li);
+                }
+                
+                errorContainer.appendChild(ul);
+            } else {
+                errorContainer.textContent = 'An error occurred. Please try again.';
+            }
+        }
+        
+        // Edit client modal
+        const editClientModal = document.getElementById('editClientModal');
+        if (editClientModal) {
+            editClientModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const clientId = button.getAttribute('data-client-id');
+                const companyName = button.getAttribute('data-client-company');
+                const contactName = button.getAttribute('data-client-contact');
+                const email = button.getAttribute('data-client-email');
+                const website = button.getAttribute('data-client-website');
+                const poc = button.getAttribute('data-client-poc');
+                
+                const form = editClientModal.querySelector('#editClientForm');
+                form.action = `/clients/${clientId}/update/`;
+                
+                const companyNameInput = form.querySelector('#edit_company_name');
+                const contactNameInput = form.querySelector('#edit_contact_name');
+                const emailInput = form.querySelector('#edit_email');
+                const websiteInput = form.querySelector('#edit_website');
+                const pocSelect = form.querySelector('#edit_point_of_contact');
+                
+                companyNameInput.value = companyName;
+                contactNameInput.value = contactName;
+                emailInput.value = email;
+                websiteInput.value = website;
+                
+                // Set the selected option for point of contact
+                if (poc) {
+                    for (let i = 0; i < pocSelect.options.length; i++) {
+                        if (pocSelect.options[i].value === poc) {
+                            pocSelect.options[i].selected = true;
+                            break;
+                        }
+                    }
+                } else {
+                    // If no point of contact, select the first option (blank)
+                    pocSelect.options[0].selected = true;
+                }
+                
+                // Clear any previous errors
+                const errorContainer = form.querySelector('#editClientFormErrors');
+                errorContainer.classList.add('d-none');
+                errorContainer.innerHTML = '';
+            });
+        }
+        
+        // Delete client modal
+        const deleteClientModal = document.getElementById('deleteClientModal');
+        if (deleteClientModal) {
+            deleteClientModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const clientId = button.getAttribute('data-client-id');
+                const clientName = button.getAttribute('data-client-name');
+                
+                const form = deleteClientModal.querySelector('#deleteClientForm');
+                form.action = `/clients/${clientId}/delete/`;
+                
+                const clientNameElement = deleteClientModal.querySelector('#deleteClientName');
+                clientNameElement.textContent = clientName;
+            });
+        }
+        
+        // Add client form submission
+        const addClientForm = document.getElementById('addClientForm');
+        if (addClientForm) {
+            addClientForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                
+                // Clear any previous errors
+                const errorContainer = this.querySelector('#addClientFormErrors');
+                errorContainer.classList.add('d-none');
+                errorContainer.innerHTML = '';
+                
+                // Submit the form using fetch API to stay on the same page
+                fetch(this.action, {
+                    method: 'POST',
+                    body: new FormData(this),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json().then(data => {
+                            // Reload the page to show the new client
+                            window.location.reload();
+                        });
+                    } else {
+                        return response.json().then(data => {
+                            // Display errors
+                            displayFormErrors(errorContainer, data.errors);
+                        })
+                        .catch(error => {
+                            // If the response is not valid JSON
+                            console.error('Error parsing JSON:', error);
+                            errorContainer.classList.remove('d-none');
+                            errorContainer.textContent = 'An error occurred while processing your request. Please try again.';
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    errorContainer.classList.remove('d-none');
+                    errorContainer.textContent = 'An unexpected error occurred. Please try again.';
+                });
+            });
+        }
+        
+        // Edit client form submission
+        const editClientForm = document.getElementById('editClientForm');
+        if (editClientForm) {
+            editClientForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                
+                // Clear any previous errors
+                const errorContainer = this.querySelector('#editClientFormErrors');
+                errorContainer.classList.add('d-none');
+                errorContainer.innerHTML = '';
+                
+                // Submit the form using fetch API to stay on the same page
+                fetch(this.action, {
+                    method: 'POST',
+                    body: new FormData(this),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json().then(data => {
+                            // Reload the page to show the updated client
+                            window.location.reload();
+                        });
+                    } else {
+                        return response.json().then(data => {
+                            // Display errors
+                            displayFormErrors(errorContainer, data.errors);
+                        })
+                        .catch(error => {
+                            // If the response is not valid JSON
+                            console.error('Error parsing JSON:', error);
+                            errorContainer.classList.remove('d-none');
+                            errorContainer.textContent = 'An error occurred while processing your request. Please try again.';
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    errorContainer.classList.remove('d-none');
+                    errorContainer.textContent = 'An unexpected error occurred. Please try again.';
+                });
+            });
+        }
+        
+        // Delete client form submission
+        const deleteClientForm = document.getElementById('deleteClientForm');
+        if (deleteClientForm) {
+            deleteClientForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                
+                // Submit the form using fetch API to stay on the same page
+                fetch(this.action, {
+                    method: 'POST',
+                    body: new FormData(this),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json().then(data => {
+                            // Reload the page to show the client has been deleted
+                            window.location.reload();
+                        })
+                        .catch(error => {
+                            // If the response is not valid JSON but the request was successful
+                            window.location.reload();
+                        });
+                    } else {
+                        console.error('Delete operation failed');
+                        alert('Failed to delete the client. Please try again.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An unexpected error occurred. Please try again.');
+                });
+            });
+        }
+    });
+</script>
+{% endblock %} 
