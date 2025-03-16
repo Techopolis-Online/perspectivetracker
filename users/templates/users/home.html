@@ -1,0 +1,95 @@
+{% extends 'users/base.html' %}
+
+{% block title %}Home - Perspective Tracker{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12 text-center mb-4">
+            <h1>Welcome to Perspective Tracker</h1>
+            <p class="lead">A CRM system for tracking client services</p>
+        </div>
+    </div>
+
+    {% if user.is_authenticated %}
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h2 class="h5 card-title mb-0">Your Dashboard</h2>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Name:</strong> {{ user.first_name }} {{ user.last_name }}</p>
+                        <p><strong>Email:</strong> {{ user.email }}</p>
+                        <p><strong>Role:</strong> 
+                            {% if user.is_superuser %}
+                                <span class="badge bg-danger">Administrator</span>
+                            {% elif user.role %}
+                                {% if user.role.name == 'admin' %}
+                                    <span class="badge bg-danger">Administrator</span>
+                                {% elif user.role.name == 'staff' %}
+                                    <span class="badge bg-primary">Techopolis Staff</span>
+                                {% elif user.role.name == 'client' %}
+                                    <span class="badge bg-success">Client</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">User</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="badge bg-secondary">No Role Assigned</span>
+                            {% endif %}
+                        </p>
+                        <a href="{% url 'profile' %}" class="btn btn-outline-primary">View Profile</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <h2 class="h5 card-title mb-0">Dashboard</h2>
+                    </div>
+                    <div class="card-body">
+                        {% if user.is_superuser or user.role.name == 'admin' %}
+                            <div class="alert alert-info">
+                                <h3 class="h5">Administrator Access</h3>
+                                <p>You have full access to all system features.</p>
+                                <a href="/admin/" class="btn btn-primary">Go to Admin Panel</a>
+                            </div>
+                        {% elif user.role.name == 'staff' %}
+                            <div class="alert alert-info">
+                                <h3 class="h5">Staff Access</h3>
+                                <p>You have access to internal staff features.</p>
+                            </div>
+                        {% elif user.role.name == 'client' %}
+                            <div class="alert alert-info">
+                                <h3 class="h5">Client Access</h3>
+                                <p>You can view and manage your services.</p>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <h3 class="h5">User Access</h3>
+                                <p>You have basic access to the system.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="row">
+            <div class="col-md-6 offset-md-3">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h2 class="h5 card-title mb-0">Login Required</h2>
+                    </div>
+                    <div class="card-body">
+                        <p>Please log in to access the Perspective Tracker system.</p>
+                        <p>Contact your administrator if you need an account.</p>
+                        <a href="{% url 'login' %}" class="btn btn-primary">Login</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 

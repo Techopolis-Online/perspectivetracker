@@ -1,0 +1,147 @@
+{% extends 'users/base.html' %}
+
+{% block title %}Edit Profile - Perspective Tracker{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h1 class="h3 mb-0">Edit Profile</h1>
+                    <a href="{% url 'profile' %}" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="row mb-4">
+                            <div class="col-md-4 text-center">
+                                {% if user.profile_picture %}
+                                    <img src="{{ user.profile_picture.url }}" alt="Profile Picture" class="img-fluid rounded-circle mb-3" style="max-width: 150px; max-height: 150px;">
+                                {% else %}
+                                    <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 150px; height: 150px; margin: 0 auto;">
+                                        <span class="h1 mb-0">{{ user.first_name|first }}{{ user.last_name|first }}</span>
+                                    </div>
+                                {% endif %}
+                                <div class="mb-3">
+                                    <label for="{{ form.profile_picture.id_for_label }}" class="form-label">Change Profile Picture</label>
+                                    {{ form.profile_picture }}
+                                    {% if form.profile_picture.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.profile_picture.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="row mb-3">
+                                    <div class="col-md-4 fw-bold">
+                                        <label for="{{ form.first_name.id_for_label }}" class="form-label">First Name:</label>
+                                    </div>
+                                    <div class="col-md-8">
+                                        {{ form.first_name }}
+                                        {% if form.first_name.errors %}
+                                            <div class="text-danger">
+                                                {% for error in form.first_name.errors %}
+                                                    {{ error }}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-4 fw-bold">
+                                        <label for="{{ form.last_name.id_for_label }}" class="form-label">Last Name:</label>
+                                    </div>
+                                    <div class="col-md-8">
+                                        {{ form.last_name }}
+                                        {% if form.last_name.errors %}
+                                            <div class="text-danger">
+                                                {% for error in form.last_name.errors %}
+                                                    {{ error }}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-4 fw-bold">
+                                        <label for="{{ form.email.id_for_label }}" class="form-label">Email:</label>
+                                    </div>
+                                    <div class="col-md-8">
+                                        {{ form.email }}
+                                        {% if form.email.errors %}
+                                            <div class="text-danger">
+                                                {% for error in form.email.errors %}
+                                                    {{ error }}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr class="my-4">
+                        <h2 class="h4 mb-3">Additional Information</h2>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-4 fw-bold">
+                                <label for="{{ form.bio.id_for_label }}" class="form-label">Bio:</label>
+                            </div>
+                            <div class="col-md-8">
+                                {{ form.bio }}
+                                {% if form.bio.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.bio.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-4 fw-bold">
+                                <label for="{{ form.phone_number.id_for_label }}" class="form-label">Phone Number:</label>
+                            </div>
+                            <div class="col-md-8">
+                                {{ form.phone_number }}
+                                {% if form.phone_number.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.phone_number.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-4 fw-bold">
+                                <label for="{{ form.job_title.id_for_label }}" class="form-label">Job Title:</label>
+                            </div>
+                            <div class="col-md-8">
+                                {{ form.job_title }}
+                                {% if form.job_title.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.job_title.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

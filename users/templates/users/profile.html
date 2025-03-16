@@ -1,0 +1,112 @@
+{% extends 'users/base.html' %}
+
+{% block title %}Profile - Perspective Tracker{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h1 class="h3 mb-0">{{ user.first_name }} {{ user.last_name }}'s Profile</h1>
+                    <a href="{% url 'edit_profile' %}" class="btn btn-primary">Edit Profile</a>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-4 text-center">
+                            {% if user.profile_picture %}
+                                <img src="{{ user.profile_picture.url }}" alt="Profile Picture" class="img-fluid rounded-circle mb-3" style="max-width: 150px; max-height: 150px;">
+                            {% else %}
+                                <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 150px; height: 150px; margin: 0 auto;">
+                                    <h2 class="h1 mb-0">{{ user.first_name|first }}{{ user.last_name|first }}</h2>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-8">
+                            <div class="row mb-3">
+                                <div class="col-md-4 fw-bold">Name:</div>
+                                <div class="col-md-8">{{ user.first_name }} {{ user.last_name }}</div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-4 fw-bold">Email:</div>
+                                <div class="col-md-8">{{ user.email }}</div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-4 fw-bold">Role:</div>
+                                <div class="col-md-8">
+                                    {% if user.is_superuser %}
+                                        <span class="badge bg-danger">Administrator</span>
+                                    {% elif user.role %}
+                                        {% if user.role.name == 'admin' %}
+                                            <span class="badge bg-danger">Administrator</span>
+                                        {% elif user.role.name == 'staff' %}
+                                            <span class="badge bg-primary">Techopolis Staff</span>
+                                        {% elif user.role.name == 'client' %}
+                                            <span class="badge bg-success">Client</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">User</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-secondary">No Role Assigned</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Last Login:</div>
+                        <div class="col-md-8">{{ user.last_login|date:"F j, Y, g:i a" }}</div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    <h2 class="h4 mb-3">Additional Information</h2>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Bio:</div>
+                        <div class="col-md-8">
+                            {% if user.bio %}
+                                {{ user.bio }}
+                            {% else %}
+                                <em>No bio provided</em>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Phone Number:</div>
+                        <div class="col-md-8">
+                            {% if user.phone_number %}
+                                {{ user.phone_number }}
+                            {% else %}
+                                <em>No phone number provided</em>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Job Title:</div>
+                        <div class="col-md-8">
+                            {% if user.job_title %}
+                                {{ user.job_title }}
+                            {% else %}
+                                <em>No job title provided</em>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="h3 mb-0">Security</h2>
+                </div>
+                <div class="card-body">
+                    <p>Update your password or security settings.</p>
+                    <a href="{% url 'password_change' %}" class="btn btn-outline-primary">Change Password</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
