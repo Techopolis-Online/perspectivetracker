@@ -1,0 +1,136 @@
+{% extends "users/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="mb-2">{{ milestone.name }}</h1>
+            <h4 class="text-muted">{{ project.name }}</h4>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'projects:project_detail' project.id %}" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i> Back to Project
+            </a>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="d-flex justify-content-end mb-4">
+        <a href="{% url 'projects:milestone_update' milestone.id %}" class="btn btn-outline-primary me-2" aria-label="Edit milestone: {{ milestone.name }}">
+            <i class="bi bi-pencil-square" aria-hidden="true"></i> Edit
+        </a>
+        {% if user.is_superuser or user.role.name == 'admin' %}
+        <a href="{% url 'projects:milestone_delete' milestone.id %}" class="btn btn-outline-danger me-2" aria-label="Delete milestone: {{ milestone.name }}">
+            <i class="bi bi-trash" aria-hidden="true"></i> Delete
+        </a>
+        {% if milestone.status == 'completed' and milestone.status != 'published' %}
+        <a href="{% url 'projects:milestone_publish' milestone.id %}" class="btn btn-outline-success" aria-label="Publish milestone: {{ milestone.name }}">
+            <i class="bi bi-check-circle" aria-hidden="true"></i> Publish
+        </a>
+        {% endif %}
+        {% endif %}
+    </div>
+
+    <div class="row">
+        <!-- Milestone Details -->
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h2 class="h5 mb-0"><i class="bi bi-info-circle me-2" aria-hidden="true"></i>Milestone Details</h2>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Type:</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {{ milestone.get_milestone_type_display }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Status:</strong>
+                        </div>
+                        <div class="col-md-8">
+                            <span class="badge {% if milestone.status == 'completed' %}bg-success{% elif milestone.status == 'in_progress' %}bg-primary{% elif milestone.status == 'not_started' %}bg-secondary{% elif milestone.status == 'published' %}bg-info{% else %}bg-warning{% endif %}">
+                                {{ milestone.get_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Assigned To:</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {% if milestone.assigned_to %}
+                                {{ milestone.assigned_to.get_full_name }}
+                            {% else %}
+                                <span class="text-muted">Not assigned</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Start Date:</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {{ milestone.start_date|default:"Not set" }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Due Date:</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {{ milestone.due_date|default:"Not set" }}
+                        </div>
+                    </div>
+                    {% if milestone.completed_date %}
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Completed Date:</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {{ milestone.completed_date }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Created:</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {{ milestone.created_at|date:"M d, Y" }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Last Updated:</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {{ milestone.updated_at|date:"M d, Y" }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Milestone Description -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h2 class="h5 mb-0"><i class="bi bi-file-text me-2" aria-hidden="true"></i>Description</h2>
+                </div>
+                <div class="card-body">
+                    {% if milestone.description %}
+                        {{ milestone.description|linebreaks }}
+                    {% else %}
+                        <p class="text-muted">No description provided.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

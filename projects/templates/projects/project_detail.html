@@ -1,5 +1,6 @@
 {% extends "users/base.html" %}
 {% load static %}
+{% load project_tags %}
 
 {% block content %}
 <div class="container mt-4">
@@ -124,49 +125,45 @@
                         <!-- Project Staff -->
                         <div class="col-md-6 mb-3">
                             <h3 class="h6 border-bottom pb-2">Project Staff</h3>
-                            {% with staff_members=project.assigned_to.all|dictsort:"first_name" %}
                             {% if staff_members %}
+                                <ul class="list-unstyled">
                                 {% for member in staff_members %}
-                                    {% if member.role.name == 'admin' or member.role.name == 'staff' or member.is_superuser %}
-                                    <div class="d-flex align-items-center mb-2">
-                                        <div class="avatar-circle bg-primary text-white me-2">
-                                            {{ member.first_name|first }}{{ member.last_name|first }}
-                                        </div>
-                                        <div>
-                                            <div>{{ member.get_full_name }}</div>
-                                            <small class="text-muted">{{ member.email }}</small>
-                                        </div>
+                                <li class="d-flex align-items-center mb-2">
+                                    <div class="avatar-circle bg-primary text-white me-2">
+                                        {{ member.first_name|first }}{{ member.last_name|first }}
                                     </div>
-                                    {% endif %}
+                                    <div>
+                                        <div>{{ member.get_full_name }}</div>
+                                        <small class="text-muted">{{ member.email }}</small>
+                                    </div>
+                                </li>
                                 {% endfor %}
+                                </ul>
                             {% else %}
                                 <p class="text-muted">No staff members assigned to this project.</p>
                             {% endif %}
-                            {% endwith %}
                         </div>
                         
                         <!-- Client Team -->
                         <div class="col-md-6 mb-3">
                             <h3 class="h6 border-bottom pb-2">Client Team</h3>
-                            {% with client_members=project.assigned_to.all|dictsort:"first_name" %}
                             {% if client_members %}
+                                <ul class="list-unstyled">
                                 {% for member in client_members %}
-                                    {% if member.role.name == 'client' %}
-                                    <div class="d-flex align-items-center mb-2">
-                                        <div class="avatar-circle bg-secondary text-white me-2">
-                                            {{ member.first_name|first }}{{ member.last_name|first }}
-                                        </div>
-                                        <div>
-                                            <div>{{ member.get_full_name }}</div>
-                                            <small class="text-muted">{{ member.email }}</small>
-                                        </div>
+                                <li class="d-flex align-items-center mb-2">
+                                    <div class="avatar-circle bg-secondary text-white me-2">
+                                        {{ member.first_name|first }}{{ member.last_name|first }}
                                     </div>
-                                    {% endif %}
+                                    <div>
+                                        <div>{{ member.get_full_name }}</div>
+                                        <small class="text-muted">{{ member.email }}</small>
+                                    </div>
+                                </li>
                                 {% endfor %}
+                                </ul>
                             {% else %}
                                 <p class="text-muted">No client team members assigned to this project.</p>
                             {% endif %}
-                            {% endwith %}
                         </div>
                     </div>
                 </div>
@@ -259,107 +256,145 @@
             {% if project.project_type.supports_standards %}
             <div class="card mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h2 class="h5 mb-0"><i class="bi bi-exclamation-triangle me-2" aria-hidden="true"></i>Standards and Issues</h2>
+                    <h2 class="h5 mb-0"><i class="bi bi-exclamation-triangle me-2" aria-hidden="true"></i>Issues</h2>
                     <div>
-                        {% if not project_standards %}
-                        <a href="{% url 'projects:project_standard_create' project.id %}" class="btn btn-sm btn-success me-2" aria-label="Add standard to project">
-                            <i class="bi bi-plus-lg" aria-hidden="true"></i> Add Standard
-                        </a>
-                        {% endif %}
-                        {% if project_standards %}
-                        <a href="{% url 'projects:project_violation_create' project.id %}" class="btn btn-sm btn-primary" aria-label="Create new issue for project">
+                        <a href="{% url 'projects:issue_create' project.id %}" class="btn btn-sm btn-primary" aria-label="Create new issue for project">
                             <i class="bi bi-plus-lg" aria-hidden="true"></i> Create Issue
                         </a>
-                        {% endif %}
                     </div>
                 </div>
                 <div class="card-body">
-                    <!-- Project Standards Section -->
-                    <div class="mb-4">
-                        <h3 class="h6 mb-3">Project Standard</h3>
-                        {% if project_standards %}
-                            {% with project_standard=project_standards.0 %}
-                            <div class="card">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <h4 class="h5">{{ project_standard.standard.name }} {{ project_standard.standard.version }}</h4>
-                                            {% if project_standard.standard.description %}
-                                            <p class="text-muted mb-0">{{ project_standard.standard.description|truncatechars:100 }}</p>
-                                            {% endif %}
-                                            {% if project_standard.standard.url %}
-                                            <a href="{{ project_standard.standard.url }}" target="_blank" class="small">View Documentation</a>
-                                            {% endif %}
-                                        </div>
-                                        <a href="{% url 'projects:project_standard_delete' project_standard.id %}" class="btn btn-sm btn-outline-danger" aria-label="Remove standard: {{ project_standard.standard.name }}">
-                                            <i class="bi bi-trash" aria-hidden="true"></i><span class="visually-hidden">Remove</span> Remove
+                    <!-- Accessibility Issues Section -->
+                    {% if issues %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Page/Scenario</th>
+                                    <th>Issue Description</th>
+                                    <th>Status</th>
+                                    <th>Impact</th>
+                                    <th>Comments</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for issue in issues %}
+                                <tr class="clickable-row" data-href="{% url 'projects:issue_detail' project.id issue.id %}">
+                                    <td>{{ issue.page.name }}</td>
+                                    <td>
+                                        <a href="{% url 'projects:issue_detail' project.id issue.id %}" class="text-decoration-none">
+                                            {{ issue.issue_description|truncatechars:50 }}
                                         </a>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endwith %}
-                        {% else %}
-                            <div class="alert alert-info">
-                                <p class="mb-0">No standard has been added to this project yet. Add a standard before creating issues.</p>
-                                <a href="{% url 'projects:project_standard_create' project.id %}" class="btn btn-sm btn-success mt-2">
-                                    <i class="bi bi-plus-lg"></i> Add Standard
-                                </a>
-                            </div>
-                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if issue.current_status == 'fail' %}bg-danger{% elif issue.current_status == 'in_remediation' %}bg-warning text-dark{% elif issue.current_status == 'pass' %}bg-success{% else %}bg-secondary{% endif %}">
+                                            {{ issue.get_current_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if issue.user_impact == 'high' %}bg-danger{% elif issue.user_impact == 'low' %}bg-warning text-dark{% else %}bg-info{% endif %}">
+                                            {{ issue.get_user_impact_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#commentsModal{{ issue.id }}">
+                                            <span class="badge bg-secondary">
+                                                <i class="bi bi-chat-dots me-1"></i> {{ issue.comments.count }}
+                                            </span>
+                                        </a>
+                                        
+                                        <!-- Comments Modal -->
+                                        <div class="modal fade" id="commentsModal{{ issue.id }}" tabindex="-1" aria-labelledby="commentsModalLabel{{ issue.id }}" aria-hidden="true">
+                                            <div class="modal-dialog modal-lg">
+                                                <div class="modal-content">
+                                                    <div class="modal-header bg-light">
+                                                        <h5 class="modal-title" id="commentsModalLabel{{ issue.id }}">
+                                                            <i class="bi bi-chat-dots me-2"></i>Comments for Issue
+                                                        </h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <div class="mb-3">
+                                                            <h6 class="text-muted mb-3">Issue: {{ issue.issue_description|truncatechars:100 }}</h6>
+                                                            <div class="d-flex mb-2">
+                                                                <span class="badge {% if issue.current_status == 'fail' %}bg-danger{% elif issue.current_status == 'in_remediation' %}bg-warning text-dark{% elif issue.current_status == 'pass' %}bg-success{% else %}bg-secondary{% endif %} me-2">
+                                                                    {{ issue.get_current_status_display }}
+                                                                </span>
+                                                                <span class="badge {% if issue.user_impact == 'high' %}bg-danger{% elif issue.user_impact == 'low' %}bg-warning text-dark{% else %}bg-info{% endif %}">
+                                                                    {{ issue.get_user_impact_display }} Impact
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <hr>
+                                                        
+                                                        {% if issue.comments.exists %}
+                                                            <div class="comments-list">
+                                                                {% for comment in issue.comments.all %}
+                                                                    {% if comment.comment_type == 'external' or user.is_superuser or user.role.name == 'admin' or user.role.name == 'staff' %}
+                                                                    <div class="comment mb-3 p-3 {% if comment.comment_type == 'internal' %}bg-light border-start border-4 border-warning{% else %}border rounded{% endif %}">
+                                                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                                                            <div class="d-flex align-items-center">
+                                                                                <div class="avatar-circle {% if comment.comment_type == 'internal' %}bg-warning text-dark{% else %}bg-primary text-white{% endif %} me-2" style="width: 36px; height: 36px; font-size: 0.9rem;">
+                                                                                    {{ comment.author.get_full_name|default:comment.author.username }}
+                                                                                </div>
+                                                                                <div>
+                                                                                    <strong>{{ comment.author.get_full_name }}</strong>
+                                                                                    {% if comment.comment_type == 'internal' %}
+                                                                                    <span class="badge bg-warning text-dark ms-2">Internal</span>
+                                                                                    {% endif %}
+                                                                                    <div class="text-muted small">{{ comment.created_at|date:"M d, Y H:i" }}</div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="comment-text">
+                                                                            {{ comment.text|linebreaks }}
+                                                                        </div>
+                                                                    </div>
+                                                                    {% endif %}
+                                                                {% endfor %}
+                                                            </div>
+                                                        {% else %}
+                                                            <div class="alert alert-info">
+                                                                <p class="mb-0">No comments yet for this issue.</p>
+                                                            </div>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                        <a href="{% url 'projects:issue_detail' project.id issue.id %}#comments" class="btn btn-primary">
+                                                            <i class="bi bi-plus-circle me-1"></i>Add Comment
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'projects:issue_detail' project.id issue.id %}" class="btn btn-sm btn-outline-secondary me-1" aria-label="View issue details">
+                                            <i class="bi bi-eye" aria-hidden="true"></i><span class="visually-hidden">View</span>
+                                        </a>
+                                        <a href="{% url 'projects:issue_edit' project.id issue.id %}" class="btn btn-sm btn-outline-primary me-1" aria-label="Edit issue">
+                                            <i class="bi bi-pencil" aria-hidden="true"></i><span class="visually-hidden">Edit</span>
+                                        </a>
+                                        {% if user.is_superuser or user.role.name == 'admin' %}
+                                        <a href="{% url 'projects:issue_delete' project.id issue.id %}" class="btn btn-sm btn-outline-danger" aria-label="Delete issue">
+                                            <i class="bi bi-trash" aria-hidden="true"></i><span class="visually-hidden">Delete</span>
+                                        </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
-
-                    <!-- Violations Section -->
-                    {% if project_standards %}
-                        {% if grouped_violations %}
-                            <h3 class="h6 mb-3">Issues by Standard</h3>
-                            {% for standard, violations in grouped_violations.items %}
-                            <div class="mb-4">
-                                <h4 class="h6 border-bottom pb-2">Standard: {{ standard.name }} {{ standard.version }}</h4>
-                                <div class="table-responsive">
-                                    <table class="table table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>Issue</th>
-                                                <th>Status</th>
-                                                <th>Location</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for violation in violations %}
-                                            <tr>
-                                                <td>{{ violation.violation.name }}</td>
-                                                <td>
-                                                    <span class="badge {% if violation.status == 'open' %}bg-danger{% elif violation.status == 'in_progress' %}bg-warning text-dark{% elif violation.status == 'fixed' %}bg-success{% else %}bg-secondary{% endif %}">
-                                                        {{ violation.get_status_display }}
-                                                    </span>
-                                                </td>
-                                                <td>{{ violation.location|truncatechars:30 }}</td>
-                                                <td>
-                                                    <a href="{% url 'projects:project_violation_update' violation.id %}" class="btn btn-sm btn-outline-primary" aria-label="Edit issue: {{ violation.violation.name }}">
-                                                        <i class="bi bi-pencil" aria-hidden="true"></i><span class="visually-hidden">Edit</span>
-                                                    </a>
-                                                    {% if user.is_superuser or user.role.name == 'admin' %}
-                                                    <a href="{% url 'projects:project_violation_delete' violation.id %}" class="btn btn-sm btn-outline-danger" aria-label="Delete issue: {{ violation.violation.name }}">
-                                                        <i class="bi bi-trash" aria-hidden="true"></i><span class="visually-hidden">Delete</span>
-                                                    </a>
-                                                    {% endif %}
-                                                </td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        {% else %}
-                            <div class="alert alert-info">
-                                <p class="mb-0">No issues have been added to this project yet.</p>
-                                <a href="{% url 'projects:project_violation_create' project.id %}" class="btn btn-sm btn-primary mt-2">
-                                    <i class="bi bi-plus-lg"></i> Create Issue
-                                </a>
-                            </div>
-                        {% endif %}
+                    {% else %}
+                    <div class="alert alert-info">
+                        <p class="mb-0">No accessibility issues have been added to this project yet.</p>
+                        <a href="{% url 'projects:issue_create' project.id %}" class="btn btn-sm btn-primary mt-2">
+                            <i class="bi bi-plus-lg"></i> Create Issue
+                        </a>
+                    </div>
                     {% endif %}
                 </div>
             </div>
@@ -367,21 +402,169 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h2 class="h5 mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Project Issues</h2>
-                    <button class="btn btn-primary btn-sm">
+                    <a href="{% url 'projects:issue_create' project.id %}" class="btn btn-primary btn-sm">
                         <i class="bi bi-plus-lg me-1"></i> Add Issue
-                    </button>
+                    </a>
                 </div>
                 <div class="card-body">
                     <div class="alert alert-info">
-                        <p class="mb-0">This project type doesn't support standards-based issues. You can still track general issues here.</p>
+                        <p class="mb-0">This project type doesn't support standards-based issues. You can track issues here.</p>
                     </div>
                     
-                    <!-- Example empty state -->
+                    <!-- Issues Section -->
+                    {% if issues %}
+                    <div class="table-responsive mt-4">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Page/Scenario</th>
+                                    <th>Issue Description</th>
+                                    <th>Status</th>
+                                    <th>Impact</th>
+                                    <th>Comments</th>
+                                    {% if project.project_type.issue_fields %}
+                                        {% for field in project.project_type.issue_fields %}
+                                            <th>{{ field.label|default:field.name|title }}</th>
+                                        {% endfor %}
+                                    {% endif %}
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for issue in issues %}
+                                <tr class="clickable-row" data-href="{% url 'projects:issue_detail' project.id issue.id %}">
+                                    <td>{{ issue.page.name }}</td>
+                                    <td>
+                                        <a href="{% url 'projects:issue_detail' project.id issue.id %}" class="text-decoration-none">
+                                            {{ issue.issue_description|truncatechars:50 }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if issue.current_status == 'fail' %}bg-danger{% elif issue.current_status == 'in_remediation' %}bg-warning text-dark{% elif issue.current_status == 'pass' %}bg-success{% else %}bg-secondary{% endif %}">
+                                            {{ issue.get_current_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if issue.user_impact == 'high' %}bg-danger{% elif issue.user_impact == 'low' %}bg-warning text-dark{% else %}bg-info{% endif %}">
+                                            {{ issue.get_user_impact_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#commentsModal{{ issue.id }}">
+                                            <span class="badge bg-secondary">
+                                                <i class="bi bi-chat-dots me-1"></i> {{ issue.comments.count }}
+                                            </span>
+                                        </a>
+                                        
+                                        <!-- Comments Modal -->
+                                        <div class="modal fade" id="commentsModal{{ issue.id }}" tabindex="-1" aria-labelledby="commentsModalLabel{{ issue.id }}" aria-hidden="true">
+                                            <div class="modal-dialog modal-lg">
+                                                <div class="modal-content">
+                                                    <div class="modal-header bg-light">
+                                                        <h5 class="modal-title" id="commentsModalLabel{{ issue.id }}">
+                                                            <i class="bi bi-chat-dots me-2"></i>Comments for Issue
+                                                        </h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <div class="mb-3">
+                                                            <h6 class="text-muted mb-3">Issue: {{ issue.issue_description|truncatechars:100 }}</h6>
+                                                            <div class="d-flex mb-2">
+                                                                <span class="badge {% if issue.current_status == 'fail' %}bg-danger{% elif issue.current_status == 'in_remediation' %}bg-warning text-dark{% elif issue.current_status == 'pass' %}bg-success{% else %}bg-secondary{% endif %} me-2">
+                                                                    {{ issue.get_current_status_display }}
+                                                                </span>
+                                                                <span class="badge {% if issue.user_impact == 'high' %}bg-danger{% elif issue.user_impact == 'low' %}bg-warning text-dark{% else %}bg-info{% endif %}">
+                                                                    {{ issue.get_user_impact_display }} Impact
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <hr>
+                                                        
+                                                        {% if issue.comments.exists %}
+                                                            <div class="comments-list">
+                                                                {% for comment in issue.comments.all %}
+                                                                    {% if comment.comment_type == 'external' or user.is_superuser or user.role.name == 'admin' or user.role.name == 'staff' %}
+                                                                    <div class="comment mb-3 p-3 {% if comment.comment_type == 'internal' %}bg-light border-start border-4 border-warning{% else %}border rounded{% endif %}">
+                                                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                                                            <div class="d-flex align-items-center">
+                                                                                <div class="avatar-circle {% if comment.comment_type == 'internal' %}bg-warning text-dark{% else %}bg-primary text-white{% endif %} me-2" style="width: 36px; height: 36px; font-size: 0.9rem;">
+                                                                                    {{ comment.author.get_full_name|default:comment.author.username }}
+                                                                                </div>
+                                                                                <div>
+                                                                                    <strong>{{ comment.author.get_full_name }}</strong>
+                                                                                    {% if comment.comment_type == 'internal' %}
+                                                                                    <span class="badge bg-warning text-dark ms-2">Internal</span>
+                                                                                    {% endif %}
+                                                                                    <div class="text-muted small">{{ comment.created_at|date:"M d, Y H:i" }}</div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="comment-text">
+                                                                            {{ comment.text|linebreaks }}
+                                                                        </div>
+                                                                    </div>
+                                                                    {% endif %}
+                                                                {% endfor %}
+                                                            </div>
+                                                        {% else %}
+                                                            <div class="alert alert-info">
+                                                                <p class="mb-0">No comments yet for this issue.</p>
+                                                            </div>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                        <a href="{% url 'projects:issue_detail' project.id issue.id %}#comments" class="btn btn-primary">
+                                                            <i class="bi bi-plus-circle me-1"></i>Add Comment
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    {% if project.project_type.issue_fields %}
+                                        {% for field in project.project_type.issue_fields %}
+                                            <td>
+                                                {% with field_value=issue.dynamic_fields|get_item:field.name %}
+                                                    {% if field.type == 'checkbox' %}
+                                                        {% if field_value %}
+                                                            <i class="bi bi-check-circle-fill text-success"></i>
+                                                        {% else %}
+                                                            <i class="bi bi-x-circle text-muted"></i>
+                                                        {% endif %}
+                                                    {% else %}
+                                                        {{ field_value|default:"-" }}
+                                                    {% endif %}
+                                                {% endwith %}
+                                            </td>
+                                        {% endfor %}
+                                    {% endif %}
+                                    <td>
+                                        <a href="{% url 'projects:issue_detail' project.id issue.id %}" class="btn btn-sm btn-outline-secondary me-1" aria-label="View issue details">
+                                            <i class="bi bi-eye" aria-hidden="true"></i><span class="visually-hidden">View</span>
+                                        </a>
+                                        <a href="{% url 'projects:issue_edit' project.id issue.id %}" class="btn btn-sm btn-outline-primary me-1" aria-label="Edit issue">
+                                            <i class="bi bi-pencil" aria-hidden="true"></i><span class="visually-hidden">Edit</span>
+                                        </a>
+                                        {% if user.is_superuser or user.role.name == 'admin' %}
+                                        <a href="{% url 'projects:issue_delete' project.id issue.id %}" class="btn btn-sm btn-outline-danger" aria-label="Delete issue">
+                                            <i class="bi bi-trash" aria-hidden="true"></i><span class="visually-hidden">Delete</span>
+                                        </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <!-- Empty state -->
                     <div class="text-center py-5">
                         <i class="bi bi-clipboard-check" style="font-size: 3rem; color: #ccc;"></i>
                         <h3 class="h5 mt-3">No Issues Yet</h3>
                         <p class="text-muted">Start tracking issues by clicking the "Add Issue" button.</p>
                     </div>
+                    {% endif %}
                 </div>
             </div>
             {% endif %}
@@ -403,9 +586,11 @@
                             <thead>
                                 <tr>
                                     <th>Name</th>
+                                    <th>Type</th>
                                     <th>Status</th>
+                                    <th>Assigned To</th>
+                                    <th>Start Date</th>
                                     <th>Due Date</th>
-                                    <th>Completed Date</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -413,18 +598,30 @@
                                 {% for milestone in milestones %}
                                 <tr>
                                     <td>
-                                        <strong>{{ milestone.name }}</strong>
+                                        <strong>
+                                            <a href="{% url 'projects:milestone_detail' milestone.id %}" class="text-decoration-none">
+                                                {{ milestone.name }}
+                                            </a>
+                                        </strong>
                                         {% if milestone.description %}
                                         <div class="small text-muted">{{ milestone.description|truncatechars:50 }}</div>
                                         {% endif %}
                                     </td>
+                                    <td>{{ milestone.get_milestone_type_display }}</td>
                                     <td>
-                                        <span class="badge {% if milestone.status == 'completed' %}bg-success{% elif milestone.status == 'in_progress' %}bg-primary{% elif milestone.status == 'not_started' %}bg-secondary{% elif milestone.status == 'delayed' %}bg-danger{% else %}bg-info{% endif %}">
+                                        <span class="badge {% if milestone.status == 'completed' %}bg-success{% elif milestone.status == 'in_progress' %}bg-primary{% elif milestone.status == 'not_started' %}bg-secondary{% elif milestone.status == 'published' %}bg-info{% else %}bg-warning{% endif %}">
                                             {{ milestone.get_status_display }}
                                         </span>
                                     </td>
+                                    <td>
+                                        {% if milestone.assigned_to %}
+                                            {{ milestone.assigned_to.get_full_name }}
+                                        {% else %}
+                                            <span class="text-muted">Not assigned</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ milestone.start_date|default:"Not set" }}</td>
                                     <td>{{ milestone.due_date|default:"Not set" }}</td>
-                                    <td>{{ milestone.completed_date|default:"Not completed" }}</td>
                                     <td>
                                         <div class="btn-group btn-group-sm" role="group" aria-label="Milestone actions">
                                             <a href="{% url 'projects:milestone_update' milestone.id %}" class="btn btn-outline-primary" aria-label="Edit milestone: {{ milestone.name }}">
@@ -434,6 +631,13 @@
                                             <a href="{% url 'projects:milestone_delete' milestone.id %}" class="btn btn-outline-danger" aria-label="Delete milestone: {{ milestone.name }}">
                                                 <i class="bi bi-trash" aria-hidden="true"></i><span class="visually-hidden">Delete</span>
                                             </a>
+                                            {% endif %}
+                                            {% if user.is_superuser or user.role.name == 'admin' %}
+                                            {% if milestone.status == 'completed' and milestone.status != 'published' %}
+                                            <a href="{% url 'projects:milestone_publish' milestone.id %}" class="btn btn-outline-success" aria-label="Publish milestone: {{ milestone.name }}">
+                                                <i class="bi bi-check-circle" aria-hidden="true"></i><span class="visually-hidden">Publish</span>
+                                            </a>
+                                            {% endif %}
                                             {% endif %}
                                         </div>
                                     </td>
@@ -513,6 +717,15 @@
     align-items: center;
     justify-content: center;
     font-weight: bold;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.comment {
+    transition: all 0.2s ease;
+}
+
+.comment:hover {
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
 /* Tab styling */
@@ -563,6 +776,23 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             });
+        });
+    });
+    
+    // Make table rows clickable
+    const clickableRows = document.querySelectorAll('.clickable-row');
+    clickableRows.forEach(row => {
+        row.style.cursor = 'pointer';
+        row.addEventListener('click', function(e) {
+            // Don't navigate if clicking on a button or link
+            if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON' || 
+                e.target.closest('a') || e.target.closest('button')) {
+                return;
+            }
+            const href = this.dataset.href;
+            if (href) {
+                window.location.href = href;
+            }
         });
     });
 });

@@ -3,9 +3,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import HttpResponseForbidden, JsonResponse
 from django.db.models import Count, Q
-from .models import ProjectType, Project, Standard, Violation, ProjectViolation, ProjectStandard, Page, Milestone
+from .models import ProjectType, Project, Standard, Violation, ProjectViolation, ProjectStandard, Page, Milestone, Issue
 from users.views import admin_required, staff_required
-from .forms import ProjectForm, StandardForm, ViolationForm, ProjectViolationForm, ProjectTypeForm, ProjectStandardForm, PageForm, MilestoneForm
+from .forms import ProjectForm, StandardForm, ViolationForm, ProjectViolationForm, ProjectTypeForm, ProjectStandardForm, PageForm, MilestoneForm, IssueForm, CommentForm
 
 @login_required
 def project_list(request):
@@ -54,6 +54,21 @@ def project_detail(request, pk):
     # Get project milestones
     milestones = Milestone.objects.filter(project=project).order_by('due_date', 'name')
     
+    # Get accessibility issues
+    issues = Issue.objects.filter(project=project).order_by('-created_at')
+    
+    # Get team members
+    team_members = project.assigned_to.all()
+    
+    # Separate staff and client team members
+    staff_members = [member for member in team_members if member.is_superuser or 
+                    (hasattr(member, 'role') and member.role and member.role.name in ['admin', 'staff'])]
+    staff_members.sort(key=lambda x: x.first_name)
+    
+    client_members = [member for member in team_members if hasattr(member, 'role') and 
+                     member.role and member.role.name == 'client']
+    client_members.sort(key=lambda x: x.first_name)
+    
     # Group violations by standard
     grouped_violations = {}
     for violation in violations:
@@ -68,6 +83,10 @@ def project_detail(request, pk):
         'grouped_violations': grouped_violations,
         'pages': pages,
         'milestones': milestones,
+        'issues': issues,
+        'team_members': team_members,
+        'staff_members': staff_members,
+        'client_members': client_members,
     }
     return render(request, 'projects/project_detail.html', context)
 
@@ -759,3 +778,166 @@ def milestone_delete(request, pk):
         'project': project,
     }
     return render(request, 'projects/milestone_confirm_delete.html', context)
+
+@login_required
+@admin_required
+def milestone_publish(request, pk):
+    """Publish a completed milestone"""
+    milestone = get_object_or_404(Milestone, pk=pk)
+    project = milestone.project
+    
+    # Check if milestone is completed
+    if milestone.status != 'completed':
+        messages.error(request, f"Milestone '{milestone.name}' must be completed before it can be published.")
+        return redirect('projects:project_detail', pk=project.id)
+    
+    # Update milestone status to published
+    milestone.status = 'published'
+    milestone.save()
+    
+    messages.success(request, f"Milestone '{milestone.name}' has been published successfully.")
+    return redirect('projects:project_detail', pk=project.id)
+
+@login_required
+def milestone_detail(request, pk):
+    """Display milestone details"""
+    milestone = get_object_or_404(Milestone, pk=pk)
+    project = milestone.project
+    
+    # Check if user has access to this project
+    if not (request.user.is_superuser or 
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']) or
+            request.user in project.assigned_to.all()):
+        return HttpResponseForbidden("You don't have permission to access this milestone.")
+    
+    context = {
+        'milestone': milestone,
+        'project': project,
+    }
+    return render(request, 'projects/milestone_detail.html', context)
+
+@login_required
+def issue_create(request, project_id):
+    """Create a new issue for a project"""
+    project = get_object_or_404(Project, pk=project_id)
+    
+    # Check if user has access to this project
+    if not (request.user.is_superuser or 
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']) or
+            request.user in project.assigned_to.all()):
+        return HttpResponseForbidden("You don't have permission to access this project.")
+    
+    if request.method == 'POST':
+        form = IssueForm(request.POST, project=project)
+        if form.is_valid():
+            issue = form.save(commit=False)
+            issue.project = project
+            issue.created_by = request.user
+            issue.save()
+            messages.success(request, 'Issue created successfully.')
+            return redirect('projects:project_detail', pk=project.id)
+    else:
+        form = IssueForm(project=project)
+    
+    context = {
+        'form': form,
+        'project': project,
+    }
+    
+    return render(request, 'projects/issue_form.html', context)
+
+@login_required
+def issue_edit(request, project_id, pk):
+    """Edit an existing issue"""
+    project = get_object_or_404(Project, pk=project_id)
+    issue = get_object_or_404(Issue, pk=pk, project=project)
+    
+    # Check if user has access to this project
+    if not (request.user.is_superuser or 
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']) or
+            request.user in project.assigned_to.all()):
+        return HttpResponseForbidden("You don't have permission to access this project.")
+    
+    if request.method == 'POST':
+        form = IssueForm(request.POST, instance=issue, project=project)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Issue updated successfully.')
+            return redirect('projects:project_detail', pk=project.id)
+    else:
+        form = IssueForm(instance=issue, project=project)
+    
+    context = {
+        'form': form,
+        'project': project,
+        'issue': issue,
+    }
+    
+    return render(request, 'projects/issue_form.html', context)
+
+@login_required
+def issue_delete(request, project_id, pk):
+    """Delete an issue"""
+    project = get_object_or_404(Project, pk=project_id)
+    issue = get_object_or_404(Issue, pk=pk, project=project)
+    
+    # Check if user has access to this project
+    if not (request.user.is_superuser or 
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff'])):
+        return HttpResponseForbidden("You don't have permission to delete this issue.")
+    
+    if request.method == 'POST':
+        issue.delete()
+        messages.success(request, 'Issue deleted successfully.')
+        return redirect('projects:project_detail', pk=project.id)
+    
+    context = {
+        'object': issue,
+        'project': project,
+    }
+    return render(request, 'projects/issue_confirm_delete.html', context)
+
+@login_required
+def issue_detail(request, project_id, pk):
+    """Display issue details"""
+    project = get_object_or_404(Project, pk=project_id)
+    issue = get_object_or_404(Issue, pk=pk, project=project)
+    
+    # Check if user has access to this project
+    if not (request.user.is_superuser or 
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']) or
+            request.user in project.assigned_to.all()):
+        return HttpResponseForbidden("You don't have permission to access this project.")
+    
+    # Get comments for this issue
+    comments = issue.comments.all()
+    
+    # Handle comment form submission
+    if request.method == 'POST':
+        comment_form = CommentForm(request.POST, user=request.user)
+        if comment_form.is_valid():
+            comment = comment_form.save(commit=False)
+            comment.issue = issue
+            comment.author = request.user
+            comment.save()
+            messages.success(request, 'Comment added successfully.')
+            return redirect('projects:issue_detail', project_id=project.id, pk=issue.id)
+    else:
+        comment_form = CommentForm(user=request.user)
+    
+    # Determine if user can see internal comments
+    can_see_internal = request.user.is_superuser or (
+        hasattr(request.user, 'role') and 
+        request.user.role and 
+        request.user.role.name in ['admin', 'staff']
+    )
+    
+    context = {
+        'issue': issue,
+        'project': project,
+        'comments': comments,
+        'comment_form': comment_form,
+        'can_see_internal': can_see_internal,
+    }
+    
+    return render(request, 'projects/issue_detail.html', context)

@@ -1,0 +1,200 @@
+{% extends 'users/base.html' %}
+
+{% block title %}
+    {% if form.instance.id %}
+        Edit Issue
+    {% else %}
+        Add Issue
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'projects:project_list' %}">Projects</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'projects:project_detail' project.id %}">{{ project.name }}</a></li>
+                    {% if form.instance.id %}
+                        <li class="breadcrumb-item active" aria-current="page">Edit Issue</li>
+                    {% else %}
+                        <li class="breadcrumb-item active" aria-current="page">Add Issue</li>
+                    {% endif %}
+                </ol>
+            </nav>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2>
+                        {% if form.instance.id %}
+                            Edit Issue
+                        {% else %}
+                            Add Issue
+                        {% endif %}
+                        <small class="text-muted">{{ project.name }}</small>
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        {% if form.errors %}
+                            <div class="alert alert-danger">
+                                Please correct the errors below.
+                            </div>
+                        {% endif %}
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.milestone.id_for_label }}">Milestone:</label>
+                                    {{ form.milestone }}
+                                    {% if form.milestone.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.milestone.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.page.id_for_label }}">Page:</label>
+                                    {{ form.page }}
+                                    {% if form.page.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.page.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                {% if not project.project_type.issue_fields %}
+                                <div class="form-group">
+                                    <label for="{{ form.violation.id_for_label }}">Violation:</label>
+                                    {{ form.violation }}
+                                    {% if form.violation.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.violation.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.assigned_to.id_for_label }}">Assigned To:</label>
+                                    {{ form.assigned_to }}
+                                    {% if form.assigned_to.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.assigned_to.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if project.project_type.issue_fields %}
+                            <!-- Dynamic Fields Section -->
+                            {% for field in form %}
+                                {% if field.name|slice:":8" == "dynamic_" %}
+                                    <div class="form-group mb-3">
+                                        <label for="{{ field.id_for_label }}">{{ field.label }}:</label>
+                                        {{ field }}
+                                        {% if field.errors %}
+                                            <div class="invalid-feedback d-block">{{ field.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            <!-- Hidden Fields for projects with custom fields -->
+                            <div style="display: none;">
+                                {{ form.issue_description }}
+                                {{ form.steps_to_reproduce }}
+                                {{ form.tool_or_method }}
+                                {{ form.user_impact }}
+                                {{ form.user_impact_description }}
+                                {{ form.workarounds }}
+                                {{ form.current_status }}
+                                {{ form.violation }}
+                            </div>
+                        {% else %}
+                            <!-- Standard Fields Section -->
+                            <div class="form-group mb-3">
+                                <label for="{{ form.issue_description.id_for_label }}">Issue Description:</label>
+                                {{ form.issue_description }}
+                                {% if form.issue_description.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.issue_description.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group mb-3">
+                                <label for="{{ form.steps_to_reproduce.id_for_label }}">Steps to Reproduce:</label>
+                                {{ form.steps_to_reproduce }}
+                                {% if form.steps_to_reproduce.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.steps_to_reproduce.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="{{ form.tool_or_method.id_for_label }}">Tool or Method:</label>
+                                        {{ form.tool_or_method }}
+                                        {% if form.tool_or_method.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.tool_or_method.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="{{ form.user_impact.id_for_label }}">User Impact:</label>
+                                        {{ form.user_impact }}
+                                        {% if form.user_impact.errors %}
+                                            <div class="invalid-feedback d-block">{{ form.user_impact.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group mb-3">
+                                <label for="{{ form.user_impact_description.id_for_label }}">User Impact Description:</label>
+                                {{ form.user_impact_description }}
+                                {% if form.user_impact_description.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.user_impact_description.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group mb-3">
+                                <label for="{{ form.workarounds.id_for_label }}">Workarounds:</label>
+                                {{ form.workarounds }}
+                                {% if form.workarounds.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.workarounds.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group mb-3">
+                                <label for="{{ form.current_status.id_for_label }}">Current Status:</label>
+                                {{ form.current_status }}
+                                {% if form.current_status.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.current_status.errors }}</div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Attachment field - always visible at the bottom -->
+                        <div class="form-group mb-3">
+                            <label for="{{ form.attachment.id_for_label }}">Attachment:</label>
+                            {{ form.attachment }}
+                            {% if form.attachment.errors %}
+                                <div class="invalid-feedback d-block">{{ form.attachment.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">Save</button>
+                            <a href="{% url 'projects:project_detail' project.id %}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

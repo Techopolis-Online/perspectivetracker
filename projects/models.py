@@ -11,6 +11,7 @@ class ProjectType(models.Model):
     supports_standards = models.BooleanField(default=False, help_text="Whether this project type supports standards and violations")
     status_choices = models.JSONField(default=list, blank=True, help_text="List of status choices for this project type in format [['key', 'Display Name'], ...]")
     milestone_choices = models.JSONField(default=list, blank=True, help_text="List of milestone choices for this project type in format [['key', 'Display Name'], ...]")
+    issue_fields = models.JSONField(default=list, blank=True, help_text="List of custom issue fields for this project type in format [{'name': 'field_name', 'type': 'field_type', 'required': true/false, 'choices': [['key', 'Display Name'], ...]}]")
     
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -21,6 +22,9 @@ class ProjectType(models.Model):
         # Ensure milestone_choices is a list
         if not self.milestone_choices:
             self.milestone_choices = []
+        # Ensure issue_fields is a list
+        if not self.issue_fields:
+            self.issue_fields = []
         super().save(*args, **kwargs)
     
     def __str__(self):
@@ -172,21 +176,110 @@ class Milestone(models.Model):
         ('not_started', 'Not Started'),
         ('in_progress', 'In Progress'),
         ('completed', 'Completed'),
-        ('delayed', 'Delayed'),
+        ('published', 'Published'),
     ]
     
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='milestones')
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
+    milestone_type = models.CharField(max_length=50, blank=True, help_text="Type of milestone based on project type")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='not_started')
+    assigned_to = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_milestones')
+    start_date = models.DateField(null=True, blank=True)
     due_date = models.DateField(null=True, blank=True)
     completed_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='created_milestones')
     
+    def get_milestone_type_choices(self):
+        """Return milestone type choices based on project type"""
+        if self.project and self.project.project_type and self.project.project_type.milestone_choices:
+            return self.project.project_type.milestone_choices
+        return []
+    
+    def get_milestone_type_display(self):
+        """Return the display value for the current milestone type"""
+        choices = self.get_milestone_type_choices()
+        for key, display in choices:
+            if key and key.strip() == self.milestone_type:
+                return display.strip()
+        return self.milestone_type
+    
     def __str__(self):
         return f"{self.project.name} - {self.name}"
     
     class Meta:
         ordering = ['due_date', 'name']
+
+class Issue(models.Model):
+    """Issue model for tracking issues in projects"""
+    TOOL_CHOICES = [
+        ('jaws', 'JAWS'),
+        ('nvda', 'NVDA'),
+        ('cca', 'CCA'),
+        ('zoomtext', 'ZoomText'),
+        ('voiceover', 'VoiceOver'),
+        ('talkback', 'Talkback'),
+        ('wave', 'WAVE'),
+        ('accessibility_insights', 'Accessibility Insights'),
+        ('other', 'Other'),
+    ]
+    
+    IMPACT_CHOICES = [
+        ('high', 'High'),
+        ('low', 'Low'),
+        ('best_practice', 'Best Practice'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('pass', 'Pass'),
+        ('fail', 'Fail'),
+        ('qa', 'QA'),
+        ('in_remediation', 'In Remediation'),
+        ('ready_for_testing', 'Ready For Testing'),
+    ]
+    
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='issues')
+    milestone = models.ForeignKey(Milestone, on_delete=models.CASCADE, related_name='issues')
+    page = models.ForeignKey(Page, on_delete=models.CASCADE, related_name='issues')
+    violation = models.ForeignKey(Violation, on_delete=models.CASCADE, related_name='issues', null=True, blank=True)
+    issue_description = models.TextField()
+    steps_to_reproduce = models.TextField()
+    tool_or_method = models.CharField(max_length=50, choices=TOOL_CHOICES)
+    user_impact = models.CharField(max_length=20, choices=IMPACT_CHOICES)
+    user_impact_description = models.TextField()
+    workarounds = models.TextField(blank=True)
+    current_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='fail')
+    attachment = models.FileField(upload_to='issue_attachments/', blank=True, null=True, help_text="File attachment for this issue")
+    dynamic_fields = models.JSONField(default=dict, blank=True, help_text="Dynamic fields based on project type")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='created_issues')
+    assigned_to = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_issues')
+    
+    def __str__(self):
+        return f"{self.project.name} - {self.page.name} - {self.issue_description[:50]}"
+    
+    class Meta:
+        ordering = ['-created_at']
+
+class Comment(models.Model):
+    """Comment model for issues"""
+    COMMENT_TYPE_CHOICES = [
+        ('internal', 'Internal'),
+        ('external', 'External'),
+    ]
+    
+    issue = models.ForeignKey(Issue, on_delete=models.CASCADE, related_name='comments')
+    author = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='comments')
+    comment_type = models.CharField(max_length=10, choices=COMMENT_TYPE_CHOICES, default='external')
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"Comment by {self.author} on {self.issue}"
+    
+    class Meta:
+        ordering = ['-created_at']

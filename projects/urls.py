@@ -49,4 +49,17 @@ urlpatterns = [
     path('<int:project_id>/milestones/create/', views.milestone_create, name='milestone_create'),
     path('milestones/<int:pk>/update/', views.milestone_update, name='milestone_update'),
     path('milestones/<int:pk>/delete/', views.milestone_delete, name='milestone_delete'),
+    path('milestones/<int:pk>/publish/', views.milestone_publish, name='milestone_publish'),
+    path('milestones/<int:pk>/', views.milestone_detail, name='milestone_detail'),
+    
+    # Accessibility Issue URLs
+    path('<int:project_id>/accessibility-issues/create/', views.issue_create, name='accessibility_issue_create'),
+    path('<int:project_id>/accessibility-issues/<int:pk>/edit/', views.issue_edit, name='accessibility_issue_edit'),
+    path('<int:project_id>/accessibility-issues/<int:pk>/delete/', views.issue_delete, name='accessibility_issue_delete'),
+    
+    # Issue URLs
+    path('<int:project_id>/issues/create/', views.issue_create, name='issue_create'),
+    path('<int:project_id>/issues/<int:pk>/', views.issue_detail, name='issue_detail'),
+    path('<int:project_id>/issues/<int:pk>/update/', views.issue_edit, name='issue_edit'),
+    path('<int:project_id>/issues/<int:pk>/delete/', views.issue_delete, name='issue_delete'),
 ] 

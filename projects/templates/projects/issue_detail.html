@@ -1,0 +1,238 @@
+{% extends 'users/base.html' %}
+{% load project_tags %}
+
+{% block title %}
+    Issue: {{ issue.issue_description|truncatechars:50 }}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'projects:project_list' %}">Projects</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'projects:project_detail' issue.project.id %}">{{ issue.project.name }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Issue Details</li>
+                </ol>
+            </nav>
+            
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2 class="h5 mb-0">Issue Details</h2>
+                    <div>
+                        <a href="{% url 'projects:issue_edit' issue.project.id issue.id %}" class="btn btn-sm btn-outline-primary me-2">
+                            <i class="bi bi-pencil"></i> Edit
+                        </a>
+                        {% if user.is_superuser or user.role.name == 'admin' %}
+                        <a href="{% url 'projects:issue_delete' issue.project.id issue.id %}" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash"></i> Delete
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h3 class="h6 border-bottom pb-2">Basic Information</h3>
+                            <div class="mb-3">
+                                <strong>Page/Scenario:</strong> {{ issue.page.name }}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Milestone:</strong> {{ issue.milestone.name }}
+                            </div>
+                            {% if issue.violation %}
+                            <div class="mb-3">
+                                <strong>Violation:</strong> {{ issue.violation.name }}
+                            </div>
+                            {% endif %}
+                            <div class="mb-3">
+                                <strong>Status:</strong> 
+                                <span class="badge {% if issue.current_status == 'fail' %}bg-danger{% elif issue.current_status == 'in_remediation' %}bg-warning text-dark{% elif issue.current_status == 'pass' %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {{ issue.get_current_status_display }}
+                                </span>
+                            </div>
+                            <div class="mb-3">
+                                <strong>User Impact:</strong> 
+                                <span class="badge {% if issue.user_impact == 'high' %}bg-danger{% elif issue.user_impact == 'low' %}bg-warning text-dark{% else %}bg-info{% endif %}">
+                                    {{ issue.get_user_impact_display }}
+                                </span>
+                            </div>
+                            <div class="mb-3">
+                                <strong>Tool/Method:</strong> {{ issue.get_tool_or_method_display }}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Created:</strong> {{ issue.created_at|date:"M d, Y" }}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Last Updated:</strong> {{ issue.updated_at|date:"M d, Y" }}
+                            </div>
+                            {% if issue.assigned_to %}
+                            <div class="mb-3">
+                                <strong>Assigned To:</strong> {{ issue.assigned_to.get_full_name }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <h3 class="h6 border-bottom pb-2">Issue Details</h3>
+                            <div class="mb-3">
+                                <strong>Issue Description:</strong>
+                                <p class="mt-2">{{ issue.issue_description|linebreaks }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <strong>Steps to Reproduce:</strong>
+                                <p class="mt-2">{{ issue.steps_to_reproduce|linebreaks }}</p>
+                            </div>
+                            <div class="mb-3">
+                                <strong>User Impact Description:</strong>
+                                <p class="mt-2">{{ issue.user_impact_description|linebreaks }}</p>
+                            </div>
+                            {% if issue.workarounds %}
+                            <div class="mb-3">
+                                <strong>Workarounds:</strong>
+                                <p class="mt-2">{{ issue.workarounds|linebreaks }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if issue.dynamic_fields %}
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h3 class="h6 border-bottom pb-2">Additional Information</h3>
+                            <div class="row">
+                                {% for field in issue.project.project_type.issue_fields %}
+                                    {% with field_value=issue.dynamic_fields|get_item:field.name %}
+                                        {% if field_value %}
+                                        <div class="col-md-6 mb-3">
+                                            <strong>{{ field.label|default:field.name|title }}:</strong>
+                                            {% if field.type == 'checkbox' %}
+                                                {% if field_value %}
+                                                    <i class="bi bi-check-circle-fill text-success"></i> Yes
+                                                {% else %}
+                                                    <i class="bi bi-x-circle text-muted"></i> No
+                                                {% endif %}
+                                            {% else %}
+                                                <p class="mt-2">{{ field_value }}</p>
+                                            {% endif %}
+                                        </div>
+                                        {% endif %}
+                                    {% endwith %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if issue.attachment %}
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <h3 class="h6 border-bottom pb-2">Attachments</h3>
+                            <div class="mb-3">
+                                <a href="{{ issue.attachment.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                    <i class="bi bi-file-earmark"></i> {{ issue.attachment.name|split:"/"|last }}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mt-4">
+                        <a href="{% url 'projects:project_detail' issue.project.id %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to Project
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Comments Section -->
+            <div id="comments" class="card mt-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2 class="h5 mb-0"><i class="bi bi-chat-dots me-2"></i>Comments ({{ comments.count }})</h2>
+                </div>
+                <div class="card-body">
+                    <!-- Comment Form -->
+                    <form method="post" class="mb-4">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            {{ comment_form.text }}
+                            {% if comment_form.text.errors %}
+                                <div class="invalid-feedback d-block">{{ comment_form.text.errors }}</div>
+                            {% endif %}
+                        </div>
+                        {% if can_see_internal %}
+                        <div class="mb-3">
+                            <label for="{{ comment_form.comment_type.id_for_label }}" class="form-label">Comment Type:</label>
+                            {{ comment_form.comment_type }}
+                            {% if comment_form.comment_type.errors %}
+                                <div class="invalid-feedback d-block">{{ comment_form.comment_type.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">Internal comments are only visible to staff and administrators.</div>
+                        </div>
+                        {% else %}
+                            {{ comment_form.comment_type }}
+                        {% endif %}
+                        <button type="submit" class="btn btn-primary">Add Comment</button>
+                    </form>
+                    
+                    <!-- Comments List -->
+                    <div class="comments-list">
+                        {% if comments %}
+                            {% for comment in comments %}
+                                {% if comment.comment_type == 'external' or can_see_internal %}
+                                <div class="comment mb-3 p-3 {% if comment.comment_type == 'internal' %}bg-light border-start border-4 border-warning{% else %}border rounded{% endif %}">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-circle {% if comment.comment_type == 'internal' %}bg-warning text-dark{% else %}bg-primary text-white{% endif %} me-2" style="width: 36px; height: 36px; font-size: 0.9rem;">
+                                                {{ comment.author.get_full_name|default:comment.author.username }}
+                                            </div>
+                                            <div>
+                                                <strong>{{ comment.author.get_full_name }}</strong>
+                                                {% if comment.comment_type == 'internal' %}
+                                                <span class="badge bg-warning text-dark ms-2">Internal</span>
+                                                {% endif %}
+                                                <div class="text-muted small">{{ comment.created_at|date:"M d, Y H:i" }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="comment-text">
+                                        {{ comment.text|linebreaks }}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            <div class="alert alert-info">
+                                <p class="mb-0">No comments yet. Be the first to comment!</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.comment {
+    transition: all 0.2s ease;
+}
+
+.comment:hover {
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+</style>
+{% endblock %} 
