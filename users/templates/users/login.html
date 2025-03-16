@@ -3,25 +3,30 @@
 {% block title %}Login - Perspective Tracker{% endblock %}
 
 {% block content %}
-<div class="form-container">
-    <h2 class="mb-4">Login</h2>
-    <form method="post">
-        {% csrf_token %}
-        <div class="mb-3">
-            <label for="id_username" class="form-label">Email address</label>
-            <input type="email" class="form-control" id="id_username" name="username" required>
+<div class="form-container text-center">
+    <h2 class="mb-4">Welcome to Perspective Tracker</h2>
+    <p class="mb-4">Please sign in to continue</p>
+    
+    <div class="card shadow-sm mx-auto" style="max-width: 400px;">
+        <div class="card-body p-4">
+            <div class="mb-4">
+                <img src="https://cdn-icons-png.flaticon.com/512/5087/5087579.png" alt="Login" width="80" class="mb-3">
+                <h4>Secure Sign In</h4>
+                <p class="text-muted small">Using Auth0 for secure authentication</p>
+            </div>
+            
+            <a href="{% url 'social:begin' 'auth0' %}" class="btn btn-primary btn-lg w-100">
+                Sign in
+            </a>
+            
+            <div class="mt-3 small text-muted">
+                <p>By signing in, you agree to our Terms of Service and Privacy Policy.</p>
+            </div>
         </div>
-        <div class="mb-3">
-            <label for="id_password" class="form-label">Password</label>
-            <input type="password" class="form-control" id="id_password" name="password" required>
-        </div>
-        <div class="mb-3">
-            <a href="{% url 'password_reset' %}">Forgot password?</a>
-        </div>
-        <button type="submit" class="btn btn-primary">Login</button>
-    </form>
-    <div class="mt-3">
-        <p>Contact your administrator for account access.</p>
+    </div>
+    
+    <div class="mt-4">
+        <p>Need an account? Contact your administrator for access.</p>
     </div>
 </div>
 {% endblock %} 

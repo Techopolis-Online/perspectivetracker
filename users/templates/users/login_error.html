@@ -1,0 +1,31 @@
+{% extends 'users/base.html' %}
+
+{% block title %}Login Error - Perspective Tracker{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card mt-5">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">Login Error</h4>
+                </div>
+                <div class="card-body">
+                    <p>There was an error logging in with Auth0. This could be due to:</p>
+                    <ul>
+                        <li>Incorrect callback URL configuration</li>
+                        <li>Auth0 service issues</li>
+                        <li>Network connectivity problems</li>
+                    </ul>
+                    
+                    <p>Please try again or contact your system administrator for assistance.</p>
+                    
+                    <div class="mt-4">
+                        <a href="{% url 'login' %}" class="btn btn-primary">Try Again</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

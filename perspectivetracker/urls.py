@@ -25,6 +25,7 @@ urlpatterns = [
     path('users/', include('users.urls')),
     path('clients/', include('clients.urls')),
     path('', user_views.home_view, name='home'),
+    path('login-error/', user_views.login_error_view, name='login_error'),
 ]
 
 # Serve media files in development

@@ -2,6 +2,8 @@ from django import forms
 from .models import Client, ClientNote, ClientCoworker, Coworker
 from users.models import CustomUser, Role
 from django.db import models
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 
 class ClientForm(forms.ModelForm):
     class Meta:
@@ -62,7 +64,7 @@ class ClientCoworkerForm(forms.ModelForm):
         try:
             user = CustomUser.objects.get(email=email)
         except CustomUser.DoesNotExist:
-            raise forms.ValidationError("No user found with this email address.")
+            raise forms.ValidationError("No user found with this email address. Please contact your point of contact to get this user added to the system.")
         
         # Check if user is already a coworker for this client
         if self.client and ClientCoworker.objects.filter(client=self.client, user=user).exists():
@@ -106,5 +108,11 @@ class CoworkerForm(forms.ModelForm):
         # Check if this email is already a coworker for this client
         if client and Coworker.objects.filter(client=client, email=email).exists():
             raise forms.ValidationError("This email is already associated with this client.")
+        
+        # Validate email format
+        try:
+            validate_email(email)
+        except ValidationError:
+            raise forms.ValidationError("Invalid email format. Please contact your point of contact if you need assistance.")
             
         return email 

@@ -6,6 +6,7 @@ from django.http import HttpResponseForbidden
 from .models import CustomUser, Role
 from django.contrib.auth.forms import AuthenticationForm
 from django import forms
+from django.urls import reverse
 
 class ProfileEditForm(forms.ModelForm):
     profile_picture = forms.ImageField(required=False, widget=forms.FileInput(attrs={'class': 'form-control'}))
@@ -27,28 +28,32 @@ def home_view(request):
     return render(request, 'users/home.html')
 
 def login_view(request):
-    if request.method == 'POST':
-        form = AuthenticationForm(request, data=request.POST)
-        if form.is_valid():
-            email = form.cleaned_data.get('username')
-            password = form.cleaned_data.get('password')
-            user = authenticate(email=email, password=password)
-            if user is not None:
-                login(request, user)
-                messages.success(request, f"Welcome back, {user.first_name} {user.last_name}!")
-                return redirect('home')
-            else:
-                messages.error(request, "Invalid email or password.")
-        else:
-            messages.error(request, "Invalid email or password.")
-    else:
-        form = AuthenticationForm()
-    
-    return render(request, 'users/login.html', {'form': form})
+    """Redirect to Auth0 login page"""
+    return redirect('social:begin', 'auth0')
+
+def login_error_view(request):
+    """Display login error page"""
+    messages.error(request, "There was an error logging in with Auth0. Please try again or contact your administrator.")
+    return render(request, 'users/login_error.html')
 
 @login_required
 def logout_view(request):
+    """Log out the user and redirect to login page"""
+    # Check if user is authenticated via Auth0
+    auth0_user = request.user.social_auth.filter(provider='auth0').first()
+    
+    # Perform Django logout
     logout(request)
+    
+    # If user was authenticated with Auth0, redirect to Auth0 logout endpoint
+    if auth0_user:
+        domain = auth0_user.extra_data['auth0_domain']
+        client_id = auth0_user.extra_data['auth0_client_id']
+        return_to = request.build_absolute_uri(reverse('login'))
+        auth0_logout_url = f'https://{domain}/v2/logout?client_id={client_id}&returnTo={return_to}'
+        return redirect(auth0_logout_url)
+    
+    # Regular Django logout
     messages.success(request, "You have been logged out.")
     return redirect('login')
 

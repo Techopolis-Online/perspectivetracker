@@ -11,6 +11,11 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -39,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'users',
     'clients',
+    'social_django',
 ]
 
 MIDDLEWARE = [
@@ -49,6 +55,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'social_django.middleware.SocialAuthExceptionMiddleware',
 ]
 
 ROOT_URLCONF = 'perspectivetracker.urls'
@@ -64,6 +71,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'social_django.context_processors.backends',
+                'social_django.context_processors.login_redirect',
             ],
         },
     },
@@ -132,6 +141,49 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'users.CustomUser'
 
 AUTHENTICATION_BACKENDS = [
-    'users.authentication.EmailBackend',
+    'social_core.backends.auth0.Auth0OAuth2',
     'django.contrib.auth.backends.ModelBackend',
 ]
+
+# Auth0 Settings
+SOCIAL_AUTH_AUTH0_DOMAIN = os.getenv('AUTH0_DOMAIN')
+SOCIAL_AUTH_AUTH0_KEY = os.getenv('AUTH0_CLIENT_ID')
+SOCIAL_AUTH_AUTH0_SECRET = os.getenv('AUTH0_CLIENT_SECRET')
+SOCIAL_AUTH_AUTH0_SCOPE = [
+    'openid',
+    'profile',
+    'email'
+]
+
+# Auth0 UI customization
+SOCIAL_AUTH_AUTH0_EXTRA_AUTHORIZE_PARAMS = {
+    'ui_locales': 'en',
+    'auth0Client': '{"name":"Perspective Tracker","version":"1.0.0"}',
+    'screen_hint': 'login'
+}
+
+# Auth0 callback URL - this should match what's configured in Auth0
+SOCIAL_AUTH_REDIRECT_IS_HTTPS = False  # Set to True in production
+SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/'
+SOCIAL_AUTH_LOGIN_ERROR_URL = '/login-error/'
+SOCIAL_AUTH_RAISE_EXCEPTIONS = False
+
+# Explicitly set the callback URL
+SOCIAL_AUTH_AUTH0_REDIRECT_URI = os.getenv('AUTH0_CALLBACK_URL')
+
+SOCIAL_AUTH_PIPELINE = (
+    'social_core.pipeline.social_auth.social_details',
+    'social_core.pipeline.social_auth.social_uid',
+    'social_core.pipeline.social_auth.auth_allowed',
+    'social_core.pipeline.social_auth.social_user',
+    'social_core.pipeline.user.get_username',
+    'social_core.pipeline.user.create_user',
+    'social_core.pipeline.social_auth.associate_user',
+    'social_core.pipeline.social_auth.load_extra_data',
+    'social_core.pipeline.user.user_details',
+    'users.pipeline.get_user_role',  # Custom pipeline to assign role
+)
+
+LOGIN_URL = '/users/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'

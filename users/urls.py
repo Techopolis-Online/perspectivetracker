@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
 from django.contrib.auth import views as auth_views
 
@@ -7,6 +7,9 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('profile/', views.profile_view, name='profile'),
     path('profile/edit/', views.edit_profile_view, name='edit_profile'),
+    
+    # Social Auth URLs
+    path('', include('social_django.urls', namespace='social')),
     
     # Password change
     path('password-change/', 

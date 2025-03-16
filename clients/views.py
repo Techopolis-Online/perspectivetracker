@@ -142,6 +142,11 @@ def client_detail(request, pk):
             
             messages.success(request, f"Invitation sent to {coworker.email} successfully!")
             return redirect('client_detail', pk=client.pk)
+        else:
+            # Add a message about contacting the point of contact
+            if 'email' in coworker_form.errors:
+                poc_name = client.point_of_contact.get_full_name() if client.point_of_contact else "your administrator"
+                messages.error(request, f"For assistance with adding team members, please contact {poc_name}.")
     else:
         note_form = ClientNoteForm()
         coworker_form = ClientCoworkerForm(client=client)
