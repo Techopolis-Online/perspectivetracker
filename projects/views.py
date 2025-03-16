@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import HttpResponseForbidden, JsonResponse
 from django.db.models import Count, Q
-from .models import ProjectType, Project, Standard, Violation, ProjectViolation, ProjectStandard, Page, Milestone, Issue, Comment
+from .models import ProjectType, Project, Standard, Violation, ProjectViolation, ProjectStandard, Page, Milestone, Issue, Comment, IssueModification
 from users.views import admin_required, staff_required
 from .forms import ProjectForm, StandardForm, ViolationForm, ProjectViolationForm, ProjectTypeForm, ProjectStandardForm, PageForm, MilestoneForm, IssueForm, CommentForm, IssueStatusForm
 
@@ -810,13 +810,46 @@ def milestone_detail(request, pk):
             request.user in project.assigned_to.all()):
         return HttpResponseForbidden("You don't have permission to access this milestone.")
     
+    # Check if user is a client and milestone is not published
+    is_client = (hasattr(request.user, 'role') and 
+                request.user.role and 
+                request.user.role.name == 'client')
+    
     # Get all issues that need testing for this project
     issues_needing_testing = project.issues.filter(current_status='ready_for_testing')
     
+    # Get all issues in this milestone
+    milestone_issues = milestone.issues.all()
+    
+    # Get recently modified issues in this milestone (last 7 days)
+    from datetime import datetime, timedelta
+    recent_date = datetime.now() - timedelta(days=7)
+    
+    # Get unique issues that have been modified recently
+    recent_modifications = IssueModification.objects.filter(
+        milestone=milestone,
+        created_at__gte=recent_date
+    ).order_by('-created_at')
+    
+    # Get unique issues from modifications
+    modified_issue_ids = recent_modifications.values_list('issue_id', flat=True).distinct()
+    recently_modified_issues = Issue.objects.filter(id__in=modified_issue_ids)
+    
+    # Hide issues from clients if milestone is not published
+    if is_client and milestone.status != 'published':
+        issues_needing_testing = Issue.objects.none()  # Empty queryset for clients
+        milestone_issues = Issue.objects.none()  # Empty queryset for clients
+        recently_modified_issues = Issue.objects.none()  # Empty queryset for clients
+        
     context = {
         'milestone': milestone,
         'project': project,
         'issues_needing_testing': issues_needing_testing,
+        'milestone_issues': milestone_issues,
+        'recently_modified_issues': recently_modified_issues,
+        'recent_modifications': recent_modifications,
+        'is_client': is_client,
+        'is_published': milestone.status == 'published',
     }
     return render(request, 'projects/milestone_detail.html', context)
 
@@ -907,6 +940,19 @@ def issue_detail(request, project_id, pk):
     project = get_object_or_404(Project, pk=project_id)
     issue = get_object_or_404(Issue, pk=pk, project=project)
     
+    # Check if user is a client
+    is_client = (hasattr(request.user, 'role') and 
+                request.user.role and 
+                request.user.role.name == 'client')
+    
+    # Check if milestone is published
+    milestone_published = issue.milestone and issue.milestone.status == 'published'
+    
+    # If user is a client and milestone is not published, deny access
+    if is_client and not milestone_published:
+        messages.warning(request, "This issue is currently under internal review and not yet available.")
+        return redirect('projects:project_detail', pk=project.id)
+    
     # Check if user has access to this project
     if not (request.user.is_superuser or 
             (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']) or
@@ -930,17 +976,32 @@ def issue_detail(request, project_id, pk):
             
             # Store the old status for the response
             old_status = issue.get_current_status_display()
+            old_status_value = issue.current_status
             
             # Update the issue status
             issue.current_status = 'ready_for_testing'
             issue.save()
             
             # Add a system comment about the status change
-            Comment.objects.create(
+            comment = Comment.objects.create(
                 issue=issue,
                 author=request.user,
                 text=f"Status changed to Ready for Testing by {request.user.get_full_name()}",
-                comment_type='external'
+                comment_type='external',
+                status_changed=True,
+                previous_status=old_status_value,
+                new_status='ready_for_testing'
+            )
+            
+            # Record the modification
+            IssueModification.objects.create(
+                issue=issue,
+                milestone=issue.milestone,
+                modified_by=request.user,
+                modification_type='status_change',
+                previous_value=old_status_value,
+                new_value='ready_for_testing',
+                comment=comment
             )
             
             # If this is an AJAX request, return JSON response
@@ -961,10 +1022,11 @@ def issue_detail(request, project_id, pk):
             # Check if status is being updated
             new_status = request.POST.get('current_status')
             status_changed = False
+            old_status_value = issue.current_status
+            old_status_display = issue.get_current_status_display()
             
             # If status is being changed, update the issue
             if new_status and new_status != issue.current_status:
-                old_status = issue.get_current_status_display()
                 issue.current_status = new_status
                 issue.save()
                 status_changed = True
@@ -973,16 +1035,43 @@ def issue_detail(request, project_id, pk):
             comment = comment_form.save(commit=False)
             comment.issue = issue
             comment.author = request.user
+            comment.milestone = issue.milestone
             
-            # If status was changed, add that to the comment text
+            # If status was changed, add that to the comment text and set status change fields
             if status_changed:
-                status_message = f"\n\nStatus changed from '{old_status}' to '{issue.get_current_status_display()}'."
+                status_message = f"\n\nStatus changed from '{old_status_display}' to '{issue.get_current_status_display()}'."
                 if comment.text:
                     comment.text += status_message
                 else:
                     comment.text = status_message.strip()
+                
+                comment.status_changed = True
+                comment.previous_status = old_status_value
+                comment.new_status = new_status
             
             comment.save()
+            
+            # Record the modification
+            if status_changed:
+                IssueModification.objects.create(
+                    issue=issue,
+                    milestone=issue.milestone,
+                    modified_by=request.user,
+                    modification_type='status_change',
+                    previous_value=old_status_value,
+                    new_value=new_status,
+                    comment=comment
+                )
+            
+            # Also record comment as a modification
+            IssueModification.objects.create(
+                issue=issue,
+                milestone=issue.milestone,
+                modified_by=request.user,
+                modification_type='comment',
+                new_value=comment.text,
+                comment=comment
+            )
             
             # Check if this is an AJAX request
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -1053,16 +1142,32 @@ def issue_update_status(request, project_id, pk):
         if form.is_valid():
             # Get the old status for the comment
             old_status = issue.get_current_status_display()
+            old_status_value = issue.current_status
             
             # Save the form
             updated_issue = form.save()
             
             # Add a system comment about the status change
-            Comment.objects.create(
+            comment = Comment.objects.create(
                 issue=issue,
                 author=request.user,
                 text=f"Status changed from '{old_status}' to '{updated_issue.get_current_status_display()}' by {request.user.get_full_name()}",
-                comment_type='external'
+                comment_type='external',
+                status_changed=True,
+                previous_status=old_status_value,
+                new_status=updated_issue.current_status,
+                milestone=issue.milestone
+            )
+            
+            # Record the modification
+            IssueModification.objects.create(
+                issue=issue,
+                milestone=issue.milestone,
+                modified_by=request.user,
+                modification_type='status_change',
+                previous_value=old_status_value,
+                new_value=updated_issue.current_status,
+                comment=comment
             )
             
             messages.success(request, f"Issue status updated to '{updated_issue.get_current_status_display()}'.")
@@ -1109,17 +1214,33 @@ def mark_issue_ready_for_testing(request, project_id, pk):
     
     # Store the old status for the response
     old_status = issue.get_current_status_display()
+    old_status_value = issue.current_status
     
     # Update the issue status
     issue.current_status = 'ready_for_testing'
     issue.save()
     
     # Add a system comment about the status change
-    Comment.objects.create(
+    comment = Comment.objects.create(
         issue=issue,
         author=request.user,
         text=f"Status changed to Ready for Testing by {request.user.get_full_name()}",
-        comment_type='external'
+        comment_type='external',
+        status_changed=True,
+        previous_status=old_status_value,
+        new_status='ready_for_testing',
+        milestone=issue.milestone
+    )
+    
+    # Record the modification
+    IssueModification.objects.create(
+        issue=issue,
+        milestone=issue.milestone,
+        modified_by=request.user,
+        modification_type='status_change',
+        previous_value=old_status_value,
+        new_value='ready_for_testing',
+        comment=comment
     )
     
     # Return JSON response

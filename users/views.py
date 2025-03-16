@@ -102,11 +102,55 @@ def edit_profile_view(request):
         form = ProfileEditForm(request.POST, request.FILES, instance=request.user)
         if form.is_valid():
             form.save()
-            messages.success(request, "Profile updated successfully!")
+            messages.success(request, "Your profile has been updated successfully.")
             return redirect('profile')
-        else:
-            messages.error(request, "Please correct the errors below.")
     else:
         form = ProfileEditForm(instance=request.user)
     
-    return render(request, 'users/edit_profile.html', {'form': form})
+    context = {
+        'form': form,
+    }
+    return render(request, 'users/edit_profile.html', context)
+
+@login_required
+def dashboard_view(request):
+    """Display all activities of the current user with details"""
+    from projects.models import Comment, IssueModification, Issue, Milestone, Project
+    from django.db.models import Q
+    
+    # Get all comments made by the user
+    user_comments = Comment.objects.filter(author=request.user).order_by('-created_at')
+    
+    # Get all issue modifications made by the user
+    user_modifications = IssueModification.objects.filter(modified_by=request.user).order_by('-created_at')
+    
+    # Get issues assigned to the user
+    assigned_issues = Issue.objects.filter(assigned_to=request.user).order_by('-updated_at')
+    
+    # Get milestones assigned to the user
+    assigned_milestones = Milestone.objects.filter(assigned_to=request.user).order_by('-updated_at')
+    
+    # Get projects assigned to the user
+    assigned_projects = Project.objects.filter(assigned_to=request.user).order_by('-updated_at')
+    
+    # Get projects created by the user
+    created_projects = Project.objects.filter(created_by=request.user).order_by('-created_at')
+    
+    # Get issues created by the user
+    created_issues = Issue.objects.filter(created_by=request.user).order_by('-created_at')
+    
+    # Get milestones created by the user
+    created_milestones = Milestone.objects.filter(created_by=request.user).order_by('-created_at')
+    
+    context = {
+        'user_comments': user_comments,
+        'user_modifications': user_modifications,
+        'assigned_issues': assigned_issues,
+        'assigned_milestones': assigned_milestones,
+        'assigned_projects': assigned_projects,
+        'created_projects': created_projects,
+        'created_issues': created_issues,
+        'created_milestones': created_milestones,
+    }
+    
+    return render(request, 'users/dashboard.html', context)

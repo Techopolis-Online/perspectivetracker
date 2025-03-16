@@ -1,0 +1,523 @@
+{% extends 'users/base.html' %}
+
+{% block title %}My Dashboard - Perspective Tracker{% endblock %}
+
+{% block content %}
+<div class="container mt-5 pt-5">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-5 fw-bold mb-4">My Dashboard</h1>
+            <p class="lead">Welcome, {{ user.get_full_name }}! Here's an overview of all your activities.</p>
+        </div>
+    </div>
+
+    <!-- Activity Summary Cards -->
+    <div class="row mb-5">
+        <div class="col-md-3 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="bi bi-kanban text-primary" style="font-size: 2.5rem;"></i>
+                    <h3 class="mt-3 mb-1">{{ assigned_projects.count }}</h3>
+                    <p class="text-muted mb-0">Assigned Projects</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="bi bi-flag text-success" style="font-size: 2.5rem;"></i>
+                    <h3 class="mt-3 mb-1">{{ assigned_milestones.count }}</h3>
+                    <p class="text-muted mb-0">Assigned Milestones</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="bi bi-bug text-danger" style="font-size: 2.5rem;"></i>
+                    <h3 class="mt-3 mb-1">{{ assigned_issues.count }}</h3>
+                    <p class="text-muted mb-0">Assigned Issues</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="bi bi-chat-dots text-info" style="font-size: 2.5rem;"></i>
+                    <h3 class="mt-3 mb-1">{{ user_comments.count }}</h3>
+                    <p class="text-muted mb-0">Comments</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs for Different Activities -->
+    <div class="row">
+        <div class="col-12">
+            <ul class="nav nav-tabs mb-4" id="activityTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="assigned-projects-tab" data-bs-toggle="tab" data-bs-target="#assigned-projects" type="button" role="tab" aria-controls="assigned-projects" aria-selected="true">
+                        <i class="bi bi-kanban me-2"></i>Assigned Projects
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="assigned-milestones-tab" data-bs-toggle="tab" data-bs-target="#assigned-milestones" type="button" role="tab" aria-controls="assigned-milestones" aria-selected="false">
+                        <i class="bi bi-flag me-2"></i>Assigned Milestones
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="assigned-issues-tab" data-bs-toggle="tab" data-bs-target="#assigned-issues" type="button" role="tab" aria-controls="assigned-issues" aria-selected="false">
+                        <i class="bi bi-bug me-2"></i>Assigned Issues
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="created-tab" data-bs-toggle="tab" data-bs-target="#created" type="button" role="tab" aria-controls="created" aria-selected="false">
+                        <i class="bi bi-plus-circle me-2"></i>Created Items
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="comments-tab" data-bs-toggle="tab" data-bs-target="#comments" type="button" role="tab" aria-controls="comments" aria-selected="false">
+                        <i class="bi bi-chat-dots me-2"></i>Comments
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="modifications-tab" data-bs-toggle="tab" data-bs-target="#modifications" type="button" role="tab" aria-controls="modifications" aria-selected="false">
+                        <i class="bi bi-pencil-square me-2"></i>Modifications
+                    </button>
+                </li>
+            </ul>
+            
+            <div class="tab-content" id="activityTabsContent">
+                <!-- Assigned Projects Tab -->
+                <div class="tab-pane fade show active" id="assigned-projects" role="tabpanel" aria-labelledby="assigned-projects-tab">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0">Projects Assigned to You</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if assigned_projects %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Project Name</th>
+                                                <th>Client</th>
+                                                <th>Type</th>
+                                                <th>Status</th>
+                                                <th>Last Updated</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for project in assigned_projects %}
+                                                <tr>
+                                                    <td>{{ project.name }}</td>
+                                                    <td>{{ project.client.company_name }}</td>
+                                                    <td>{{ project.project_type.name }}</td>
+                                                    <td>
+                                                        <span class="badge {% if project.status == 'completed' %}bg-success{% elif project.status == 'in_progress' %}bg-primary{% elif project.status == 'not_started' %}bg-secondary{% else %}bg-warning{% endif %}">
+                                                            {{ project.get_status_display }}
+                                                        </span>
+                                                    </td>
+                                                    <td>{{ project.updated_at|date:"M d, Y" }}</td>
+                                                    <td>
+                                                        <a href="{% url 'projects:project_detail' project.id %}" class="btn btn-sm btn-outline-primary">
+                                                            <i class="bi bi-eye"></i> View
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle me-2"></i>You don't have any assigned projects.
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Assigned Milestones Tab -->
+                <div class="tab-pane fade" id="assigned-milestones" role="tabpanel" aria-labelledby="assigned-milestones-tab">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0">Milestones Assigned to You</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if assigned_milestones %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Milestone</th>
+                                                <th>Project</th>
+                                                <th>Type</th>
+                                                <th>Status</th>
+                                                <th>Due Date</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for milestone in assigned_milestones %}
+                                                <tr>
+                                                    <td>{{ milestone.name }}</td>
+                                                    <td>{{ milestone.project.name }}</td>
+                                                    <td>{{ milestone.get_milestone_type_display }}</td>
+                                                    <td>
+                                                        <span class="badge {% if milestone.status == 'completed' %}bg-success{% elif milestone.status == 'in_progress' %}bg-primary{% elif milestone.status == 'not_started' %}bg-secondary{% elif milestone.status == 'published' %}bg-info{% else %}bg-warning{% endif %}">
+                                                            {{ milestone.get_status_display }}
+                                                        </span>
+                                                    </td>
+                                                    <td>{{ milestone.due_date|default:"Not set" }}</td>
+                                                    <td>
+                                                        <a href="{% url 'projects:milestone_detail' milestone.id %}" class="btn btn-sm btn-outline-primary">
+                                                            <i class="bi bi-eye"></i> View
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle me-2"></i>You don't have any assigned milestones.
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Assigned Issues Tab -->
+                <div class="tab-pane fade" id="assigned-issues" role="tabpanel" aria-labelledby="assigned-issues-tab">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0">Issues Assigned to You</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if assigned_issues %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Issue</th>
+                                                <th>Project</th>
+                                                <th>Milestone</th>
+                                                <th>Page</th>
+                                                <th>Status</th>
+                                                <th>Impact</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for issue in assigned_issues %}
+                                                <tr>
+                                                    <td>{{ issue.issue_description|truncatechars:50 }}</td>
+                                                    <td>{{ issue.project.name }}</td>
+                                                    <td>{{ issue.milestone.name }}</td>
+                                                    <td>{{ issue.page.name }}</td>
+                                                    <td>
+                                                        <span class="badge {% if issue.current_status == 'ready_for_testing' %}bg-info{% elif issue.current_status == 'in_progress' %}bg-warning{% elif issue.current_status == 'resolved' %}bg-success{% elif issue.current_status == 'closed' %}bg-secondary{% else %}bg-danger{% endif %}">
+                                                            {{ issue.get_current_status_display }}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge {% if issue.user_impact == 'high' %}bg-danger{% elif issue.user_impact == 'low' %}bg-warning text-dark{% else %}bg-info{% endif %}">
+                                                            {{ issue.get_user_impact_display }}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <a href="{% url 'projects:issue_detail' issue.project.id issue.id %}" class="btn btn-sm btn-outline-primary">
+                                                            <i class="bi bi-eye"></i> View
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle me-2"></i>You don't have any assigned issues.
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Created Items Tab -->
+                <div class="tab-pane fade" id="created" role="tabpanel" aria-labelledby="created-tab">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0">Items Created by You</h5>
+                        </div>
+                        <div class="card-body">
+                            <ul class="nav nav-pills mb-3" id="createdItemsTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="created-projects-tab" data-bs-toggle="pill" data-bs-target="#created-projects" type="button" role="tab" aria-controls="created-projects" aria-selected="true">Projects</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="created-milestones-tab" data-bs-toggle="pill" data-bs-target="#created-milestones" type="button" role="tab" aria-controls="created-milestones" aria-selected="false">Milestones</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="created-issues-tab" data-bs-toggle="pill" data-bs-target="#created-issues" type="button" role="tab" aria-controls="created-issues" aria-selected="false">Issues</button>
+                                </li>
+                            </ul>
+                            <div class="tab-content" id="createdItemsTabsContent">
+                                <!-- Created Projects -->
+                                <div class="tab-pane fade show active" id="created-projects" role="tabpanel" aria-labelledby="created-projects-tab">
+                                    {% if created_projects %}
+                                        <div class="table-responsive">
+                                            <table class="table table-hover">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Project Name</th>
+                                                        <th>Client</th>
+                                                        <th>Type</th>
+                                                        <th>Status</th>
+                                                        <th>Created</th>
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for project in created_projects %}
+                                                        <tr>
+                                                            <td>{{ project.name }}</td>
+                                                            <td>{{ project.client.company_name }}</td>
+                                                            <td>{{ project.project_type.name }}</td>
+                                                            <td>
+                                                                <span class="badge {% if project.status == 'completed' %}bg-success{% elif project.status == 'in_progress' %}bg-primary{% elif project.status == 'not_started' %}bg-secondary{% else %}bg-warning{% endif %}">
+                                                                    {{ project.get_status_display }}
+                                                                </span>
+                                                            </td>
+                                                            <td>{{ project.created_at|date:"M d, Y" }}</td>
+                                                            <td>
+                                                                <a href="{% url 'projects:project_detail' project.id %}" class="btn btn-sm btn-outline-primary">
+                                                                    <i class="bi bi-eye"></i> View
+                                                                </a>
+                                                            </td>
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    {% else %}
+                                        <div class="alert alert-info">
+                                            <i class="bi bi-info-circle me-2"></i>You haven't created any projects.
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Created Milestones -->
+                                <div class="tab-pane fade" id="created-milestones" role="tabpanel" aria-labelledby="created-milestones-tab">
+                                    {% if created_milestones %}
+                                        <div class="table-responsive">
+                                            <table class="table table-hover">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Milestone</th>
+                                                        <th>Project</th>
+                                                        <th>Type</th>
+                                                        <th>Status</th>
+                                                        <th>Created</th>
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for milestone in created_milestones %}
+                                                        <tr>
+                                                            <td>{{ milestone.name }}</td>
+                                                            <td>{{ milestone.project.name }}</td>
+                                                            <td>{{ milestone.get_milestone_type_display }}</td>
+                                                            <td>
+                                                                <span class="badge {% if milestone.status == 'completed' %}bg-success{% elif milestone.status == 'in_progress' %}bg-primary{% elif milestone.status == 'not_started' %}bg-secondary{% elif milestone.status == 'published' %}bg-info{% else %}bg-warning{% endif %}">
+                                                                    {{ milestone.get_status_display }}
+                                                                </span>
+                                                            </td>
+                                                            <td>{{ milestone.created_at|date:"M d, Y" }}</td>
+                                                            <td>
+                                                                <a href="{% url 'projects:milestone_detail' milestone.id %}" class="btn btn-sm btn-outline-primary">
+                                                                    <i class="bi bi-eye"></i> View
+                                                                </a>
+                                                            </td>
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    {% else %}
+                                        <div class="alert alert-info">
+                                            <i class="bi bi-info-circle me-2"></i>You haven't created any milestones.
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Created Issues -->
+                                <div class="tab-pane fade" id="created-issues" role="tabpanel" aria-labelledby="created-issues-tab">
+                                    {% if created_issues %}
+                                        <div class="table-responsive">
+                                            <table class="table table-hover">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Issue</th>
+                                                        <th>Project</th>
+                                                        <th>Milestone</th>
+                                                        <th>Page</th>
+                                                        <th>Status</th>
+                                                        <th>Created</th>
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for issue in created_issues %}
+                                                        <tr>
+                                                            <td>{{ issue.issue_description|truncatechars:50 }}</td>
+                                                            <td>{{ issue.project.name }}</td>
+                                                            <td>{{ issue.milestone.name }}</td>
+                                                            <td>{{ issue.page.name }}</td>
+                                                            <td>
+                                                                <span class="badge {% if issue.current_status == 'ready_for_testing' %}bg-info{% elif issue.current_status == 'in_progress' %}bg-warning{% elif issue.current_status == 'resolved' %}bg-success{% elif issue.current_status == 'closed' %}bg-secondary{% else %}bg-danger{% endif %}">
+                                                                    {{ issue.get_current_status_display }}
+                                                                </span>
+                                                            </td>
+                                                            <td>{{ issue.created_at|date:"M d, Y" }}</td>
+                                                            <td>
+                                                                <a href="{% url 'projects:issue_detail' issue.project.id issue.id %}" class="btn btn-sm btn-outline-primary">
+                                                                    <i class="bi bi-eye"></i> View
+                                                                </a>
+                                                            </td>
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    {% else %}
+                                        <div class="alert alert-info">
+                                            <i class="bi bi-info-circle me-2"></i>You haven't created any issues.
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Comments Tab -->
+                <div class="tab-pane fade" id="comments" role="tabpanel" aria-labelledby="comments-tab">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0">Your Comments</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if user_comments %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Comment</th>
+                                                <th>Issue</th>
+                                                <th>Project</th>
+                                                <th>Milestone</th>
+                                                <th>Type</th>
+                                                <th>Date</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for comment in user_comments %}
+                                                <tr>
+                                                    <td>{{ comment.text|truncatechars:50 }}</td>
+                                                    <td>{{ comment.issue.issue_description|truncatechars:30 }}</td>
+                                                    <td>{{ comment.issue.project.name }}</td>
+                                                    <td>{{ comment.issue.milestone.name }}</td>
+                                                    <td>
+                                                        <span class="badge {% if comment.comment_type == 'internal' %}bg-secondary{% else %}bg-primary{% endif %}">
+                                                            {{ comment.get_comment_type_display }}
+                                                        </span>
+                                                    </td>
+                                                    <td>{{ comment.created_at|date:"M d, Y H:i" }}</td>
+                                                    <td>
+                                                        <a href="{% url 'projects:issue_detail' comment.issue.project.id comment.issue.id %}" class="btn btn-sm btn-outline-primary">
+                                                            <i class="bi bi-eye"></i> View Issue
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle me-2"></i>You haven't made any comments.
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Modifications Tab -->
+                <div class="tab-pane fade" id="modifications" role="tabpanel" aria-labelledby="modifications-tab">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0">Your Modifications</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if user_modifications %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Type</th>
+                                                <th>Issue</th>
+                                                <th>Project</th>
+                                                <th>Milestone</th>
+                                                <th>Details</th>
+                                                <th>Date</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for mod in user_modifications %}
+                                                <tr>
+                                                    <td>{{ mod.modification_type|title }}</td>
+                                                    <td>{{ mod.issue.issue_description|truncatechars:30 }}</td>
+                                                    <td>{{ mod.issue.project.name }}</td>
+                                                    <td>{{ mod.milestone.name }}</td>
+                                                    <td>
+                                                        {% if mod.modification_type == 'status_change' %}
+                                                            Changed from <span class="badge bg-secondary">{{ mod.previous_value }}</span> to 
+                                                            <span class="badge {% if mod.new_value == 'ready_for_testing' %}bg-info{% elif mod.new_value == 'in_progress' %}bg-warning{% elif mod.new_value == 'resolved' %}bg-success{% elif mod.new_value == 'closed' %}bg-secondary{% else %}bg-danger{% endif %}">
+                                                                {{ mod.new_value }}
+                                                            </span>
+                                                        {% elif mod.modification_type == 'comment' %}
+                                                            Added comment: {{ mod.new_value|truncatechars:30 }}
+                                                        {% else %}
+                                                            {{ mod.new_value|truncatechars:30 }}
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ mod.created_at|date:"M d, Y H:i" }}</td>
+                                                    <td>
+                                                        <a href="{% url 'projects:issue_detail' mod.issue.project.id mod.issue.id %}" class="btn btn-sm btn-outline-primary">
+                                                            <i class="bi bi-eye"></i> View Issue
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle me-2"></i>You haven't made any modifications.
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

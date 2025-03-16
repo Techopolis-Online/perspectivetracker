@@ -1,0 +1,460 @@
+{% extends "users/base.html" %}
+{% load static %}
+{% load project_tags %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="mb-2">{{ milestone.name }}</h1>
+            <h4 class="text-muted">{{ project.name }}</h4>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'projects:project_detail' project.id %}" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i> Back to Project
+            </a>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="d-flex justify-content-end mb-4">
+        <a href="{% url 'projects:milestone_update' milestone.id %}" class="btn btn-outline-primary me-2" aria-label="Edit milestone: {{ milestone.name }}">
+            <i class="bi bi-pencil-square" aria-hidden="true"></i> Edit
+        </a>
+        {% if user.is_superuser or user.role.name == 'admin' %}
+        <a href="{% url 'projects:milestone_delete' milestone.id %}" class="btn btn-outline-danger me-2" aria-label="Delete milestone: {{ milestone.name }}">
+            <i class="bi bi-trash" aria-hidden="true"></i> Delete
+        </a>
+        {% if milestone.status == 'completed' and milestone.status != 'published' %}
+        <a href="{% url 'projects:milestone_publish' milestone.id %}" class="btn btn-outline-success" aria-label="Publish milestone: {{ milestone.name }}">
+            <i class="bi bi-check-circle" aria-hidden="true"></i> Publish
+        </a>
+        {% endif %}
+        {% endif %}
+    </div>
+
+    <div class="row">
+        <!-- Milestone Details -->
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h2 class="h5 mb-0"><i class="bi bi-info-circle me-2" aria-hidden="true"></i>Milestone Details</h2>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Type:</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {{ milestone.get_milestone_type_display }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Status:</strong>
+                        </div>
+                        <div class="col-md-8">
+                            <span class="badge {% if milestone.status == 'completed' %}bg-success{% elif milestone.status == 'in_progress' %}bg-primary{% elif milestone.status == 'not_started' %}bg-secondary{% elif milestone.status == 'published' %}bg-info{% else %}bg-warning{% endif %}">
+                                {{ milestone.get_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Assigned To:</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {% if milestone.assigned_to %}
+                                {{ milestone.assigned_to.get_full_name }}
+                            {% else %}
+                                <span class="text-muted">Not assigned</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Start Date:</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {{ milestone.start_date|default:"Not set" }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Due Date:</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {{ milestone.due_date|default:"Not set" }}
+                        </div>
+                    </div>
+                    {% if milestone.completed_date %}
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Completed Date:</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {{ milestone.completed_date }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Created:</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {{ milestone.created_at|date:"M d, Y" }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Last Updated:</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {{ milestone.updated_at|date:"M d, Y" }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Milestone Description -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h2 class="h5 mb-0"><i class="bi bi-file-text me-2" aria-hidden="true"></i>Description</h2>
+                </div>
+                <div class="card-body">
+                    {% if milestone.description %}
+                        {{ milestone.description|linebreaks }}
+                    {% else %}
+                        <p class="text-muted">No description provided.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Issues Needing Testing - Only visible to Techopolis staff, admins, and superusers, and only for QA milestones -->
+    {% if user.is_superuser or user.role.name == 'admin' or user.role.name == 'staff' %}
+    {% if milestone.milestone_type == 'qa' %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2 class="h5 mb-0"><i class="bi bi-bug me-2" aria-hidden="true"></i>Issues Ready for Testing</h2>
+                </div>
+                <div class="card-body">
+                    {% if issues_needing_testing %}
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Issues Ready for Testing:</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {{ issues_needing_testing.count }} 
+                            <a href="#testing-issues-table" data-bs-toggle="collapse" aria-expanded="false" aria-controls="testing-issues-table" class="ms-2 toggle-issues">
+                                <i class="bi bi-chevron-down" aria-hidden="true"></i> <span class="toggle-text">Expand</span>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="collapse mt-3" id="testing-issues-table">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="issuesTable">
+                            <thead>
+                                <tr>
+                                    <th>Page/Scenario</th>
+                                    <th>Issue Description</th>
+                                    <th>Status</th>
+                                    <th>Impact</th>
+                                    <th>Comments</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for issue in issues_needing_testing %}
+                                <tr class="issue-row clickable-row" data-href="{% url 'projects:issue_detail' project.id issue.id %}">
+                                    <td>{{ issue.page.name }}</td>
+                                    <td>
+                                        <a href="{% url 'projects:issue_detail' project.id issue.id %}" class="text-decoration-none">
+                                            {{ issue.issue_description|truncatechars:50 }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if issue.current_status == 'ready_for_testing' %}bg-info{% elif issue.current_status == 'in_progress' %}bg-warning{% elif issue.current_status == 'resolved' %}bg-success{% elif issue.current_status == 'closed' %}bg-secondary{% else %}bg-danger{% endif %} status-badge">
+                                            {{ issue.get_current_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if issue.user_impact == 'high' %}bg-danger{% elif issue.user_impact == 'low' %}bg-warning text-dark{% else %}bg-info{% endif %}">
+                                            {{ issue.get_user_impact_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#commentsModal{{ issue.id }}" onclick="event.stopPropagation();">
+                                            <span class="badge bg-secondary">
+                                                <i class="bi bi-chat-dots me-1"></i> {{ issue.comments.count }}
+                                            </span>
+                                        </a>
+                                        
+                                        <!-- Comments Modal -->
+                                        <div class="modal fade" id="commentsModal{{ issue.id }}" tabindex="-1" aria-labelledby="commentsModalLabel{{ issue.id }}" aria-hidden="true">
+                                            <div class="modal-dialog modal-lg">
+                                                <div class="modal-content">
+                                                    <div class="modal-header bg-light">
+                                                        <h5 class="modal-title" id="commentsModalLabel{{ issue.id }}">
+                                                            <i class="bi bi-chat-dots me-2"></i>Comments for Issue
+                                                        </h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <!-- Status Update Section - Removed since integrated into comment form -->
+                                                        
+                                                        <!-- Comments List -->
+                                                        <h6 class="mb-3">Comments</h6>
+                                                        {% include 'projects/includes/comments_list.html' with comments=issue.comments.all can_see_internal=user|can_see_internal_comments %}
+                                                        
+                                                        <!-- Add Comment Form -->
+                                                        <div class="mt-4 pt-3 border-top">
+                                                            <h6 class="mb-3">Add Comment</h6>
+                                                            <form method="post" action="{% url 'projects:issue_detail' project.id issue.id %}" id="addCommentForm{{ issue.id }}" class="comment-form">
+                                                                {% csrf_token %}
+                                                                
+                                                                <!-- Status Update within Comment Form -->
+                                                                <div class="mb-3">
+                                                                    <label for="issueStatus{{ issue.id }}_comment" class="form-label">Change Status:</label>
+                                                                    <select class="form-select" id="issueStatus{{ issue.id }}_comment" name="current_status">
+                                                                        <option value="">No change</option>
+                                                                        <option value="pass" {% if issue.current_status == 'pass' %}selected{% endif %}>Pass</option>
+                                                                        <option value="fail" {% if issue.current_status == 'fail' %}selected{% endif %}>Fail</option>
+                                                                        <option value="qa" {% if issue.current_status == 'qa' %}selected{% endif %}>QA</option>
+                                                                        <option value="in_remediation" {% if issue.current_status == 'in_remediation' %}selected{% endif %}>In Remediation</option>
+                                                                        <option value="ready_for_testing" {% if issue.current_status == 'ready_for_testing' %}selected{% endif %}>Ready For Testing</option>
+                                                                    </select>
+                                                                </div>
+                                                                
+                                                                <div class="mb-3">
+                                                                    <label for="id_text{{ issue.id }}" class="form-label">Comment:</label>
+                                                                    <textarea class="form-control" id="id_text{{ issue.id }}" name="text" rows="3" placeholder="Type your comment here..." required></textarea>
+                                                                </div>
+                                                                {% if user.is_superuser or user.role.name == 'admin' or user.role.name == 'staff' %}
+                                                                <div class="mb-3">
+                                                                    <label for="id_comment_type{{ issue.id }}" class="form-label">Comment Type:</label>
+                                                                    <select class="form-select form-select-sm" id="id_comment_type{{ issue.id }}" name="comment_type">
+                                                                        <option value="external">External (visible to all)</option>
+                                                                        <option value="internal">Internal (staff only)</option>
+                                                                    </select>
+                                                                    <div class="form-text small">Internal comments are only visible to staff and administrators.</div>
+                                                                </div>
+                                                                {% else %}
+                                                                <input type="hidden" name="comment_type" value="external">
+                                                                {% endif %}
+                                                                <div class="text-end">
+                                                                    <button type="submit" class="btn btn-primary">Add Comment & Update</button>
+                                                                </div>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group" aria-label="Issue actions">
+                                            <a href="{% url 'projects:issue_detail' project.id issue.id %}" class="btn btn-outline-secondary" aria-label="View issue details" onclick="event.stopPropagation();">
+                                                <i class="bi bi-eye" aria-hidden="true"></i><span class="visually-hidden">View</span>
+                                            </a>
+                                            <a href="{% url 'projects:issue_edit' project.id issue.id %}" class="btn btn-outline-primary" aria-label="Edit issue" onclick="event.stopPropagation();">
+                                                <i class="bi bi-pencil" aria-hidden="true"></i><span class="visually-hidden">Edit</span>
+                                            </a>
+                                            {% if user.is_superuser or user.role.name == 'admin' %}
+                                            <a href="{% url 'projects:issue_delete' project.id issue.id %}" class="btn btn-outline-danger" aria-label="Delete issue" onclick="event.stopPropagation();">
+                                                <i class="bi bi-trash" aria-hidden="true"></i><span class="visually-hidden">Delete</span>
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <p class="mb-0">No issues currently need testing.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% elif user.role.name == 'client' %}
+    {% if milestone.milestone_type == 'qa' %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h2 class="h5 mb-0"><i class="bi bi-bug me-2" aria-hidden="true"></i>Issues Ready for Testing</h2>
+                </div>
+                <div class="card-body">
+                    {% if not is_published %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>This milestone is currently under internal review.</strong>
+                        <p class="mb-0">Issues will be visible once the milestone is published.</p>
+                    </div>
+                    {% elif issues_needing_testing %}
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Issues Ready for Testing:</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {{ issues_needing_testing.count }} 
+                            <a href="#testing-issues-table" data-bs-toggle="collapse" aria-expanded="false" aria-controls="testing-issues-table" class="ms-2 toggle-issues">
+                                <i class="bi bi-chevron-down" aria-hidden="true"></i> <span class="toggle-text">Expand</span>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="collapse mt-3" id="testing-issues-table">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="issuesTable">
+                            <thead>
+                                <tr>
+                                    <th>Page/Scenario</th>
+                                    <th>Issue Description</th>
+                                    <th>Status</th>
+                                    <th>Impact</th>
+                                    <th>Comments</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for issue in issues_needing_testing %}
+                                <tr class="issue-row clickable-row" data-href="{% url 'projects:issue_detail' project.id issue.id %}">
+                                    <td>{{ issue.page.name }}</td>
+                                    <td>
+                                        <a href="{% url 'projects:issue_detail' project.id issue.id %}" class="text-decoration-none">
+                                            {{ issue.issue_description|truncatechars:50 }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if issue.current_status == 'ready_for_testing' %}bg-info{% elif issue.current_status == 'in_progress' %}bg-warning{% elif issue.current_status == 'resolved' %}bg-success{% elif issue.current_status == 'closed' %}bg-secondary{% else %}bg-danger{% endif %} status-badge">
+                                            {{ issue.get_current_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if issue.user_impact == 'high' %}bg-danger{% elif issue.user_impact == 'low' %}bg-warning text-dark{% else %}bg-info{% endif %}">
+                                            {{ issue.get_user_impact_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#commentsModal{{ issue.id }}" onclick="event.stopPropagation();">
+                                            <span class="badge bg-secondary">
+                                                <i class="bi bi-chat-dots me-1"></i> {{ issue.comments.count }}
+                                            </span>
+                                        </a>
+                                        
+                                        <!-- Comments Modal -->
+                                        <div class="modal fade" id="commentsModal{{ issue.id }}" tabindex="-1" aria-labelledby="commentsModalLabel{{ issue.id }}" aria-hidden="true">
+                                            <div class="modal-dialog modal-lg">
+                                                <div class="modal-content">
+                                                    <div class="modal-header bg-light">
+                                                        <h5 class="modal-title" id="commentsModalLabel{{ issue.id }}">
+                                                            <i class="bi bi-chat-dots me-2"></i>Comments for Issue
+                                                        </h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <!-- Comments List -->
+                                                        <h6 class="mb-3">Comments</h6>
+                                                        {% include 'projects/includes/comments_list.html' with comments=issue.comments.all can_see_internal=user|can_see_internal_comments %}
+                                                        
+                                                        <!-- Add Comment Form -->
+                                                        <div class="mt-4 pt-3 border-top">
+                                                            <h6 class="mb-3">Add Comment</h6>
+                                                            <form method="post" action="{% url 'projects:issue_detail' project.id issue.id %}" id="addCommentForm{{ issue.id }}" class="comment-form">
+                                                                {% csrf_token %}
+                                                                
+                                                                <!-- Status Update within Comment Form -->
+                                                                <div class="mb-3">
+                                                                    <label for="issueStatus{{ issue.id }}_comment" class="form-label">Change Status:</label>
+                                                                    <select class="form-select" id="issueStatus{{ issue.id }}_comment" name="current_status">
+                                                                        <option value="">No change</option>
+                                                                        <option value="pass" {% if issue.current_status == 'pass' %}selected{% endif %}>Pass</option>
+                                                                        <option value="fail" {% if issue.current_status == 'fail' %}selected{% endif %}>Fail</option>
+                                                                        <option value="qa" {% if issue.current_status == 'qa' %}selected{% endif %}>QA</option>
+                                                                        <option value="in_remediation" {% if issue.current_status == 'in_remediation' %}selected{% endif %}>In Remediation</option>
+                                                                        <option value="ready_for_testing" {% if issue.current_status == 'ready_for_testing' %}selected{% endif %}>Ready For Testing</option>
+                                                                    </select>
+                                                                </div>
+                                                                
+                                                                <div class="mb-3">
+                                                                    <label for="id_text{{ issue.id }}" class="form-label">Comment:</label>
+                                                                    <textarea class="form-control" id="id_text{{ issue.id }}" name="text" rows="3" placeholder="Type your comment here..." required></textarea>
+                                                                </div>
+                                                                <input type="hidden" name="comment_type" value="external">
+                                                                <div class="text-end">
+                                                                    <button type="submit" class="btn btn-primary">Add Comment & Update</button>
+                                                                </div>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group" aria-label="Issue actions">
+                                            <a href="{% url 'projects:issue_detail' project.id issue.id %}" class="btn btn-outline-secondary" aria-label="View issue details" onclick="event.stopPropagation();">
+                                                <i class="bi bi-eye" aria-hidden="true"></i><span class="visually-hidden">View</span>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <p class="mb-0">No issues currently need testing.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    <!-- JavaScript for handling comments -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Clickable rows
+        document.querySelectorAll('.clickable-row').forEach(row => {
+            row.addEventListener('click', function() {
+                window.location.href = this.dataset.href;
+            });
+        });
+        
+        // Toggle expand/collapse text
+        document.querySelectorAll('.toggle-issues').forEach(toggle => {
+            toggle.addEventListener('click', function() {
+                const icon = this.querySelector('.bi');
+                const text = this.querySelector('.toggle-text');
+                
+                if (icon.classList.contains('bi-chevron-down')) {
+                    icon.classList.remove('bi-chevron-down');
+                    icon.classList.add('bi-chevron-up');
+                    text.textContent = 'Collapse';
+                } else {
+                    icon.classList.remove('bi-chevron-up');
+                    icon.classList.add('bi-chevron-down');
+                    text.textContent = 'Expand';
+                }
+            });
+        });
+    });
+    </script>
+</div>
+{% endblock %} 

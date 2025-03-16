@@ -275,11 +275,21 @@ class Comment(models.Model):
     author = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='comments')
     comment_type = models.CharField(max_length=10, choices=COMMENT_TYPE_CHOICES, default='external')
     text = models.TextField()
+    milestone = models.ForeignKey(Milestone, on_delete=models.SET_NULL, null=True, blank=True, related_name='comments')
+    status_changed = models.BooleanField(default=False, help_text="Whether this comment included a status change")
+    previous_status = models.CharField(max_length=20, blank=True, null=True, help_text="Previous status before change")
+    new_status = models.CharField(max_length=20, blank=True, null=True, help_text="New status after change")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
         return f"Comment by {self.author} on {self.issue}"
+    
+    def save(self, *args, **kwargs):
+        # Set milestone from issue if not explicitly provided
+        if not self.milestone and self.issue and self.issue.milestone:
+            self.milestone = self.issue.milestone
+        super().save(*args, **kwargs)
     
     class Meta:
         ordering = ['-created_at']
@@ -293,6 +303,23 @@ class IssueComment(models.Model):
     
     def __str__(self):
         return f"Comment on {self.issue} by {self.created_by}"
+    
+    class Meta:
+        ordering = ['-created_at']
+
+class IssueModification(models.Model):
+    """Track modifications to issues"""
+    issue = models.ForeignKey(Issue, on_delete=models.CASCADE, related_name='modifications')
+    milestone = models.ForeignKey(Milestone, on_delete=models.CASCADE, related_name='issue_modifications')
+    modified_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='issue_modifications')
+    modification_type = models.CharField(max_length=50, help_text="Type of modification (status change, comment, etc.)")
+    previous_value = models.TextField(blank=True, null=True, help_text="Previous value before change")
+    new_value = models.TextField(blank=True, null=True, help_text="New value after change")
+    comment = models.ForeignKey(Comment, on_delete=models.SET_NULL, null=True, blank=True, related_name='modifications')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.modification_type} on {self.issue} by {self.modified_by}"
     
     class Meta:
         ordering = ['-created_at']

@@ -36,6 +36,11 @@
                         </a>
                     </li>
                     {% if user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if '/dashboard/' in request.path %}active{% endif %}" href="{% url 'dashboard' %}">
+                                <i class="bi bi-speedometer2 me-1"></i>Dashboard
+                            </a>
+                        </li>
                         {% if user.is_superuser or user.role.name == 'admin' or user.role.name == 'staff' %}
                             <li class="nav-item">
                                 <a class="nav-link {% if '/clients/' in request.path %}active{% endif %}" href="{% url 'client_list' %}">
@@ -126,6 +131,7 @@
                     <ul class="list-unstyled">
                         <li><a href="{% url 'home' %}"><i class="bi bi-chevron-right me-1"></i>Home</a></li>
                         {% if user.is_authenticated %}
+                            <li><a href="{% url 'dashboard' %}"><i class="bi bi-chevron-right me-1"></i>Dashboard</a></li>
                             <li><a href="{% url 'profile' %}"><i class="bi bi-chevron-right me-1"></i>Profile</a></li>
                             {% if user.is_superuser or user.role.name == 'admin' or user.role.name == 'staff' %}
                                 <li><a href="{% url 'client_list' %}"><i class="bi bi-chevron-right me-1"></i>Clients</a></li>
