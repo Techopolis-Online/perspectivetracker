@@ -1,0 +1,94 @@
+{% extends "users/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>{{ standard.name }} {{ standard.version }}</h1>
+        <div>
+            <a href="{% url 'projects:standard_update' standard.id %}" class="btn btn-outline-primary me-2">
+                <i class="fas fa-edit"></i> Edit
+            </a>
+            <a href="{% url 'projects:standard_delete' standard.id %}" class="btn btn-outline-danger">
+                <i class="fas fa-trash"></i> Delete
+            </a>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h2 class="h5 mb-0">Standard Details</h2>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Description:</strong>
+                        <p>{{ standard.description|linebreaks|default:"No description provided." }}</p>
+                    </div>
+                    {% if standard.url %}
+                    <div class="mb-3">
+                        <strong>Documentation:</strong>
+                        <a href="{{ standard.url }}" target="_blank" rel="noopener noreferrer">{{ standard.url }}</a>
+                    </div>
+                    {% endif %}
+                    <div class="mb-3">
+                        <strong>Created:</strong> {{ standard.created_at|date:"M d, Y" }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Last Updated:</strong> {{ standard.updated_at|date:"M d, Y" }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center bg-light">
+            <h2 class="h5 mb-0">Violations</h2>
+            <a href="{% url 'projects:violation_create' standard.id %}" class="btn btn-sm btn-primary">
+                <i class="fas fa-plus"></i> Add Violation
+            </a>
+        </div>
+        <div class="card-body p-0">
+            {% if violations %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for violation in violations %}
+                        <tr>
+                            <td>{{ violation.name }}</td>
+                            <td>
+                                <a href="{% url 'projects:violation_update' violation.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'projects:violation_delete' violation.id %}" class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-3">
+                <p class="text-muted">No violations have been added to this standard yet.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <a href="{% url 'projects:standard_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Standards
+        </a>
+    </div>
+</div>
+{% endblock %} 

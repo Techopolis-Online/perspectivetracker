@@ -3,24 +3,105 @@
 {% block title %}Home - Perspective Tracker{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="row">
-        <div class="col-md-12 text-center mb-4">
-            <h1>Welcome to Perspective Tracker</h1>
-            <p class="lead">A CRM system for tracking client services</p>
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container py-5">
+        <div class="row align-items-center">
+            <div class="col-lg-6 mb-4 mb-lg-0">
+                <h1 class="display-4 fw-bold mb-3">Welcome to Perspective Tracker</h1>
+                <p class="lead mb-4">A professional CRM system designed to streamline client management and project tracking for your business.</p>
+                {% if not user.is_authenticated %}
+                <div class="d-flex gap-3">
+                    <a href="{% url 'login' %}" class="btn btn-light btn-lg">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>Login
+                    </a>
+                    <a href="{% url 'register' %}" class="btn btn-outline-light btn-lg">
+                        <i class="bi bi-person-plus me-2"></i>Register
+                    </a>
+                </div>
+                {% else %}
+                <a href="{% url 'profile' %}" class="btn btn-light btn-lg">
+                    <i class="bi bi-person-badge me-2"></i>Go to Dashboard
+                </a>
+                {% endif %}
+            </div>
+            <div class="col-lg-6 text-center">
+                <img src="https://cdn.pixabay.com/photo/2018/03/10/09/45/businessman-3213659_1280.png" alt="Business Analytics" class="img-fluid" style="max-height: 350px;">
+            </div>
         </div>
     </div>
+</section>
 
+<div class="container mt-5">
     {% if user.is_authenticated %}
+        <!-- Dashboard Stats -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="fw-bold mb-4">Dashboard</h2>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="stat-card text-center">
+                    <i class="bi bi-people"></i>
+                    <h3>{{ user.first_name }}</h3>
+                    <p>Welcome Back!</p>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="stat-card text-center">
+                    <i class="bi bi-briefcase"></i>
+                    <h3>Role</h3>
+                    <p>
+                        {% if user.is_superuser %}
+                            Administrator
+                        {% elif user.role %}
+                            {% if user.role.name == 'admin' %}
+                                Administrator
+                            {% elif user.role.name == 'staff' %}
+                                Techopolis Staff
+                            {% elif user.role.name == 'client' %}
+                                Client
+                            {% else %}
+                                User
+                            {% endif %}
+                        {% else %}
+                            No Role Assigned
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="stat-card text-center">
+                    <i class="bi bi-calendar-check"></i>
+                    <h3>Today</h3>
+                    <p>{% now "F j, Y" %}</p>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="stat-card text-center">
+                    <i class="bi bi-clock-history"></i>
+                    <h3>Last Login</h3>
+                    <p>{% now "g:i A" %}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Information -->
         <div class="row">
             <div class="col-md-4">
-                <div class="card mb-4">
-                    <div class="card-header bg-primary text-white">
-                        <h2 class="h5 card-title mb-0">Your Dashboard</h2>
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h2 class="h5 card-title mb-0"><i class="bi bi-person-circle me-2"></i>Your Profile</h2>
                     </div>
                     <div class="card-body">
-                        <p><strong>Name:</strong> {{ user.first_name }} {{ user.last_name }}</p>
-                        <p><strong>Email:</strong> {{ user.email }}</p>
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-light rounded-circle p-3 me-3">
+                                <i class="bi bi-person text-primary" style="font-size: 2rem;"></i>
+                            </div>
+                            <div>
+                                <h3 class="h5 mb-1">{{ user.first_name }} {{ user.last_name }}</h3>
+                                <p class="text-muted mb-0">{{ user.email }}</p>
+                            </div>
+                        </div>
                         <p><strong>Role:</strong> 
                             {% if user.is_superuser %}
                                 <span class="badge bg-danger">Administrator</span>
@@ -38,37 +119,87 @@
                                 <span class="badge bg-secondary">No Role Assigned</span>
                             {% endif %}
                         </p>
-                        <a href="{% url 'profile' %}" class="btn btn-outline-primary">View Profile</a>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'profile' %}" class="btn btn-primary">
+                                <i class="bi bi-person-badge me-2"></i>View Profile
+                            </a>
+                            <a href="{% url 'edit_profile' %}" class="btn btn-outline-primary">
+                                <i class="bi bi-pencil-square me-2"></i>Edit Profile
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
             
             <div class="col-md-8">
-                <div class="card">
-                    <div class="card-header bg-dark text-white">
-                        <h2 class="h5 card-title mb-0">Dashboard</h2>
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h2 class="h5 card-title mb-0"><i class="bi bi-speedometer2 me-2"></i>Dashboard</h2>
                     </div>
                     <div class="card-body">
                         {% if user.is_superuser or user.role.name == 'admin' %}
                             <div class="alert alert-info">
-                                <h3 class="h5">Administrator Access</h3>
-                                <p>You have full access to all system features.</p>
-                                <a href="/admin/" class="btn btn-primary">Go to Admin Panel</a>
+                                <div class="d-flex">
+                                    <div class="me-3">
+                                        <i class="bi bi-shield-check" style="font-size: 2rem;"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="h5">Administrator Access</h3>
+                                        <p class="mb-0">You have full access to all system features and can manage users, clients, and projects.</p>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <a href="/admin/" class="btn btn-primary">
+                                        <i class="bi bi-gear me-2"></i>Go to Admin Panel
+                                    </a>
+                                    <a href="{% url 'client_list' %}" class="btn btn-outline-primary ms-2">
+                                        <i class="bi bi-people me-2"></i>View Clients
+                                    </a>
+                                </div>
                             </div>
                         {% elif user.role.name == 'staff' %}
                             <div class="alert alert-info">
-                                <h3 class="h5">Staff Access</h3>
-                                <p>You have access to internal staff features.</p>
+                                <div class="d-flex">
+                                    <div class="me-3">
+                                        <i class="bi bi-person-workspace" style="font-size: 2rem;"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="h5">Staff Access</h3>
+                                        <p class="mb-0">You have access to internal staff features and can manage clients and projects.</p>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <a href="{% url 'client_list' %}" class="btn btn-primary">
+                                        <i class="bi bi-people me-2"></i>View Clients
+                                    </a>
+                                    <a href="{% url 'projects:project_list' %}" class="btn btn-outline-primary ms-2">
+                                        <i class="bi bi-kanban me-2"></i>View Projects
+                                    </a>
+                                </div>
                             </div>
                         {% elif user.role.name == 'client' %}
                             <div class="alert alert-info">
-                                <h3 class="h5">Client Access</h3>
-                                <p>You can view and manage your services.</p>
+                                <div class="d-flex">
+                                    <div class="me-3">
+                                        <i class="bi bi-person-check" style="font-size: 2rem;"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="h5">Client Access</h3>
+                                        <p class="mb-0">You can view and manage your services and projects.</p>
+                                    </div>
+                                </div>
                             </div>
                         {% else %}
                             <div class="alert alert-info">
-                                <h3 class="h5">User Access</h3>
-                                <p>You have basic access to the system.</p>
+                                <div class="d-flex">
+                                    <div class="me-3">
+                                        <i class="bi bi-person" style="font-size: 2rem;"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="h5">User Access</h3>
+                                        <p class="mb-0">You have basic access to the system.</p>
+                                    </div>
+                                </div>
                             </div>
                         {% endif %}
                     </div>
@@ -76,20 +207,69 @@
             </div>
         </div>
     {% else %}
-        <div class="row">
-            <div class="col-md-6 offset-md-3">
-                <div class="card">
-                    <div class="card-header bg-primary text-white">
-                        <h2 class="h5 card-title mb-0">Login Required</h2>
+        <!-- Features Section for Non-Authenticated Users -->
+        <section class="my-5">
+            <div class="row mb-4">
+                <div class="col-12 text-center">
+                    <h2 class="fw-bold mb-3">Why Choose Perspective Tracker?</h2>
+                    <p class="lead mb-0">Our comprehensive CRM solution helps you manage clients and projects efficiently</p>
+                </div>
+            </div>
+            
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body text-center p-4">
+                            <div class="rounded-circle bg-primary bg-opacity-10 p-3 d-inline-flex mb-3">
+                                <i class="bi bi-people text-primary" style="font-size: 2rem;"></i>
+                            </div>
+                            <h3 class="h4 mb-3">Client Management</h3>
+                            <p>Easily manage all your clients in one place with detailed profiles and communication history.</p>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <p>Please log in to access the Perspective Tracker system.</p>
-                        <p>Contact your administrator if you need an account.</p>
-                        <a href="{% url 'login' %}" class="btn btn-primary">Login</a>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body text-center p-4">
+                            <div class="rounded-circle bg-primary bg-opacity-10 p-3 d-inline-flex mb-3">
+                                <i class="bi bi-kanban text-primary" style="font-size: 2rem;"></i>
+                            </div>
+                            <h3 class="h4 mb-3">Project Tracking</h3>
+                            <p>Track all your projects from start to finish with detailed status updates and milestone tracking.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body text-center p-4">
+                            <div class="rounded-circle bg-primary bg-opacity-10 p-3 d-inline-flex mb-3">
+                                <i class="bi bi-graph-up text-primary" style="font-size: 2rem;"></i>
+                            </div>
+                            <h3 class="h4 mb-3">Insightful Analytics</h3>
+                            <p>Gain valuable insights with comprehensive analytics and reporting on your business performance.</p>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
+        
+        <!-- Call to Action -->
+        <section class="my-5 py-5 bg-light rounded">
+            <div class="row justify-content-center">
+                <div class="col-md-8 text-center">
+                    <h2 class="fw-bold mb-3">Ready to Get Started?</h2>
+                    <p class="lead mb-4">Join Perspective Tracker today and transform how you manage your business.</p>
+                    <div class="d-flex justify-content-center gap-3">
+                        <a href="{% url 'login' %}" class="btn btn-primary btn-lg">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>Login
+                        </a>
+                        <a href="{% url 'register' %}" class="btn btn-outline-primary btn-lg">
+                            <i class="bi bi-person-plus me-2"></i>Register
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
     {% endif %}
 </div>
 {% endblock %} 

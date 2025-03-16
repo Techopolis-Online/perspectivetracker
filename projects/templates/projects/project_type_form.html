@@ -1,0 +1,93 @@
+{% extends "users/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h2 class="mb-0">{{ title }}</h2>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">Project Type Name</label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                            <div class="text-danger">{{ form.name.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                            <div class="text-danger">{{ form.description.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            {{ form.supports_standards }}
+                            <label class="form-check-label" for="{{ form.supports_standards.id_for_label }}">
+                                Supports Standards and Violations
+                            </label>
+                            {% if form.supports_standards.errors %}
+                            <div class="text-danger">{{ form.supports_standards.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">Enable this if projects of this type will use standards and violations (e.g., accessibility projects).</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.status_choices_text.id_for_label }}" class="form-label">Status Choices</label>
+                            {{ form.status_choices_text }}
+                            {% if form.status_choices_text.errors %}
+                            <div class="text-danger">{{ form.status_choices_text.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">{{ form.status_choices_text.help_text }}</div>
+                            <div class="form-text mt-2">
+                                <strong>Example:</strong><br>
+                                audit, Audit<br>
+                                remediation, Remediation<br>
+                                qa, QA<br>
+                                monitoring, Monitoring<br>
+                                statement_in_progress, Accessibility Statement In Progress<br>
+                                statement_given, Accessibility Statement Given
+                            </div>
+                            <div class="form-text mt-2 text-danger">
+                                <strong>Important:</strong> Each key must be a single word without spaces (use underscores if needed). Make sure to enter each key-value pair correctly.
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.milestone_choices_text.id_for_label }}" class="form-label">Milestone Choices</label>
+                            {{ form.milestone_choices_text }}
+                            {% if form.milestone_choices_text.errors %}
+                            <div class="text-danger">{{ form.milestone_choices_text.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">{{ form.milestone_choices_text.help_text }}</div>
+                            <div class="form-text mt-2">
+                                <strong>Example:</strong><br>
+                                design, Design Phase<br>
+                                development, Development Phase<br>
+                                testing, Testing Phase<br>
+                                deployment, Deployment Phase
+                            </div>
+                            <div class="form-text mt-2 text-danger">
+                                <strong>Important:</strong> Each key must be a single word without spaces (use underscores if needed).
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'projects:project_type_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Save Project Type</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

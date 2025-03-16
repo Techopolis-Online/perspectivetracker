@@ -1,0 +1,183 @@
+{% extends "users/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h2 class="mb-0">{{ title }}</h2>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.name.id_for_label }}" class="form-label">Project Name</label>
+                                {{ form.name }}
+                                {% if form.name.errors %}
+                                <div class="text-danger">{{ form.name.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.client.id_for_label }}" class="form-label">Client</label>
+                                {{ form.client }}
+                                {% if form.client.errors %}
+                                <div class="text-danger">{{ form.client.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.project_type.id_for_label }}" class="form-label">Project Type</label>
+                                {{ form.project_type }}
+                                {% if form.project_type.errors %}
+                                <div class="text-danger">{{ form.project_type.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
+                                {{ form.status }}
+                                {% if form.status.errors %}
+                                <div class="text-danger">{{ form.status.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                            {{ form.notes }}
+                            {% if form.notes.errors %}
+                            <div class="text-danger">{{ form.notes.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.assigned_staff.id_for_label }}" class="form-label">{{ form.assigned_staff.label }}</label>
+                                {{ form.assigned_staff }}
+                                {% if form.assigned_staff.errors %}
+                                <div class="text-danger">{{ form.assigned_staff.errors }}</div>
+                                {% endif %}
+                                <div class="form-text">{{ form.assigned_staff.help_text }}</div>
+                                <div class="form-text">Hold Ctrl/Cmd to select multiple staff members</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.assigned_clients.id_for_label }}" class="form-label">{{ form.assigned_clients.label }}</label>
+                                {{ form.assigned_clients }}
+                                {% if form.assigned_clients.errors %}
+                                <div class="text-danger">{{ form.assigned_clients.errors }}</div>
+                                {% endif %}
+                                <div class="form-text">{{ form.assigned_clients.help_text }}</div>
+                                <div class="form-text">Hold Ctrl/Cmd to select multiple client team members</div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'projects:project_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Save Project</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const projectTypeSelect = document.getElementById('id_project_type');
+        const statusSelect = document.getElementById('id_status');
+        let hasInitialized = false;
+        
+        // Function to fetch status choices for a project type
+        async function fetchStatusChoices(projectTypeId) {
+            try {
+                const response = await fetch(`/projects/types/${projectTypeId}/status-choices/`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch status choices');
+                }
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching status choices:', error);
+                return [
+                    ['not_started', 'Not Started'],
+                    ['in_progress', 'In Progress'],
+                    ['completed', 'Completed']
+                ];
+            }
+        }
+        
+        // Function to update status options based on project type
+        async function updateStatusOptions() {
+            const projectTypeId = projectTypeSelect.value;
+            if (!projectTypeId) return;
+            
+            // Clear current options
+            statusSelect.innerHTML = '';
+            
+            // Get status choices for the selected project type
+            const choices = await fetchStatusChoices(projectTypeId);
+            
+            console.log('Status choices:', choices); // Debug log
+            
+            // Track added values to prevent duplicates
+            const addedValues = new Set();
+            
+            // Add new options
+            choices.forEach(function(option) {
+                // Skip if this value has already been added
+                if (addedValues.has(option[0])) {
+                    console.log('Skipping duplicate option:', option[0], option[1]);
+                    return;
+                }
+                
+                const optionElement = document.createElement('option');
+                optionElement.value = option[0];
+                optionElement.textContent = option[1];
+                statusSelect.appendChild(optionElement);
+                console.log('Added option:', option[0], option[1]); // Debug log
+                
+                // Mark this value as added
+                addedValues.add(option[0]);
+            });
+            
+            // If there's a pre-selected status, try to select it
+            const preSelectedStatus = statusSelect.getAttribute('data-preselected');
+            if (preSelectedStatus) {
+                for (let i = 0; i < statusSelect.options.length; i++) {
+                    if (statusSelect.options[i].value === preSelectedStatus) {
+                        statusSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+            
+            hasInitialized = true;
+        }
+        
+        // Update status options when project type changes
+        projectTypeSelect.addEventListener('change', function() {
+            // Store pre-selected status if any
+            if (statusSelect.selectedIndex >= 0) {
+                statusSelect.setAttribute('data-preselected', statusSelect.value);
+            }
+            updateStatusOptions();
+        });
+        
+        // Initial update - only do this once when the page loads
+        if (projectTypeSelect.value && !hasInitialized) {
+            // Store pre-selected status if any
+            if (statusSelect.selectedIndex >= 0) {
+                statusSelect.setAttribute('data-preselected', statusSelect.value);
+            }
+            updateStatusOptions();
+        }
+    });
+</script>
+{% endblock %} 

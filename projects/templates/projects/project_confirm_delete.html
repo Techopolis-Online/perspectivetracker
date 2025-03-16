@@ -1,0 +1,28 @@
+{% extends "users/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h2 class="mb-0">Delete Project</h2>
+                </div>
+                <div class="card-body">
+                    <p class="lead">Are you sure you want to delete the project "{{ project.name }}"?</p>
+                    <p class="text-danger"><strong>Warning:</strong> This action cannot be undone. All data associated with this project, including violations, will be permanently deleted.</p>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'projects:project_detail' project.id %}" class="btn btn-outline-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-danger">Delete Project</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

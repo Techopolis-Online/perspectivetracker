@@ -1,0 +1,90 @@
+{% extends "users/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Projects</h1>
+        {% if user.is_staff or user.is_superuser %}
+        <a href="{% url 'projects:project_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> New Project
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Project Type Filter -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h2 class="h5 mb-0">Filter Projects</h2>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <label for="project-type-filter" class="form-label">Project Type:</label>
+                    <select id="project-type-filter" class="form-select">
+                        <option value="">All Project Types</option>
+                        {% for type in project_types %}
+                        <option value="{{ type.slug }}" {% if current_type == type.slug %}selected{% endif %}>{{ type.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if projects %}
+    <div class="row">
+        {% for project in projects %}
+        <div class="col-md-6 col-lg-4 mb-4 project-card" data-project-type="{{ project.project_type.slug }}">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2 class="h5 mb-0">{{ project.name }}</h2>
+                    <span class="badge {% if project.status == 'completed' %}bg-success{% elif project.status == 'in_progress' or project.status == 'in_development' %}bg-primary{% elif project.status == 'audit' %}bg-info{% elif project.status == 'qa' %}bg-warning{% elif project.status == 'remediation' %}bg-danger{% else %}bg-secondary{% endif %}">
+                        {{ project.get_status_display }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <p class="card-subtitle mb-2 text-muted fw-bold">{{ project.client.company_name }}</p>
+                    <p class="card-text">{{ project.description|truncatechars:100 }}</p>
+                    <p class="card-text">
+                        <small class="text-muted">
+                            <strong>Type:</strong> {{ project.project_type.name }}
+                        </small>
+                    </p>
+                    {% if project.start_date %}
+                    <p class="card-text">
+                        <small class="text-muted">
+                            <strong>Start Date:</strong> {{ project.start_date }}
+                        </small>
+                    </p>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{% url 'projects:project_detail' project.id %}" class="btn btn-sm btn-outline-primary">View Details</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        No projects found. {% if user.is_staff or user.is_superuser %}<a href="{% url 'projects:project_create' %}">Create a new project</a>.{% endif %}
+    </div>
+    {% endif %}
+</div>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const typeFilter = document.getElementById('project-type-filter');
+        
+        typeFilter.addEventListener('change', function() {
+            const selectedType = this.value;
+            window.location.href = selectedType ? 
+                `{% url 'projects:project_list' %}?type=${selectedType}` : 
+                `{% url 'projects:project_list' %}`;
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %} 

@@ -1,0 +1,83 @@
+{% extends "users/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h2 class="mb-0">{{ title }}</h2>
+                    <p class="mb-0 text-muted">Project: {{ project.name }}</p>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.violation.id_for_label }}" class="form-label">Issue Type</label>
+                            {{ form.violation }}
+                            {% if form.violation.errors %}
+                            <div class="text-danger">{{ form.violation.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">Select a specific violation from a standard (e.g., "1.1.1 Alt Text" from WCAG 2.2)</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
+                            {{ form.status }}
+                            {% if form.status.errors %}
+                            <div class="text-danger">{{ form.status.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.location.id_for_label }}" class="form-label">Location</label>
+                            {{ form.location }}
+                            {% if form.location.errors %}
+                            <div class="text-danger">{{ form.location.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">Where in the application this issue was found (e.g., "Login page", "Header menu")</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                            {{ form.notes }}
+                            {% if form.notes.errors %}
+                            <div class="text-danger">{{ form.notes.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.screenshot.id_for_label }}" class="form-label">Screenshot</label>
+                            {{ form.screenshot }}
+                            {% if form.screenshot.errors %}
+                            <div class="text-danger">{{ form.screenshot.errors }}</div>
+                            {% endif %}
+                            {% if project_violation and project_violation.screenshot %}
+                            <div class="mt-2">
+                                <p>Current screenshot:</p>
+                                <img src="{{ project_violation.screenshot.url }}" alt="Violation screenshot" class="img-thumbnail" style="max-height: 200px;">
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.assigned_to.id_for_label }}" class="form-label">Assigned To</label>
+                            {{ form.assigned_to }}
+                            {% if form.assigned_to.errors %}
+                            <div class="text-danger">{{ form.assigned_to.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'projects:project_detail' project.id %}" class="btn btn-outline-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Save</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

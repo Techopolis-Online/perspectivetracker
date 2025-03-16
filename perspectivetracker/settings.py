@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'users',
     'clients',
+    'projects',
     'social_django',
 ]
 
@@ -128,6 +129,10 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+STATICFILES_DIRS = [
+    BASE_DIR / 'perspectivetracker' / 'static',
+]
 
 # Media files (User uploads)
 MEDIA_URL = '/media/'

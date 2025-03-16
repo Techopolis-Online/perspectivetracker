@@ -1,0 +1,58 @@
+{% extends "users/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Standards</h1>
+        <a href="{% url 'projects:standard_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> New Standard
+        </a>
+    </div>
+
+    {% if standards %}
+    <div class="card">
+        <div class="card-header bg-light">
+            <h2 class="h5 mb-0">All Standards</h2>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Version</th>
+                            <th>Violations</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for standard in standards %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'projects:standard_detail' standard.id %}">{{ standard.name }}</a>
+                            </td>
+                            <td>{{ standard.version }}</td>
+                            <td>{{ standard.violations.count }}</td>
+                            <td>
+                                <a href="{% url 'projects:standard_update' standard.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'projects:standard_delete' standard.id %}" class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        No standards found. <a href="{% url 'projects:standard_create' %}">Create a new standard</a>.
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 
