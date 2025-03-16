@@ -283,3 +283,16 @@ class Comment(models.Model):
     
     class Meta:
         ordering = ['-created_at']
+
+class IssueComment(models.Model):
+    """Simple comment model for issues from milestone view"""
+    issue = models.ForeignKey(Issue, on_delete=models.CASCADE, related_name='issue_comments')
+    comment = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='issue_comments')
+    
+    def __str__(self):
+        return f"Comment on {self.issue} by {self.created_by}"
+    
+    class Meta:
+        ordering = ['-created_at']

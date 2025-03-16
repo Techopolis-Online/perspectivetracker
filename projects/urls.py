@@ -51,6 +51,7 @@ urlpatterns = [
     path('milestones/<int:pk>/delete/', views.milestone_delete, name='milestone_delete'),
     path('milestones/<int:pk>/publish/', views.milestone_publish, name='milestone_publish'),
     path('milestones/<int:pk>/', views.milestone_detail, name='milestone_detail'),
+    path('<int:project_id>/milestones/<int:milestone_id>/issues-needing-testing/', views.issues_needing_testing, name='issues_needing_testing'),
     
     # Accessibility Issue URLs
     path('<int:project_id>/accessibility-issues/create/', views.issue_create, name='accessibility_issue_create'),
@@ -61,6 +62,8 @@ urlpatterns = [
     path('<int:project_id>/issues/create/', views.issue_create, name='issue_create'),
     path('<int:project_id>/issues/<int:pk>/', views.issue_detail, name='issue_detail'),
     path('<int:project_id>/issues/<int:pk>/update/', views.issue_edit, name='issue_edit'),
+    path('<int:project_id>/issues/<int:pk>/update-status/', views.issue_update_status, name='issue_update_status'),
     path('<int:project_id>/issues/<int:pk>/delete/', views.issue_delete, name='issue_delete'),
     path('<int:project_id>/issues/<int:pk>/mark_ready_for_testing/', views.mark_issue_ready_for_testing, name='mark_issue_ready_for_testing'),
+    path('<int:project_id>/issues/<int:pk>/comment/', views.issue_comment, name='issue_comment'),
 ] 

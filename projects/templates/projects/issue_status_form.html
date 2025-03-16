@@ -1,0 +1,46 @@
+{% extends "users/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="mb-2">Update Issue Status</h1>
+            <h4 class="text-muted">{{ project.name }}</h4>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'projects:issue_detail' project.id issue.id %}" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i> Back to Issue
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="h5 mb-0"><i class="bi bi-pencil-square me-2" aria-hidden="true"></i>Update Status</h2>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="{{ form.current_status.id_for_label }}" class="form-label">{{ form.current_status.label }}</label>
+                            {{ form.current_status }}
+                            {% if form.current_status.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.current_status.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <a href="javascript:history.back()" class="btn btn-secondary me-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Update Status</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

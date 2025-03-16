@@ -904,4 +904,18 @@ class CommentForm(forms.ModelForm):
                               self.user.role and 
                               self.user.role.name in ['admin', 'staff'])):
             self.fields['comment_type'].widget = forms.HiddenInput()
-            self.fields['comment_type'].initial = 'external' 
+            self.fields['comment_type'].initial = 'external'
+
+class IssueStatusForm(forms.ModelForm):
+    """A simplified form for updating just the status of an issue"""
+    
+    class Meta:
+        model = Issue
+        fields = ['current_status']
+        widgets = {
+            'current_status': forms.Select(attrs={'class': 'form-select form-select-lg'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['current_status'].label = "Change Status" 

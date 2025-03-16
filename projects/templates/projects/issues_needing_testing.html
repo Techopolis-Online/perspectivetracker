@@ -1,0 +1,76 @@
+{% extends "users/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="mb-2">Issues Needing Testing</h1>
+            <h4 class="text-muted">{{ project.name }} - {{ milestone.name }}</h4>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'projects:milestone_detail' milestone.id %}" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i> Back to Milestone
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h2 class="h5 mb-0"><i class="bi bi-bug me-2" aria-hidden="true"></i>Issues Needing Testing</h2>
+                </div>
+                <div class="card-body">
+                    {% if issues_needing_testing %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Issue</th>
+                                    <th>Page</th>
+                                    <th>Impact</th>
+                                    <th>Assigned To</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for issue in issues_needing_testing %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'projects:issue_detail' project.id issue.id %}" class="text-decoration-none">
+                                            {{ issue.issue_description|truncatechars:50 }}
+                                        </a>
+                                    </td>
+                                    <td>{{ issue.page.name }}</td>
+                                    <td>
+                                        <span class="badge {% if issue.user_impact == 'high' %}bg-danger{% elif issue.user_impact == 'low' %}bg-warning{% else %}bg-info{% endif %}">
+                                            {{ issue.get_user_impact_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if issue.assigned_to %}
+                                            {{ issue.assigned_to.get_full_name }}
+                                        {% else %}
+                                            <span class="text-muted">Not assigned</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'projects:issue_detail' project.id issue.id %}" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye" aria-hidden="true"></i> View
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No issues currently need testing.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

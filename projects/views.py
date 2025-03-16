@@ -5,7 +5,7 @@ from django.http import HttpResponseForbidden, JsonResponse
 from django.db.models import Count, Q
 from .models import ProjectType, Project, Standard, Violation, ProjectViolation, ProjectStandard, Page, Milestone, Issue, Comment
 from users.views import admin_required, staff_required
-from .forms import ProjectForm, StandardForm, ViolationForm, ProjectViolationForm, ProjectTypeForm, ProjectStandardForm, PageForm, MilestoneForm, IssueForm, CommentForm
+from .forms import ProjectForm, StandardForm, ViolationForm, ProjectViolationForm, ProjectTypeForm, ProjectStandardForm, PageForm, MilestoneForm, IssueForm, CommentForm, IssueStatusForm
 
 @login_required
 def project_list(request):
@@ -810,9 +810,13 @@ def milestone_detail(request, pk):
             request.user in project.assigned_to.all()):
         return HttpResponseForbidden("You don't have permission to access this milestone.")
     
+    # Get all issues that need testing for this project
+    issues_needing_testing = project.issues.filter(current_status='ready_for_testing')
+    
     context = {
         'milestone': milestone,
         'project': project,
+        'issues_needing_testing': issues_needing_testing,
     }
     return render(request, 'projects/milestone_detail.html', context)
 
@@ -954,9 +958,30 @@ def issue_detail(request, project_id, pk):
         # Handle comment form submission
         comment_form = CommentForm(request.POST, user=request.user)
         if comment_form.is_valid():
+            # Check if status is being updated
+            new_status = request.POST.get('current_status')
+            status_changed = False
+            
+            # If status is being changed, update the issue
+            if new_status and new_status != issue.current_status:
+                old_status = issue.get_current_status_display()
+                issue.current_status = new_status
+                issue.save()
+                status_changed = True
+            
+            # Create the comment
             comment = comment_form.save(commit=False)
             comment.issue = issue
             comment.author = request.user
+            
+            # If status was changed, add that to the comment text
+            if status_changed:
+                status_message = f"\n\nStatus changed from '{old_status}' to '{issue.get_current_status_display()}'."
+                if comment.text:
+                    comment.text += status_message
+                else:
+                    comment.text = status_message.strip()
+            
             comment.save()
             
             # Check if this is an AJAX request
@@ -984,6 +1009,12 @@ def issue_detail(request, project_id, pk):
                 })
             
             messages.success(request, 'Comment added successfully.')
+            
+            # Redirect back to the referring page
+            referer = request.META.get('HTTP_REFERER')
+            if referer and 'milestones' in referer:
+                return redirect(referer)
+                
             return redirect('projects:issue_detail', project_id=project.id, pk=issue.id)
     else:
         comment_form = CommentForm(user=request.user)
@@ -1004,6 +1035,54 @@ def issue_detail(request, project_id, pk):
     }
     
     return render(request, 'projects/issue_detail.html', context)
+
+@login_required
+def issue_update_status(request, project_id, pk):
+    """Update just the status of an issue"""
+    project = get_object_or_404(Project, pk=project_id)
+    issue = get_object_or_404(Issue, pk=pk, project=project)
+    
+    # Check if user has access to this project
+    if not (request.user.is_superuser or 
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']) or
+            request.user in project.assigned_to.all()):
+        return HttpResponseForbidden("You don't have permission to access this project.")
+    
+    if request.method == 'POST':
+        form = IssueStatusForm(request.POST, instance=issue)
+        if form.is_valid():
+            # Get the old status for the comment
+            old_status = issue.get_current_status_display()
+            
+            # Save the form
+            updated_issue = form.save()
+            
+            # Add a system comment about the status change
+            Comment.objects.create(
+                issue=issue,
+                author=request.user,
+                text=f"Status changed from '{old_status}' to '{updated_issue.get_current_status_display()}' by {request.user.get_full_name()}",
+                comment_type='external'
+            )
+            
+            messages.success(request, f"Issue status updated to '{updated_issue.get_current_status_display()}'.")
+            
+            # Redirect back to the referring page
+            referer = request.META.get('HTTP_REFERER')
+            if referer and 'milestones' in referer:
+                return redirect(referer)
+            
+            return redirect('projects:issue_detail', project_id=project.id, pk=issue.id)
+    else:
+        form = IssueStatusForm(instance=issue)
+    
+    context = {
+        'form': form,
+        'project': project,
+        'issue': issue,
+    }
+    
+    return render(request, 'projects/issue_status_form.html', context)
 
 @login_required
 def mark_issue_ready_for_testing(request, project_id, pk):
@@ -1049,3 +1128,58 @@ def mark_issue_ready_for_testing(request, project_id, pk):
         'message': 'Issue marked as Ready for Testing.',
         'old_status': old_status
     })
+
+@login_required
+def issues_needing_testing(request, project_id, milestone_id):
+    """Display issues that need testing for a specific project and milestone"""
+    project = get_object_or_404(Project, pk=project_id)
+    milestone = get_object_or_404(Milestone, pk=milestone_id)
+    
+    # Check if user has access to this project and is staff/admin/superuser
+    if not (request.user.is_superuser or 
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff'])):
+        return HttpResponseForbidden("You don't have permission to access this page.")
+    
+    # Get all issues that need testing for this project
+    issues_needing_testing = project.issues.filter(current_status='ready_for_testing')
+    
+    context = {
+        'project': project,
+        'milestone': milestone,
+        'issues_needing_testing': issues_needing_testing,
+    }
+    return render(request, 'projects/issues_needing_testing.html', context)
+
+@login_required
+def issue_comment(request, project_id, pk):
+    """Add a comment to an issue"""
+    project = get_object_or_404(Project, pk=project_id)
+    issue = get_object_or_404(Issue, pk=pk, project=project)
+    
+    # Check if user has access to this project
+    if not (request.user.is_superuser or 
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']) or
+            request.user in project.assigned_to.all()):
+        return HttpResponseForbidden("You don't have permission to comment on this issue.")
+    
+    if request.method == 'POST':
+        comment_text = request.POST.get('comment', '').strip()
+        if comment_text:
+            # Create a comment for the issue
+            comment = IssueComment.objects.create(
+                issue=issue,
+                comment=comment_text,
+                created_by=request.user
+            )
+            messages.success(request, "Comment added successfully.")
+        else:
+            messages.error(request, "Comment cannot be empty.")
+    
+    # Redirect back to the milestone detail page if that's where the user came from
+    referer = request.META.get('HTTP_REFERER', '')
+    if 'milestones' in referer:
+        milestone_id = issue.milestone.id
+        return redirect('projects:milestone_detail', pk=milestone_id)
+    
+    # Otherwise redirect to the issue detail page
+    return redirect('projects:issue_detail', project_id=project_id, pk=pk)
