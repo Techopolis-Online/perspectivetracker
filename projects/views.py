@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import HttpResponseForbidden, JsonResponse
 from django.db.models import Count, Q
-from .models import ProjectType, Project, Standard, Violation, ProjectViolation, ProjectStandard, Page, Milestone, Issue
+from .models import ProjectType, Project, Standard, Violation, ProjectViolation, ProjectStandard, Page, Milestone, Issue, Comment
 from users.views import admin_required, staff_required
 from .forms import ProjectForm, StandardForm, ViolationForm, ProjectViolationForm, ProjectTypeForm, ProjectStandardForm, PageForm, MilestoneForm, IssueForm, CommentForm
 
@@ -912,14 +912,77 @@ def issue_detail(request, project_id, pk):
     # Get comments for this issue
     comments = issue.comments.all()
     
-    # Handle comment form submission
+    # Handle POST requests
     if request.method == 'POST':
+        # Check if this is a "Mark as Ready for Testing" action
+        if request.POST.get('action') == 'mark_ready_for_testing':
+            # Check if user has permission to mark as ready for testing
+            if not (request.user.is_superuser or 
+                   (request.user.is_authenticated and 
+                   hasattr(request.user, 'role') and 
+                   request.user.role and 
+                   request.user.role.name != 'standard')):
+                return HttpResponseForbidden("You don't have permission to mark this issue as ready for testing.")
+            
+            # Store the old status for the response
+            old_status = issue.get_current_status_display()
+            
+            # Update the issue status
+            issue.current_status = 'ready_for_testing'
+            issue.save()
+            
+            # Add a system comment about the status change
+            Comment.objects.create(
+                issue=issue,
+                author=request.user,
+                text=f"Status changed to Ready for Testing by {request.user.get_full_name()}",
+                comment_type='external'
+            )
+            
+            # If this is an AJAX request, return JSON response
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Issue marked as Ready for Testing.',
+                    'old_status': old_status
+                })
+            
+            # Otherwise redirect to the issue detail page
+            messages.success(request, 'Issue marked as Ready for Testing.')
+            return redirect('projects:issue_detail', project_id=project.id, pk=issue.id)
+        
+        # Handle comment form submission
         comment_form = CommentForm(request.POST, user=request.user)
         if comment_form.is_valid():
             comment = comment_form.save(commit=False)
             comment.issue = issue
             comment.author = request.user
             comment.save()
+            
+            # Check if this is an AJAX request
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                # Determine if user can see internal comments
+                can_see_internal = request.user.is_superuser or (
+                    hasattr(request.user, 'role') and 
+                    request.user.role and 
+                    request.user.role.name in ['admin', 'staff']
+                )
+                
+                # Render the comments list to HTML
+                from django.template.loader import render_to_string
+                comments_html = render_to_string('projects/includes/comments_list.html', {
+                    'comments': issue.comments.all(),
+                    'can_see_internal': can_see_internal,
+                    'issue': issue,
+                    'project': project,
+                })
+                
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Comment added successfully.',
+                    'html': comments_html
+                })
+            
             messages.success(request, 'Comment added successfully.')
             return redirect('projects:issue_detail', project_id=project.id, pk=issue.id)
     else:
@@ -941,3 +1004,48 @@ def issue_detail(request, project_id, pk):
     }
     
     return render(request, 'projects/issue_detail.html', context)
+
+@login_required
+def mark_issue_ready_for_testing(request, project_id, pk):
+    """Mark an issue as ready for testing"""
+    if request.method != 'POST':
+        return HttpResponseForbidden("Only POST requests are allowed.")
+    
+    project = get_object_or_404(Project, pk=project_id)
+    issue = get_object_or_404(Issue, pk=pk, project=project)
+    
+    # Check if user has access to this project
+    if not (request.user.is_superuser or 
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff', 'client']) or
+            request.user in project.assigned_to.all()):
+        return HttpResponseForbidden("You don't have permission to access this project.")
+    
+    # Check if user has permission to mark as ready for testing
+    if not (request.user.is_superuser or 
+           (request.user.is_authenticated and 
+           hasattr(request.user, 'role') and 
+           request.user.role and 
+           request.user.role.name != 'standard')):
+        return HttpResponseForbidden("You don't have permission to mark this issue as ready for testing.")
+    
+    # Store the old status for the response
+    old_status = issue.get_current_status_display()
+    
+    # Update the issue status
+    issue.current_status = 'ready_for_testing'
+    issue.save()
+    
+    # Add a system comment about the status change
+    Comment.objects.create(
+        issue=issue,
+        author=request.user,
+        text=f"Status changed to Ready for Testing by {request.user.get_full_name()}",
+        comment_type='external'
+    )
+    
+    # Return JSON response
+    return JsonResponse({
+        'success': True,
+        'message': 'Issue marked as Ready for Testing.',
+        'old_status': old_status
+    })

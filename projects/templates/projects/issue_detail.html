@@ -7,6 +7,9 @@
 
 {% block content %}
 <div class="container mt-4">
+    <!-- Hidden CSRF token for AJAX requests -->
+    {% csrf_token %}
+    
     <div class="row">
         <div class="col-md-12">
             <nav aria-label="breadcrumb">
@@ -48,9 +51,20 @@
                             {% endif %}
                             <div class="mb-3">
                                 <strong>Status:</strong> 
-                                <span class="badge {% if issue.current_status == 'fail' %}bg-danger{% elif issue.current_status == 'in_remediation' %}bg-warning text-dark{% elif issue.current_status == 'pass' %}bg-success{% else %}bg-secondary{% endif %}">
+                                <span class="badge {% if issue.current_status == 'ready_for_testing' %}bg-info{% elif issue.current_status == 'in_progress' %}bg-warning{% elif issue.current_status == 'resolved' %}bg-success{% elif issue.current_status == 'closed' %}bg-secondary{% else %}bg-danger{% endif %} status-badge">
                                     {{ issue.get_current_status_display }}
                                 </span>
+                                {% if issue.current_status != 'ready_for_testing' and user|can_mark_ready_for_testing %}
+                                <div class="form-check form-switch d-inline-block ms-2">
+                                    <input class="form-check-input ready-for-testing-checkbox" type="checkbox" 
+                                           id="readyForTesting" data-issue-id="{{ issue.id }}"
+                                           data-project-id="{{ issue.project.id }}"
+                                           {% if issue.current_status == 'ready_for_testing' %}checked{% endif %}>
+                                    <label class="form-check-label" for="readyForTesting">
+                                        Mark as Ready for Testing
+                                    </label>
+                                </div>
+                                {% endif %}
                             </div>
                             <div class="mb-3">
                                 <strong>User Impact:</strong> 
@@ -141,6 +155,18 @@
                         <a href="{% url 'projects:project_detail' issue.project.id %}" class="btn btn-secondary">
                             <i class="bi bi-arrow-left"></i> Back to Project
                         </a>
+                        
+                        {% if issue.current_status != 'ready_for_testing' and user|can_mark_ready_for_testing %}
+                        <form id="readyForTestingForm" class="d-inline-block ms-2">
+                            {% csrf_token %}
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" id="markReadyForTesting">
+                                <label class="form-check-label" for="markReadyForTesting">
+                                    Mark as Ready for Testing
+                                </label>
+                            </div>
+                        </form>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -152,7 +178,7 @@
                 </div>
                 <div class="card-body">
                     <!-- Comment Form -->
-                    <form method="post" class="mb-4">
+                    <form method="post" class="mb-4" id="issueCommentForm">
                         {% csrf_token %}
                         <div class="mb-3">
                             {{ comment_form.text }}
@@ -172,40 +198,12 @@
                         {% else %}
                             {{ comment_form.comment_type }}
                         {% endif %}
-                        <button type="submit" class="btn btn-primary">Add Comment</button>
+                        <button type="button" id="submitComment" class="btn btn-primary">Add Comment</button>
                     </form>
                     
                     <!-- Comments List -->
-                    <div class="comments-list">
-                        {% if comments %}
-                            {% for comment in comments %}
-                                {% if comment.comment_type == 'external' or can_see_internal %}
-                                <div class="comment mb-3 p-3 {% if comment.comment_type == 'internal' %}bg-light border-start border-4 border-warning{% else %}border rounded{% endif %}">
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <div class="d-flex align-items-center">
-                                            <div class="avatar-circle {% if comment.comment_type == 'internal' %}bg-warning text-dark{% else %}bg-primary text-white{% endif %} me-2" style="width: 36px; height: 36px; font-size: 0.9rem;">
-                                                {{ comment.author.get_full_name|default:comment.author.username }}
-                                            </div>
-                                            <div>
-                                                <strong>{{ comment.author.get_full_name }}</strong>
-                                                {% if comment.comment_type == 'internal' %}
-                                                <span class="badge bg-warning text-dark ms-2">Internal</span>
-                                                {% endif %}
-                                                <div class="text-muted small">{{ comment.created_at|date:"M d, Y H:i" }}</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="comment-text">
-                                        {{ comment.text|linebreaks }}
-                                    </div>
-                                </div>
-                                {% endif %}
-                            {% endfor %}
-                        {% else %}
-                            <div class="alert alert-info">
-                                <p class="mb-0">No comments yet. Be the first to comment!</p>
-                            </div>
-                        {% endif %}
+                    <div class="comments-list" id="commentsList">
+                        {% include 'projects/includes/comments_list.html' with comments=comments can_see_internal=can_see_internal issue=issue %}
                     </div>
                 </div>
             </div>
@@ -235,4 +233,143 @@
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Helper function to show alerts
+    function showAlert(type, message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.setAttribute('role', 'alert');
+        alertDiv.innerHTML = `
+            <strong>${type === 'success' ? 'Success!' : 'Error!'}</strong> ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        document.querySelector('.container').prepend(alertDiv);
+        
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => {
+            const bsAlert = new bootstrap.Alert(alertDiv);
+            bsAlert.close();
+        }, 5000);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle comment form submission
+        const commentForm = document.getElementById('issueCommentForm');
+        const submitButton = document.getElementById('submitComment');
+        
+        if (commentForm && submitButton) {
+            submitButton.addEventListener('click', function() {
+                const formData = new FormData(commentForm);
+                
+                // Add a loading state to the button
+                this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+                this.disabled = true;
+                
+                fetch(window.location.href, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                })
+                .then(response => {
+                    if (response.status === 403) {
+                        throw new Error('Permission denied: You do not have permission to add comments.');
+                    }
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        // Show success message
+                        showAlert('success', data.message);
+                        
+                        // Reset the form
+                        commentForm.reset();
+                        
+                        // Update the comments list
+                        if (data.html) {
+                            document.getElementById('commentsList').innerHTML = data.html;
+                        }
+                    } else {
+                        showAlert('danger', data.message || 'An error occurred');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showAlert('danger', error.message);
+                })
+                .finally(() => {
+                    // Reset button state
+                    this.innerHTML = 'Add Comment';
+                    this.disabled = false;
+                });
+            });
+        }
+
+        // Add event listener to Ready for Testing checkbox
+        const checkbox = document.querySelector('.ready-for-testing-checkbox');
+        if (checkbox) {
+            checkbox.addEventListener('change', function(e) {
+                // Get the issue ID and project ID from data attributes
+                const issueId = this.dataset.issueId;
+                const projectId = this.dataset.projectId;
+                
+                // Create form data
+                const formData = new FormData();
+                formData.append('ready_for_testing', this.checked);
+                
+                // Send AJAX request
+                fetch(`/projects/${projectId}/issues/${issueId}/mark_ready_for_testing/`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                })
+                .then(response => {
+                    if (response.status === 403) {
+                        throw new Error('Permission denied: You do not have permission to perform this action.');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Update the UI based on the response
+                    if (data.success) {
+                        // Update the status badge
+                        const statusBadge = document.querySelector('.status-badge');
+                        if (statusBadge) {
+                            statusBadge.textContent = 'Ready for Testing';
+                            statusBadge.className = 'badge bg-info status-badge';
+                        }
+                        
+                        // Show success message
+                        showAlert('success', data.message);
+                        
+                        // Hide the checkbox
+                        this.closest('.form-check').style.display = 'none';
+                    } else {
+                        // Show error message
+                        showAlert('danger', data.message || 'An error occurred');
+                        // Reset checkbox state
+                        this.checked = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showAlert('danger', error.message);
+                    // Reset checkbox state
+                    this.checked = false;
+                });
+            });
+        }
+    });
+</script>
 {% endblock %} 

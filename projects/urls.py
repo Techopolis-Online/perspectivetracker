@@ -62,4 +62,5 @@ urlpatterns = [
     path('<int:project_id>/issues/<int:pk>/', views.issue_detail, name='issue_detail'),
     path('<int:project_id>/issues/<int:pk>/update/', views.issue_edit, name='issue_edit'),
     path('<int:project_id>/issues/<int:pk>/delete/', views.issue_delete, name='issue_delete'),
+    path('<int:project_id>/issues/<int:pk>/mark_ready_for_testing/', views.mark_issue_ready_for_testing, name='mark_issue_ready_for_testing'),
 ] 

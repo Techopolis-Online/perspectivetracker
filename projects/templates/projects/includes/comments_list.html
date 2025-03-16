@@ -1,0 +1,44 @@
+{% if issue %}
+<div class="mb-3">
+    <h6 class="text-muted mb-3">Issue: {{ issue.issue_description|truncatechars:100 }}</h6>
+    <div class="d-flex mb-2">
+        <span class="badge {% if issue.current_status == 'fail' %}bg-danger{% elif issue.current_status == 'in_remediation' %}bg-warning text-dark{% elif issue.current_status == 'pass' %}bg-success{% else %}bg-secondary{% endif %} me-2">
+            {{ issue.get_current_status_display }}
+        </span>
+        <span class="badge {% if issue.user_impact == 'high' %}bg-danger{% elif issue.user_impact == 'low' %}bg-warning text-dark{% else %}bg-info{% endif %}">
+            {{ issue.get_user_impact_display }} Impact
+        </span>
+    </div>
+</div>
+<hr>
+{% endif %}
+
+{% if comments %}
+    {% for comment in comments %}
+        {% if comment.comment_type == 'external' or can_see_internal %}
+        <div class="comment mb-3 p-3 {% if comment.comment_type == 'internal' %}bg-light border-start border-4 border-warning{% else %}border rounded{% endif %}">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="d-flex align-items-center">
+                    <div class="avatar-circle {% if comment.comment_type == 'internal' %}bg-warning text-dark{% else %}bg-primary text-white{% endif %} me-2" style="width: 36px; height: 36px; font-size: 0.9rem;">
+                        {{ comment.author.get_initials }}
+                    </div>
+                    <div>
+                        <strong>{{ comment.author.get_full_name }}</strong>
+                        {% if comment.comment_type == 'internal' %}
+                        <span class="badge bg-warning text-dark ms-2">Internal</span>
+                        {% endif %}
+                        <div class="text-muted small">{{ comment.created_at|date:"M d, Y H:i" }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="comment-text">
+                {{ comment.text|linebreaks }}
+            </div>
+        </div>
+        {% endif %}
+    {% endfor %}
+{% else %}
+    <div class="alert alert-info">
+        <p class="mb-0">No comments yet for this issue.</p>
+    </div>
+{% endif %} 
