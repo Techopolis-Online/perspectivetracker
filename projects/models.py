@@ -141,3 +141,52 @@ class ProjectStandard(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['project'], name='one_standard_per_project')
         ]
+
+class Page(models.Model):
+    """Page model for project pages (web, mobile, etc.)"""
+    TYPE_CHOICES = [
+        ('web', 'Web'),
+        ('mobile', 'Mobile'),
+        ('other', 'Other'),
+    ]
+    
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='pages')
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    page_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='web')
+    url = models.URLField(blank=True, help_text="URL for web pages")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='created_pages')
+    
+    def __str__(self):
+        return f"{self.name} ({self.get_page_type_display()})"
+    
+    class Meta:
+        ordering = ['name']
+        unique_together = ['project', 'name']
+
+class Milestone(models.Model):
+    """Milestone model for project progress tracking"""
+    STATUS_CHOICES = [
+        ('not_started', 'Not Started'),
+        ('in_progress', 'In Progress'),
+        ('completed', 'Completed'),
+        ('delayed', 'Delayed'),
+    ]
+    
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='milestones')
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='not_started')
+    due_date = models.DateField(null=True, blank=True)
+    completed_date = models.DateField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='created_milestones')
+    
+    def __str__(self):
+        return f"{self.project.name} - {self.name}"
+    
+    class Meta:
+        ordering = ['due_date', 'name']

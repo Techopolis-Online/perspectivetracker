@@ -3,239 +3,505 @@
 
 {% block content %}
 <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>{{ project.name }}</h1>
-        <div>
-            {% if user.is_staff or user.is_superuser %}
-            <a href="{% url 'projects:project_update' project.id %}" class="btn btn-outline-primary me-2">
-                <i class="fas fa-edit"></i> Edit
-            </a>
-            {% endif %}
-            {% if user.is_superuser or user.role.name == 'admin' %}
-            <a href="{% url 'projects:project_delete' project.id %}" class="btn btn-outline-danger">
-                <i class="fas fa-trash"></i> Delete
-            </a>
-            {% endif %}
+    <!-- Header with Company Name and Project Info -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1 class="mb-2">{{ project.name }}</h1>
         </div>
     </div>
 
-    <div class="row">
-        <!-- Project Details -->
-        <div class="col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="card-header bg-light">
-                    <h2 class="h5 mb-0">Project Details</h2>
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <strong>Client:</strong> {{ project.client.company_name }}
-                    </div>
-                    <div class="mb-3">
-                        <strong>Type:</strong> {{ project.project_type.name }}
-                    </div>
-                    <div class="mb-3">
-                        <strong>Status:</strong> 
-                        <span class="badge {% if project.status == 'completed' %}bg-success{% elif project.status == 'in_progress' or project.status == 'in_development' %}bg-primary{% elif project.status == 'audit' %}bg-info{% elif project.status == 'qa' %}bg-warning{% elif project.status == 'remediation' %}bg-danger{% else %}bg-secondary{% endif %}">
-                            {{ project.get_status_display }}
-                        </span>
-                    </div>
-                    {% if project.start_date %}
-                    <div class="mb-3">
-                        <strong>Start Date:</strong> {{ project.start_date }}
-                    </div>
-                    {% endif %}
-                    {% if project.end_date %}
-                    <div class="mb-3">
-                        <strong>End Date:</strong> {{ project.end_date }}
-                    </div>
-                    {% endif %}
-                    <div class="mb-3">
-                        <strong>Created:</strong> {{ project.created_at|date:"M d, Y" }}
-                    </div>
-                    <div class="mb-3">
-                        <strong>Last Updated:</strong> {{ project.updated_at|date:"M d, Y" }}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Project Description and Notes -->
-        <div class="col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="card-header bg-light">
-                    <h2 class="h5 mb-0">Description & Notes</h2>
-                </div>
-                <div class="card-body">
-                    <h3 class="h6">Description</h3>
-                    <p>{{ project.description|linebreaks|default:"No description provided." }}</p>
-                    
-                    <h3 class="h6 mt-4">Notes</h3>
-                    <p>{{ project.notes|linebreaks|default:"No notes available." }}</p>
-                </div>
-            </div>
-        </div>
+    <!-- Action Buttons -->
+    <div class="d-flex justify-content-end mb-4">
+        {% if user.is_staff or user.is_superuser %}
+        <a href="{% url 'projects:project_update' project.id %}" class="btn btn-outline-primary me-2" aria-label="Edit project: {{ project.name }}">
+            <i class="bi bi-pencil-square" aria-hidden="true"></i> Edit
+        </a>
+        {% endif %}
+        {% if user.is_superuser or user.role.name == 'admin' %}
+        <a href="{% url 'projects:project_delete' project.id %}" class="btn btn-outline-danger" aria-label="Delete project: {{ project.name }}">
+            <i class="bi bi-trash" aria-hidden="true"></i> Delete
+        </a>
+        {% endif %}
     </div>
 
-    <!-- Team Members -->
-    <div class="card mb-4">
-        <div class="card-header bg-light">
-            <h2 class="h5 mb-0">Team Members</h2>
-        </div>
-        <div class="card-body">
+    <!-- Tabs Navigation -->
+    <ul class="nav nav-tabs mb-4" id="projectTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="details-tab" data-bs-toggle="tab" data-bs-target="#details" type="button" role="tab" aria-controls="details" aria-selected="true">
+                <i class="bi bi-info-circle me-1"></i> Details
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="pages-tab" data-bs-toggle="tab" data-bs-target="#pages" type="button" role="tab" aria-controls="pages" aria-selected="false">
+                <i class="bi bi-file-earmark-text me-1"></i> Pages
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="issues-tab" data-bs-toggle="tab" data-bs-target="#issues" type="button" role="tab" aria-controls="issues" aria-selected="false">
+                <i class="bi bi-exclamation-triangle me-1"></i> Issues
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="milestones-tab" data-bs-toggle="tab" data-bs-target="#milestones" type="button" role="tab" aria-controls="milestones" aria-selected="false">
+                <i class="bi bi-flag me-1"></i> Milestones
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="export-tab" data-bs-toggle="tab" data-bs-target="#export" type="button" role="tab" aria-controls="export" aria-selected="false">
+                <i class="bi bi-download me-1"></i> Export
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tabs Content -->
+    <div class="tab-content" id="projectTabsContent">
+        <!-- Details Tab -->
+        <div class="tab-pane fade show active" id="details" role="tabpanel" aria-labelledby="details-tab">
             <div class="row">
-                <!-- Project Staff -->
-                <div class="col-md-6 mb-3">
-                    <h3 class="h6 border-bottom pb-2">Project Staff</h3>
-                    {% with staff_members=project.assigned_to.all|dictsort:"first_name" %}
-                    {% if staff_members %}
-                        {% for member in staff_members %}
-                            {% if member.role.name == 'admin' or member.role.name == 'staff' or member.is_superuser %}
-                            <div class="d-flex align-items-center mb-2">
-                                <div class="avatar-circle bg-primary text-white me-2">
-                                    {{ member.first_name|first }}{{ member.last_name|first }}
-                                </div>
-                                <div>
-                                    <div>{{ member.get_full_name }}</div>
-                                    <small class="text-muted">{{ member.email }}</small>
-                                </div>
-                            </div>
-                            {% endif %}
-                        {% endfor %}
-                    {% else %}
-                        <p class="text-muted">No staff members assigned to this project.</p>
-                    {% endif %}
-                    {% endwith %}
-                </div>
-                
-                <!-- Client Team -->
-                <div class="col-md-6 mb-3">
-                    <h3 class="h6 border-bottom pb-2">Client Team</h3>
-                    {% with client_members=project.assigned_to.all|dictsort:"first_name" %}
-                    {% if client_members %}
-                        {% for member in client_members %}
-                            {% if member.role.name == 'client' %}
-                            <div class="d-flex align-items-center mb-2">
-                                <div class="avatar-circle bg-secondary text-white me-2">
-                                    {{ member.first_name|first }}{{ member.last_name|first }}
-                                </div>
-                                <div>
-                                    <div>{{ member.get_full_name }}</div>
-                                    <small class="text-muted">{{ member.email }}</small>
-                                </div>
-                            </div>
-                            {% endif %}
-                        {% endfor %}
-                    {% else %}
-                        <p class="text-muted">No client team members assigned to this project.</p>
-                    {% endif %}
-                    {% endwith %}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Standards and Violations Section (for Accessibility Projects) -->
-    {% if project.project_type.supports_standards %}
-    <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center bg-light">
-            <h2 class="h5 mb-0">Standards and Issues</h2>
-            <div>
-                {% if not project_standards %}
-                <a href="{% url 'projects:project_standard_create' project.id %}" class="btn btn-sm btn-success me-2">
-                    <i class="fas fa-plus"></i> Add Standard
-                </a>
-                {% endif %}
-                {% if project_standards %}
-                <a href="{% url 'projects:project_violation_create' project.id %}" class="btn btn-sm btn-primary">
-                    <i class="fas fa-plus"></i> Create Issue
-                </a>
-                {% endif %}
-            </div>
-        </div>
-        <div class="card-body">
-            <!-- Project Standards Section -->
-            <div class="mb-4">
-                <h3 class="h6 mb-3">Project Standard</h3>
-                {% if project_standards %}
-                    {% with project_standard=project_standards.0 %}
-                    <div class="card">
+                <!-- Project Details -->
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h2 class="h5 mb-0"><i class="bi bi-info-circle me-2"></i>Project Details</h2>
+                        </div>
                         <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h4 class="h5">{{ project_standard.standard.name }} {{ project_standard.standard.version }}</h4>
-                                    {% if project_standard.standard.description %}
-                                    <p class="text-muted mb-0">{{ project_standard.standard.description|truncatechars:100 }}</p>
-                                    {% endif %}
-                                    {% if project_standard.standard.url %}
-                                    <a href="{{ project_standard.standard.url }}" target="_blank" class="small">View Documentation</a>
-                                    {% endif %}
-                                </div>
-                                <a href="{% url 'projects:project_standard_delete' project_standard.id %}" class="btn btn-sm btn-outline-danger">
-                                    <i class="fas fa-trash"></i> Remove
-                                </a>
+                            <div class="mb-3">
+                                <strong>Client:</strong> {{ project.client.company_name }}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Type:</strong> {{ project.project_type.name }}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Status:</strong> 
+                                <span class="badge {% if project.status == 'completed' %}bg-success{% elif project.status == 'in_progress' or project.status == 'in_development' %}bg-primary{% elif project.status == 'audit' %}bg-info{% elif project.status == 'qa' %}bg-warning{% elif project.status == 'remediation' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                    {{ project.get_status_display }}
+                                </span>
+                            </div>
+                            {% if project.start_date %}
+                            <div class="mb-3">
+                                <strong>Start Date:</strong> {{ project.start_date }}
+                            </div>
+                            {% endif %}
+                            {% if project.end_date %}
+                            <div class="mb-3">
+                                <strong>End Date:</strong> {{ project.end_date }}
+                            </div>
+                            {% endif %}
+                            <div class="mb-3">
+                                <strong>Created:</strong> {{ project.created_at|date:"M d, Y" }}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Last Updated:</strong> {{ project.updated_at|date:"M d, Y" }}
                             </div>
                         </div>
                     </div>
-                    {% endwith %}
-                {% else %}
-                    <div class="alert alert-info">
-                        <p class="mb-0">No standard has been added to this project yet. Add a standard before creating issues.</p>
-                        <a href="{% url 'projects:project_standard_create' project.id %}" class="btn btn-sm btn-success mt-2">
-                            <i class="fas fa-plus"></i> Add Standard
-                        </a>
+                </div>
+
+                <!-- Project Description and Notes -->
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h2 class="h5 mb-0"><i class="bi bi-file-text me-2"></i>Description & Notes</h2>
+                        </div>
+                        <div class="card-body">
+                            <h3 class="h6">Description</h3>
+                            <p>{{ project.description|linebreaks|default:"No description provided." }}</p>
+                            
+                            <h3 class="h6 mt-4">Notes</h3>
+                            <p>{{ project.notes|linebreaks|default:"No notes available." }}</p>
+                        </div>
                     </div>
-                {% endif %}
+                </div>
             </div>
 
-            <!-- Violations Section -->
-            {% if project_standards %}
-                {% if grouped_violations %}
-                    <h3 class="h6 mb-3">Issues by Standard</h3>
-                    {% for standard, violations in grouped_violations.items %}
+            <!-- Team Members -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h2 class="h5 mb-0"><i class="bi bi-people me-2"></i>Team Members</h2>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Project Staff -->
+                        <div class="col-md-6 mb-3">
+                            <h3 class="h6 border-bottom pb-2">Project Staff</h3>
+                            {% with staff_members=project.assigned_to.all|dictsort:"first_name" %}
+                            {% if staff_members %}
+                                {% for member in staff_members %}
+                                    {% if member.role.name == 'admin' or member.role.name == 'staff' or member.is_superuser %}
+                                    <div class="d-flex align-items-center mb-2">
+                                        <div class="avatar-circle bg-primary text-white me-2">
+                                            {{ member.first_name|first }}{{ member.last_name|first }}
+                                        </div>
+                                        <div>
+                                            <div>{{ member.get_full_name }}</div>
+                                            <small class="text-muted">{{ member.email }}</small>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-muted">No staff members assigned to this project.</p>
+                            {% endif %}
+                            {% endwith %}
+                        </div>
+                        
+                        <!-- Client Team -->
+                        <div class="col-md-6 mb-3">
+                            <h3 class="h6 border-bottom pb-2">Client Team</h3>
+                            {% with client_members=project.assigned_to.all|dictsort:"first_name" %}
+                            {% if client_members %}
+                                {% for member in client_members %}
+                                    {% if member.role.name == 'client' %}
+                                    <div class="d-flex align-items-center mb-2">
+                                        <div class="avatar-circle bg-secondary text-white me-2">
+                                            {{ member.first_name|first }}{{ member.last_name|first }}
+                                        </div>
+                                        <div>
+                                            <div>{{ member.get_full_name }}</div>
+                                            <small class="text-muted">{{ member.email }}</small>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-muted">No client team members assigned to this project.</p>
+                            {% endif %}
+                            {% endwith %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pages Tab -->
+        <div class="tab-pane fade" id="pages" role="tabpanel" aria-labelledby="pages-tab">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2 class="h5 mb-0"><i class="bi bi-file-earmark-text me-2" aria-hidden="true"></i>Project Pages</h2>
+                    <a href="{% url 'projects:page_create' project.id %}" class="btn btn-primary btn-sm" aria-label="Add new page to project">
+                        <i class="bi bi-plus-lg me-1" aria-hidden="true"></i> Add Page
+                    </a>
+                </div>
+                <div class="card-body">
+                    <!-- Page Type Filter -->
                     <div class="mb-4">
-                        <h4 class="h6 border-bottom pb-2">Standard: {{ standard.name }} {{ standard.version }}</h4>
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Issue</th>
-                                        <th>Status</th>
-                                        <th>Location</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for violation in violations %}
-                                    <tr>
-                                        <td>{{ violation.violation.name }}</td>
-                                        <td>
-                                            <span class="badge {% if violation.status == 'open' %}bg-danger{% elif violation.status == 'in_progress' %}bg-warning text-dark{% elif violation.status == 'fixed' %}bg-success{% else %}bg-secondary{% endif %}">
-                                                {{ violation.get_status_display }}
-                                            </span>
-                                        </td>
-                                        <td>{{ violation.location|truncatechars:30 }}</td>
-                                        <td>
-                                            <a href="{% url 'projects:project_violation_update' violation.id %}" class="btn btn-sm btn-outline-primary">
-                                                <i class="fas fa-edit"></i>
+                        <div class="btn-group" role="group" aria-label="Page type filter">
+                            <button type="button" class="btn btn-outline-primary active" data-filter="all">All</button>
+                            <button type="button" class="btn btn-outline-primary" data-filter="web">Web</button>
+                            <button type="button" class="btn btn-outline-primary" data-filter="mobile">Mobile</button>
+                            <button type="button" class="btn btn-outline-primary" data-filter="other">Other</button>
+                        </div>
+                    </div>
+
+                    {% if pages %}
+                    <!-- Pages Table -->
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>URL</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for page in pages %}
+                                <tr class="page-row" data-type="{{ page.page_type }}">
+                                    <td>{{ page.name }}</td>
+                                    <td>
+                                        <span class="badge {% if page.page_type == 'web' %}bg-info{% elif page.page_type == 'mobile' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                                            {{ page.get_page_type_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if page.url %}
+                                        <a href="{{ page.url }}" target="_blank">{{ page.url|truncatechars:30 }}</a>
+                                        {% else %}
+                                        N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group" aria-label="Page actions">
+                                            <a href="{% url 'projects:page_update' page.id %}" class="btn btn-outline-primary" aria-label="Edit {{ page.name }}">
+                                                <i class="bi bi-pencil" aria-hidden="true"></i><span class="visually-hidden">Edit</span>
                                             </a>
                                             {% if user.is_superuser or user.role.name == 'admin' %}
-                                            <a href="{% url 'projects:project_violation_delete' violation.id %}" class="btn btn-sm btn-outline-danger">
-                                                <i class="fas fa-trash"></i>
+                                            <a href="{% url 'projects:page_delete' page.id %}" class="btn btn-outline-danger" aria-label="Delete {{ page.name }}">
+                                                <i class="bi bi-trash" aria-hidden="true"></i><span class="visually-hidden">Delete</span>
                                             </a>
                                             {% endif %}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
-                    {% endfor %}
-                {% endif %}
+                    {% else %}
+                    <!-- Empty state -->
+                    <div class="text-center py-5">
+                        <i class="bi bi-file-earmark-text" style="font-size: 3rem; color: #ccc;"></i>
+                        <h3 class="h5 mt-3">No Pages Yet</h3>
+                        <p class="text-muted">Start adding pages to your project by clicking the "Add Page" button.</p>
+                        <a href="{% url 'projects:page_create' project.id %}" class="btn btn-primary mt-2">
+                            <i class="bi bi-plus-lg me-1"></i> Add Page
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Issues Tab -->
+        <div class="tab-pane fade" id="issues" role="tabpanel" aria-labelledby="issues-tab">
+            <!-- Standards and Violations Section (for Accessibility Projects) -->
+            {% if project.project_type.supports_standards %}
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2 class="h5 mb-0"><i class="bi bi-exclamation-triangle me-2" aria-hidden="true"></i>Standards and Issues</h2>
+                    <div>
+                        {% if not project_standards %}
+                        <a href="{% url 'projects:project_standard_create' project.id %}" class="btn btn-sm btn-success me-2" aria-label="Add standard to project">
+                            <i class="bi bi-plus-lg" aria-hidden="true"></i> Add Standard
+                        </a>
+                        {% endif %}
+                        {% if project_standards %}
+                        <a href="{% url 'projects:project_violation_create' project.id %}" class="btn btn-sm btn-primary" aria-label="Create new issue for project">
+                            <i class="bi bi-plus-lg" aria-hidden="true"></i> Create Issue
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Project Standards Section -->
+                    <div class="mb-4">
+                        <h3 class="h6 mb-3">Project Standard</h3>
+                        {% if project_standards %}
+                            {% with project_standard=project_standards.0 %}
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h4 class="h5">{{ project_standard.standard.name }} {{ project_standard.standard.version }}</h4>
+                                            {% if project_standard.standard.description %}
+                                            <p class="text-muted mb-0">{{ project_standard.standard.description|truncatechars:100 }}</p>
+                                            {% endif %}
+                                            {% if project_standard.standard.url %}
+                                            <a href="{{ project_standard.standard.url }}" target="_blank" class="small">View Documentation</a>
+                                            {% endif %}
+                                        </div>
+                                        <a href="{% url 'projects:project_standard_delete' project_standard.id %}" class="btn btn-sm btn-outline-danger" aria-label="Remove standard: {{ project_standard.standard.name }}">
+                                            <i class="bi bi-trash" aria-hidden="true"></i><span class="visually-hidden">Remove</span> Remove
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endwith %}
+                        {% else %}
+                            <div class="alert alert-info">
+                                <p class="mb-0">No standard has been added to this project yet. Add a standard before creating issues.</p>
+                                <a href="{% url 'projects:project_standard_create' project.id %}" class="btn btn-sm btn-success mt-2">
+                                    <i class="bi bi-plus-lg"></i> Add Standard
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Violations Section -->
+                    {% if project_standards %}
+                        {% if grouped_violations %}
+                            <h3 class="h6 mb-3">Issues by Standard</h3>
+                            {% for standard, violations in grouped_violations.items %}
+                            <div class="mb-4">
+                                <h4 class="h6 border-bottom pb-2">Standard: {{ standard.name }} {{ standard.version }}</h4>
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Issue</th>
+                                                <th>Status</th>
+                                                <th>Location</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for violation in violations %}
+                                            <tr>
+                                                <td>{{ violation.violation.name }}</td>
+                                                <td>
+                                                    <span class="badge {% if violation.status == 'open' %}bg-danger{% elif violation.status == 'in_progress' %}bg-warning text-dark{% elif violation.status == 'fixed' %}bg-success{% else %}bg-secondary{% endif %}">
+                                                        {{ violation.get_status_display }}
+                                                    </span>
+                                                </td>
+                                                <td>{{ violation.location|truncatechars:30 }}</td>
+                                                <td>
+                                                    <a href="{% url 'projects:project_violation_update' violation.id %}" class="btn btn-sm btn-outline-primary" aria-label="Edit issue: {{ violation.violation.name }}">
+                                                        <i class="bi bi-pencil" aria-hidden="true"></i><span class="visually-hidden">Edit</span>
+                                                    </a>
+                                                    {% if user.is_superuser or user.role.name == 'admin' %}
+                                                    <a href="{% url 'projects:project_violation_delete' violation.id %}" class="btn btn-sm btn-outline-danger" aria-label="Delete issue: {{ violation.violation.name }}">
+                                                        <i class="bi bi-trash" aria-hidden="true"></i><span class="visually-hidden">Delete</span>
+                                                    </a>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="alert alert-info">
+                                <p class="mb-0">No issues have been added to this project yet.</p>
+                                <a href="{% url 'projects:project_violation_create' project.id %}" class="btn btn-sm btn-primary mt-2">
+                                    <i class="bi bi-plus-lg"></i> Create Issue
+                                </a>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2 class="h5 mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Project Issues</h2>
+                    <button class="btn btn-primary btn-sm">
+                        <i class="bi bi-plus-lg me-1"></i> Add Issue
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <p class="mb-0">This project type doesn't support standards-based issues. You can still track general issues here.</p>
+                    </div>
+                    
+                    <!-- Example empty state -->
+                    <div class="text-center py-5">
+                        <i class="bi bi-clipboard-check" style="font-size: 3rem; color: #ccc;"></i>
+                        <h3 class="h5 mt-3">No Issues Yet</h3>
+                        <p class="text-muted">Start tracking issues by clicking the "Add Issue" button.</p>
+                    </div>
+                </div>
+            </div>
             {% endif %}
         </div>
+
+        <!-- Milestones Tab -->
+        <div class="tab-pane fade" id="milestones" role="tabpanel" aria-labelledby="milestones-tab">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2 class="h5 mb-0"><i class="bi bi-flag me-2" aria-hidden="true"></i>Project Milestones</h2>
+                    <a href="{% url 'projects:milestone_create' project.id %}" class="btn btn-primary btn-sm" aria-label="Add new milestone to project">
+                        <i class="bi bi-plus-lg me-1" aria-hidden="true"></i> Add Milestone
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if milestones %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Status</th>
+                                    <th>Due Date</th>
+                                    <th>Completed Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for milestone in milestones %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ milestone.name }}</strong>
+                                        {% if milestone.description %}
+                                        <div class="small text-muted">{{ milestone.description|truncatechars:50 }}</div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if milestone.status == 'completed' %}bg-success{% elif milestone.status == 'in_progress' %}bg-primary{% elif milestone.status == 'not_started' %}bg-secondary{% elif milestone.status == 'delayed' %}bg-danger{% else %}bg-info{% endif %}">
+                                            {{ milestone.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>{{ milestone.due_date|default:"Not set" }}</td>
+                                    <td>{{ milestone.completed_date|default:"Not completed" }}</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group" aria-label="Milestone actions">
+                                            <a href="{% url 'projects:milestone_update' milestone.id %}" class="btn btn-outline-primary" aria-label="Edit milestone: {{ milestone.name }}">
+                                                <i class="bi bi-pencil" aria-hidden="true"></i><span class="visually-hidden">Edit</span>
+                                            </a>
+                                            {% if user.is_superuser or user.role.name == 'admin' %}
+                                            <a href="{% url 'projects:milestone_delete' milestone.id %}" class="btn btn-outline-danger" aria-label="Delete milestone: {{ milestone.name }}">
+                                                <i class="bi bi-trash" aria-hidden="true"></i><span class="visually-hidden">Delete</span>
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <!-- Empty state -->
+                    <div class="text-center py-5">
+                        <i class="bi bi-flag" style="font-size: 3rem; color: #ccc;"></i>
+                        <h3 class="h5 mt-3">No Milestones Yet</h3>
+                        <p class="text-muted">Start tracking project progress by adding milestones.</p>
+                        <a href="{% url 'projects:milestone_create' project.id %}" class="btn btn-primary mt-2">
+                            <i class="bi bi-plus-lg me-1"></i> Add Milestone
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Tab -->
+        <div class="tab-pane fade" id="export" role="tabpanel" aria-labelledby="export-tab">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="h5 mb-0"><i class="bi bi-download me-2"></i>Export Project Data</h2>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h3 class="h5 mb-3">Project Report</h3>
+                                    <p>Export a comprehensive report of this project including all details, pages, and issues.</p>
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-primary">
+                                            <i class="bi bi-file-earmark-pdf me-2"></i>Export as PDF
+                                        </button>
+                                        <button class="btn btn-outline-primary">
+                                            <i class="bi bi-file-earmark-excel me-2"></i>Export as Excel
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h3 class="h5 mb-3">Issues Report</h3>
+                                    <p>Export only the issues and their current status for this project.</p>
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-primary">
+                                            <i class="bi bi-file-earmark-pdf me-2"></i>Export as PDF
+                                        </button>
+                                        <button class="btn btn-outline-primary">
+                                            <i class="bi bi-file-earmark-excel me-2"></i>Export as Excel
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    {% endif %}
 </div>
 
 <style>
@@ -248,5 +514,57 @@
     justify-content: center;
     font-weight: bold;
 }
+
+/* Tab styling */
+.nav-tabs .nav-link {
+    color: var(--text-color);
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 0.75rem 1rem;
+    font-weight: 500;
+}
+
+.nav-tabs .nav-link:hover {
+    border-color: transparent;
+    background-color: rgba(52, 152, 219, 0.1);
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--secondary-color);
+    border-bottom: 2px solid var(--secondary-color);
+    background-color: transparent;
+}
 </style>
+
+<script>
+// Page type filter functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const filterButtons = document.querySelectorAll('[data-filter]');
+    
+    filterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Remove active class from all buttons
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            
+            // Add active class to clicked button
+            this.classList.add('active');
+            
+            const filterValue = this.getAttribute('data-filter');
+            const pageRows = document.querySelectorAll('.page-row');
+            
+            pageRows.forEach(row => {
+                if (filterValue === 'all') {
+                    row.style.display = '';
+                } else {
+                    if (row.getAttribute('data-type') === filterValue) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                }
+            });
+        });
+    });
+});
+</script>
 {% endblock %} 

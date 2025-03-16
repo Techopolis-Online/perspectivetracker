@@ -1,0 +1,90 @@
+{% extends "users/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="h5 mb-0"><i class="bi bi-file-earmark-text me-2"></i>{{ title }}</h2>
+                </div>
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">Page Name</label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                                <div class="text-danger">
+                                    {{ form.name.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.page_type.id_for_label }}" class="form-label">Page Type</label>
+                            {{ form.page_type }}
+                            {% if form.page_type.errors %}
+                                <div class="text-danger">
+                                    {{ form.page_type.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3" id="url-field">
+                            <label for="{{ form.url.id_for_label }}" class="form-label">URL</label>
+                            {{ form.url }}
+                            <div class="form-text">For web pages, enter the full URL including https://</div>
+                            {% if form.url.errors %}
+                                <div class="text-danger">
+                                    {{ form.url.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="text-danger">
+                                    {{ form.description.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'projects:project_detail' project.id %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i>Back
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save me-1"></i>Save
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Function to toggle URL field visibility based on page type
+    function toggleUrlField() {
+        const pageType = document.getElementById('id_page_type').value;
+        const urlField = document.getElementById('url-field');
+        
+        if (pageType === 'web') {
+            urlField.style.display = 'block';
+        } else {
+            urlField.style.display = 'none';
+        }
+    }
+    
+    // Run on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleUrlField();
+    });
+</script>
+{% endblock %} 

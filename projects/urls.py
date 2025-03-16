@@ -39,4 +39,14 @@ urlpatterns = [
     # Project Standard URLs
     path('<int:project_id>/standards/create/', views.project_standard_create, name='project_standard_create'),
     path('standards/<int:pk>/delete/', views.project_standard_delete, name='project_standard_delete'),
+    
+    # Page URLs
+    path('<int:project_id>/pages/create/', views.page_create, name='page_create'),
+    path('pages/<int:pk>/update/', views.page_update, name='page_update'),
+    path('pages/<int:pk>/delete/', views.page_delete, name='page_delete'),
+    
+    # Milestone URLs
+    path('<int:project_id>/milestones/create/', views.milestone_create, name='milestone_create'),
+    path('milestones/<int:pk>/update/', views.milestone_update, name='milestone_update'),
+    path('milestones/<int:pk>/delete/', views.milestone_delete, name='milestone_delete'),
 ] 

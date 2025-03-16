@@ -1,5 +1,5 @@
 from django import forms
-from .models import Project, Standard, Violation, ProjectViolation, ProjectType, ProjectStandard
+from .models import Project, Standard, Violation, ProjectViolation, ProjectType, ProjectStandard, Page, Milestone
 from users.models import CustomUser
 import json
 from django.db import models
@@ -314,15 +314,15 @@ class ProjectStandardForm(forms.ModelForm):
         }
     
     def __init__(self, *args, **kwargs):
-        project = kwargs.pop('project', None)
+        self.project = kwargs.pop('project', None)
         super().__init__(*args, **kwargs)
         
-        if project:
+        if self.project:
             # Get all standards
             all_standards = Standard.objects.all().order_by('name', 'version')
             
             # Check if project already has a standard
-            has_standard = ProjectStandard.objects.filter(project=project).exists()
+            has_standard = ProjectStandard.objects.filter(project=self.project).exists()
             
             if has_standard and not self.instance.pk:
                 # If creating a new standard association and project already has one
@@ -331,4 +331,69 @@ class ProjectStandardForm(forms.ModelForm):
             else:
                 self.fields['standard'].queryset = all_standards
         else:
-            self.fields['standard'].queryset = Standard.objects.none() 
+            self.fields['standard'].queryset = Standard.objects.none()
+
+class PageForm(forms.ModelForm):
+    class Meta:
+        model = Page
+        fields = ['name', 'description', 'page_type', 'url']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'page_type': forms.Select(attrs={'class': 'form-select', 'id': 'id_page_type'}),
+            'url': forms.URLInput(attrs={'class': 'form-control', 'id': 'id_url'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.project = kwargs.pop('project', None)
+        super().__init__(*args, **kwargs)
+        
+        # Add JavaScript to show/hide URL field based on page type
+        self.fields['page_type'].widget.attrs.update({
+            'onchange': 'toggleUrlField()'
+        })
+    
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if self.project:
+            instance.project = self.project
+        
+        if commit:
+            instance.save()
+        return instance
+
+class MilestoneForm(forms.ModelForm):
+    class Meta:
+        model = Milestone
+        fields = ['name', 'description', 'status', 'due_date', 'completed_date']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'status': forms.Select(attrs={'class': 'form-select'}),
+            'due_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'completed_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.project = kwargs.pop('project', None)
+        super().__init__(*args, **kwargs)
+        
+        # If project has custom milestone statuses, use those
+        if self.project and self.project.project_type and self.project.project_type.milestone_choices:
+            choices = self.project.project_type.milestone_choices
+            # Ensure choices are properly formatted
+            formatted_choices = []
+            for key, display in choices:
+                if key and display:  # Skip empty values
+                    formatted_choices.append((key.strip(), display.strip()))
+            if formatted_choices:
+                self.fields['status'].choices = formatted_choices
+    
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if self.project:
+            instance.project = self.project
+        
+        if commit:
+            instance.save()
+        return instance 

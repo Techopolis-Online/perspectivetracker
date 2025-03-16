@@ -3,9 +3,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import HttpResponseForbidden, JsonResponse
 from django.db.models import Count, Q
-from .models import ProjectType, Project, Standard, Violation, ProjectViolation, ProjectStandard
+from .models import ProjectType, Project, Standard, Violation, ProjectViolation, ProjectStandard, Page, Milestone
 from users.views import admin_required, staff_required
-from .forms import ProjectForm, StandardForm, ViolationForm, ProjectViolationForm, ProjectTypeForm, ProjectStandardForm
+from .forms import ProjectForm, StandardForm, ViolationForm, ProjectViolationForm, ProjectTypeForm, ProjectStandardForm, PageForm, MilestoneForm
 
 @login_required
 def project_list(request):
@@ -48,21 +48,26 @@ def project_detail(request, pk):
     # Get project violations
     violations = ProjectViolation.objects.filter(project=project)
     
-    # Group violations by standard if this is an accessibility project
-    grouped_violations = None
-    if project.project_type.supports_standards:
-        grouped_violations = {}
-        for violation in violations:
-            standard = violation.violation.standard
-            if standard not in grouped_violations:
-                grouped_violations[standard] = []
-            grouped_violations[standard].append(violation)
+    # Get project pages
+    pages = Page.objects.filter(project=project).order_by('name')
+    
+    # Get project milestones
+    milestones = Milestone.objects.filter(project=project).order_by('due_date', 'name')
+    
+    # Group violations by standard
+    grouped_violations = {}
+    for violation in violations:
+        standard = violation.violation.standard
+        if standard not in grouped_violations:
+            grouped_violations[standard] = []
+        grouped_violations[standard].append(violation)
     
     context = {
         'project': project,
         'project_standards': project_standards,
-        'violations': violations,
         'grouped_violations': grouped_violations,
+        'pages': pages,
+        'milestones': milestones,
     }
     return render(request, 'projects/project_detail.html', context)
 
@@ -564,28 +569,193 @@ def project_type_status_choices(request, pk):
 
 @login_required
 def project_type_milestone_choices(request, pk):
-    """Return milestone choices for a project type as JSON"""
-    try:
-        project_type = ProjectType.objects.get(pk=pk)
-        
-        # Return the milestone choices or default choices if none defined
-        if project_type.milestone_choices:
-            # Make sure each milestone choice is a separate option
-            choices = []
-            for key, display in project_type.milestone_choices:
-                # Skip empty values
-                if not key or not display:
-                    continue
-                choices.append([key.strip(), display.strip()])
-            return JsonResponse(choices, safe=False)
-        else:
-            # Return default choices
-            default_choices = [
-                ['design', 'Design Phase'],
-                ['development', 'Development Phase'],
-                ['testing', 'Testing Phase'],
-                ['deployment', 'Deployment Phase']
-            ]
-            return JsonResponse(default_choices, safe=False)
-    except ProjectType.DoesNotExist:
-        return JsonResponse({'error': 'Project type not found'}, status=404)
+    """API endpoint to get milestone choices for a project type"""
+    project_type = get_object_or_404(ProjectType, pk=pk)
+    
+    # Get milestone choices from project type
+    milestone_choices = []
+    if project_type.milestone_choices:
+        milestone_choices = project_type.milestone_choices
+    
+    # Format for select options
+    options = []
+    for key, display in milestone_choices:
+        if key and display:  # Skip empty values
+            options.append({
+                'value': key.strip(),
+                'text': display.strip()
+            })
+    
+    # If no custom choices, return default choices
+    if not options:
+        for key, display in Milestone.STATUS_CHOICES:
+            options.append({
+                'value': key,
+                'text': display
+            })
+    
+    return JsonResponse({'options': options})
+
+# Page views
+@login_required
+def page_create(request, project_id):
+    """Create a new page for a project"""
+    project = get_object_or_404(Project, pk=project_id)
+    
+    # Check if user has permission to add pages to this project
+    if not (request.user.is_superuser or 
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']) or
+            request.user in project.assigned_to.all()):
+        return HttpResponseForbidden("You don't have permission to add pages to this project.")
+    
+    if request.method == 'POST':
+        form = PageForm(request.POST, project=project)
+        if form.is_valid():
+            page = form.save(commit=False)
+            page.project = project
+            page.created_by = request.user
+            page.save()
+            messages.success(request, f"Page '{page.name}' created successfully.")
+            return redirect('projects:project_detail', pk=project.id)
+    else:
+        form = PageForm(project=project)
+    
+    context = {
+        'form': form,
+        'project': project,
+        'title': 'Add Page',
+    }
+    return render(request, 'projects/page_form.html', context)
+
+@login_required
+def page_update(request, pk):
+    """Update an existing page"""
+    page = get_object_or_404(Page, pk=pk)
+    project = page.project
+    
+    # Check if user has permission to edit this page
+    if not (request.user.is_superuser or 
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']) or
+            request.user in project.assigned_to.all()):
+        return HttpResponseForbidden("You don't have permission to edit this page.")
+    
+    if request.method == 'POST':
+        form = PageForm(request.POST, instance=page, project=project)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Page '{page.name}' updated successfully.")
+            return redirect('projects:project_detail', pk=project.id)
+    else:
+        form = PageForm(instance=page, project=project)
+    
+    context = {
+        'form': form,
+        'project': project,
+        'page': page,
+        'title': 'Edit Page',
+    }
+    return render(request, 'projects/page_form.html', context)
+
+@login_required
+def page_delete(request, pk):
+    """Delete a page"""
+    page = get_object_or_404(Page, pk=pk)
+    project = page.project
+    
+    # Check if user has permission to delete this page
+    if not (request.user.is_superuser or 
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin')):
+        return HttpResponseForbidden("You don't have permission to delete this page.")
+    
+    if request.method == 'POST':
+        page_name = page.name
+        page.delete()
+        messages.success(request, f"Page '{page_name}' deleted successfully.")
+        return redirect('projects:project_detail', pk=project.id)
+    
+    context = {
+        'page': page,
+        'project': project,
+    }
+    return render(request, 'projects/page_confirm_delete.html', context)
+
+# Milestone views
+@login_required
+def milestone_create(request, project_id):
+    """Create a new milestone for a project"""
+    project = get_object_or_404(Project, pk=project_id)
+    
+    # Check if user has permission to add milestones to this project
+    if not (request.user.is_superuser or 
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff'])):
+        return HttpResponseForbidden("You don't have permission to add milestones to this project.")
+    
+    if request.method == 'POST':
+        form = MilestoneForm(request.POST, project=project)
+        if form.is_valid():
+            milestone = form.save(commit=False)
+            milestone.project = project
+            milestone.created_by = request.user
+            milestone.save()
+            messages.success(request, f"Milestone '{milestone.name}' created successfully.")
+            return redirect('projects:project_detail', pk=project.id)
+    else:
+        form = MilestoneForm(project=project)
+    
+    context = {
+        'form': form,
+        'project': project,
+        'title': 'Add Milestone',
+    }
+    return render(request, 'projects/milestone_form.html', context)
+
+@login_required
+def milestone_update(request, pk):
+    """Update an existing milestone"""
+    milestone = get_object_or_404(Milestone, pk=pk)
+    project = milestone.project
+    
+    # Check if user has permission to edit this milestone
+    if not (request.user.is_superuser or 
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff'])):
+        return HttpResponseForbidden("You don't have permission to edit this milestone.")
+    
+    if request.method == 'POST':
+        form = MilestoneForm(request.POST, instance=milestone, project=project)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Milestone '{milestone.name}' updated successfully.")
+            return redirect('projects:project_detail', pk=project.id)
+    else:
+        form = MilestoneForm(instance=milestone, project=project)
+    
+    context = {
+        'form': form,
+        'project': project,
+        'milestone': milestone,
+        'title': 'Edit Milestone',
+    }
+    return render(request, 'projects/milestone_form.html', context)
+
+@login_required
+def milestone_delete(request, pk):
+    """Delete a milestone"""
+    milestone = get_object_or_404(Milestone, pk=pk)
+    project = milestone.project
+    
+    # Check if user has permission to delete this milestone
+    if not (request.user.is_superuser or 
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin')):
+        return HttpResponseForbidden("You don't have permission to delete this milestone.")
+    
+    if request.method == 'POST':
+        milestone_name = milestone.name
+        milestone.delete()
+        messages.success(request, f"Milestone '{milestone_name}' deleted successfully.")
+        return redirect('projects:project_detail', pk=project.id)
+    
+    context = {
+        'milestone': milestone,
+        'project': project,
+    }
+    return render(request, 'projects/milestone_confirm_delete.html', context)
