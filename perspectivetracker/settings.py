@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 import os
+import dj_database_url
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -25,12 +26,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-6a8xoo4jlia$(3f9ma^p+8lkc-)8b0up6j*-p0w$@uw=1#qc^^'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-6a8xoo4jlia$(3f9ma^p+8lkc-)8b0up6j*-p0w$@uw=1#qc^^')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.herokuapp.com']
 
 
 # Application definition
@@ -46,10 +47,12 @@ INSTALLED_APPS = [
     'clients',
     'projects',
     'social_django',
+    'whitenoise.runserver_nostatic',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -94,6 +97,10 @@ DATABASES = {
     }
 }
 
+# Use PostgreSQL on Heroku
+if 'DATABASE_URL' in os.environ:
+    DATABASES['default'] = dj_database_url.config(conn_max_age=600, ssl_require=True)
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -136,6 +143,9 @@ STATICFILES_DIRS = [
     BASE_DIR / 'perspectivetracker' / 'static',
 ]
 
+# Simplified static file serving with whitenoise
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 # Media files (User uploads)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -153,9 +163,9 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 # Auth0 Settings
-SOCIAL_AUTH_AUTH0_DOMAIN = 'dev-pgdtb0w4qfk0kenr.us.auth0.com'
-SOCIAL_AUTH_AUTH0_KEY = 'OPHq9XW5ne6MbUHdxFL04WqQBDcYFkTn'
-SOCIAL_AUTH_AUTH0_SECRET = '2SBCRrZa4W6dxW22CGw5CVy6wZ96urzHfl5Nl4uBEMuvaPLuJUGvUcXHDCrS5URm'
+SOCIAL_AUTH_AUTH0_DOMAIN = os.environ.get('AUTH0_DOMAIN', 'dev-pgdtb0w4qfk0kenr.us.auth0.com')
+SOCIAL_AUTH_AUTH0_KEY = os.environ.get('AUTH0_CLIENT_ID', 'OPHq9XW5ne6MbUHdxFL04WqQBDcYFkTn')
+SOCIAL_AUTH_AUTH0_SECRET = os.environ.get('AUTH0_CLIENT_SECRET', '2SBCRrZa4W6dxW22CGw5CVy6wZ96urzHfl5Nl4uBEMuvaPLuJUGvUcXHDCrS5URm')
 SOCIAL_AUTH_AUTH0_SCOPE = [
     'openid',
     'profile',
@@ -170,13 +180,13 @@ SOCIAL_AUTH_AUTH0_EXTRA_AUTHORIZE_PARAMS = {
 }
 
 # Auth0 callback URL - this should match what's configured in Auth0
-SOCIAL_AUTH_REDIRECT_IS_HTTPS = False  # Set to True in production
+SOCIAL_AUTH_REDIRECT_IS_HTTPS = os.environ.get('SOCIAL_AUTH_REDIRECT_IS_HTTPS', 'False') == 'True'
 SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/'
 SOCIAL_AUTH_LOGIN_ERROR_URL = '/login-error/'
 SOCIAL_AUTH_RAISE_EXCEPTIONS = False
 
 # Explicitly set the callback URL
-SOCIAL_AUTH_AUTH0_REDIRECT_URI = 'http://localhost:8000/users/complete/auth0/'
+SOCIAL_AUTH_AUTH0_REDIRECT_URI = os.environ.get('AUTH0_CALLBACK_URL', 'http://localhost:8000/users/complete/auth0/')
 
 SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.social_details',
@@ -200,13 +210,23 @@ LOGOUT_REDIRECT_URL = '/'
 # EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # SMTP configuration for production
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'mail.techopolis.app'
-EMAIL_PORT = 465  # Using port 465 for SSL
-EMAIL_USE_SSL = True  # Using SSL
-EMAIL_USE_TLS = False  # Not using TLS with SSL
-EMAIL_HOST_USER = 'tracker@techopolis.app'
-EMAIL_HOST_PASSWORD = 'Techopolis25@@'
-DEFAULT_FROM_EMAIL = 'Techopolis Online Solutions <tracker@techopolis.app>'
-SERVER_EMAIL = 'tracker@techopolis.app'
-EMAIL_TIMEOUT = 30  # Add timeout to prevent hanging
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'mail.techopolis.app')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 465))  # Using port 465 for SSL
+EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'True') == 'True'  # Using SSL
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'False') == 'True'  # Not using TLS with SSL
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'tracker@techopolis.app')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'Techopolis25@@')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'Techopolis Online Solutions <tracker@techopolis.app>')
+SERVER_EMAIL = os.environ.get('SERVER_EMAIL', 'tracker@techopolis.app')
+EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', 30))  # Add timeout to prevent hanging
+
+# Security settings for production
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True

@@ -1,0 +1,1 @@
+web: gunicorn perspectivetracker.wsgi --log-file - 
