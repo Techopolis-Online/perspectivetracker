@@ -261,6 +261,13 @@ class Issue(models.Model):
     def __str__(self):
         return f"{self.project.name} - {self.page.name} - {self.issue_description[:50]}"
     
+    def get_current_status_display(self):
+        """Return the display value for the current status"""
+        for key, display in self.STATUS_CHOICES:
+            if key == self.current_status:
+                return display
+        return self.current_status
+    
     class Meta:
         ordering = ['-created_at']
 

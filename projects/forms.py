@@ -294,17 +294,25 @@ class ProjectForm(forms.ModelForm):
     assigned_staff = UserModelMultipleChoiceField(
         queryset=CustomUser.objects.none(),
         required=False,
-        widget=forms.SelectMultiple(attrs={'class': 'form-select'}),
+        widget=forms.SelectMultiple(attrs={
+            'class': 'form-select',
+            'size': '6',
+            'style': 'height: auto;'
+        }),
         label="Assigned Project Staff",
-        help_text="Select Techopolis staff members to assign to this project"
+        help_text="Select multiple Techopolis staff members to assign to this project"
     )
     
     assigned_clients = UserModelMultipleChoiceField(
         queryset=CustomUser.objects.none(),
         required=False,
-        widget=forms.SelectMultiple(attrs={'class': 'form-select'}),
+        widget=forms.SelectMultiple(attrs={
+            'class': 'form-select',
+            'size': '6',
+            'style': 'height: auto;'
+        }),
         label="Assigned Client Team",
-        help_text="Select client team members to assign to this project"
+        help_text="Select multiple client team members to assign to this project"
     )
     
     class Meta:
