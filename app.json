@@ -71,7 +71,7 @@
     }
   ],
   "scripts": {
-    "postdeploy": "python manage.py migrate && python manage.py create_superuser"
+    "postdeploy": "python manage.py migrate && python create_roles.py && python heroku_superuser.py"
   },
   "addons": [
     "heroku-postgresql"
