@@ -1,0 +1,79 @@
+{
+  "name": "Perspective Tracker",
+  "description": "A professional CRM system for client management and project tracking",
+  "repository": "https://github.com/yourusername/perspectivetracker",
+  "keywords": ["django", "crm", "project-management"],
+  "env": {
+    "SECRET_KEY": {
+      "description": "A secret key for Django",
+      "generator": "secret"
+    },
+    "DEBUG": {
+      "description": "Debug mode",
+      "value": "False"
+    },
+    "AUTH0_DOMAIN": {
+      "description": "Auth0 domain",
+      "value": "dev-pgdtb0w4qfk0kenr.us.auth0.com"
+    },
+    "AUTH0_CLIENT_ID": {
+      "description": "Auth0 client ID",
+      "value": "OPHq9XW5ne6MbUHdxFL04WqQBDcYFkTn"
+    },
+    "AUTH0_CLIENT_SECRET": {
+      "description": "Auth0 client secret",
+      "value": "2SBCRrZa4W6dxW22CGw5CVy6wZ96urzHfl5Nl4uBEMuvaPLuJUGvUcXHDCrS5URm"
+    },
+    "AUTH0_CALLBACK_URL": {
+      "description": "Auth0 callback URL",
+      "value": "https://your-app-name.herokuapp.com/users/complete/auth0/"
+    },
+    "SOCIAL_AUTH_REDIRECT_IS_HTTPS": {
+      "description": "Use HTTPS for Auth0 redirect",
+      "value": "True"
+    },
+    "EMAIL_HOST": {
+      "description": "SMTP server host",
+      "value": "mail.techopolis.app"
+    },
+    "EMAIL_PORT": {
+      "description": "SMTP server port",
+      "value": "465"
+    },
+    "EMAIL_USE_SSL": {
+      "description": "Use SSL for email",
+      "value": "True"
+    },
+    "EMAIL_USE_TLS": {
+      "description": "Use TLS for email",
+      "value": "False"
+    },
+    "EMAIL_HOST_USER": {
+      "description": "SMTP username",
+      "value": "tracker@techopolis.app"
+    },
+    "EMAIL_HOST_PASSWORD": {
+      "description": "SMTP password",
+      "value": "Techopolis25@@"
+    },
+    "DEFAULT_FROM_EMAIL": {
+      "description": "Default from email",
+      "value": "Techopolis Online Solutions <tracker@techopolis.app>"
+    },
+    "SERVER_EMAIL": {
+      "description": "Server email",
+      "value": "tracker@techopolis.app"
+    }
+  },
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "scripts": {
+    "postdeploy": "python manage.py migrate && python manage.py create_superuser"
+  },
+  "addons": [
+    "heroku-postgresql"
+  ]
+} 
