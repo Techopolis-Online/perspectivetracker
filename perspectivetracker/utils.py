@@ -44,7 +44,7 @@ def send_project_created_email(request, project, recipient_list=None):
         return False
         
     project_url = request.build_absolute_uri(
-        reverse('project_detail', kwargs={'pk': project.pk})
+        reverse('projects:project_detail', kwargs={'pk': project.pk})
     )
     
     context = {
@@ -80,7 +80,7 @@ def send_project_updated_email(request, project, updated_fields, recipient_list=
         return False
         
     project_url = request.build_absolute_uri(
-        reverse('project_detail', kwargs={'pk': project.pk})
+        reverse('projects:project_detail', kwargs={'pk': project.pk})
     )
     
     context = {
@@ -123,7 +123,7 @@ def send_issue_created_email(request, issue, recipient_list=None):
         return False
         
     issue_url = request.build_absolute_uri(
-        reverse('issue_detail', kwargs={'pk': issue.pk})
+        reverse('projects:issue_detail', kwargs={'project_id': issue.project.pk, 'pk': issue.pk})
     )
     
     context = {
@@ -168,7 +168,7 @@ def send_issue_updated_email(request, issue, updated_fields, recipient_list=None
         return False
         
     issue_url = request.build_absolute_uri(
-        reverse('issue_detail', kwargs={'pk': issue.pk})
+        reverse('projects:issue_detail', kwargs={'project_id': issue.project.pk, 'pk': issue.pk})
     )
     
     context = {
@@ -215,7 +215,7 @@ def send_comment_notification_email(request, comment, recipient_list=None):
         return False
         
     issue_url = request.build_absolute_uri(
-        reverse('issue_detail', kwargs={'pk': issue.pk})
+        reverse('projects:issue_detail', kwargs={'project_id': issue.project.pk, 'pk': issue.pk})
     )
     
     context = {
@@ -259,7 +259,7 @@ def send_milestone_created_email(request, milestone, recipient_list=None):
         return False
         
     milestone_url = request.build_absolute_uri(
-        reverse('milestone_detail', kwargs={'pk': milestone.pk})
+        reverse('projects:milestone_detail', kwargs={'pk': milestone.pk})
     )
     
     context = {
@@ -302,7 +302,7 @@ def send_milestone_updated_email(request, milestone, updated_fields, recipient_l
         return False
         
     milestone_url = request.build_absolute_uri(
-        reverse('milestone_detail', kwargs={'pk': milestone.pk})
+        reverse('projects:milestone_detail', kwargs={'pk': milestone.pk})
     )
     
     context = {
@@ -349,17 +349,17 @@ def send_assignment_notification_email(request, obj, recipient_list=None):
     if obj.__class__.__name__ == 'Project':
         obj_type = 'Project'
         obj_url = request.build_absolute_uri(
-            reverse('project_detail', kwargs={'pk': obj.pk})
+            reverse('projects:project_detail', kwargs={'pk': obj.pk})
         )
     elif obj.__class__.__name__ == 'Issue':
         obj_type = 'Issue'
         obj_url = request.build_absolute_uri(
-            reverse('issue_detail', kwargs={'pk': obj.pk})
+            reverse('projects:issue_detail', kwargs={'project_id': obj.project.pk, 'pk': obj.pk})
         )
     elif obj.__class__.__name__ == 'Milestone':
         obj_type = 'Milestone'
         obj_url = request.build_absolute_uri(
-            reverse('milestone_detail', kwargs={'pk': obj.pk})
+            reverse('projects:milestone_detail', kwargs={'pk': obj.pk})
         )
     else:
         return False
@@ -410,7 +410,7 @@ def send_milestone_completed_email(request, milestone, recipient_list=None):
         return False
         
     milestone_url = request.build_absolute_uri(
-        reverse('milestone_detail', kwargs={'pk': milestone.pk})
+        reverse('projects:milestone_detail', kwargs={'pk': milestone.pk})
     )
     
     # Calculate milestone statistics
@@ -471,7 +471,7 @@ def send_task_notification_email(request, task, action_type, recipient_list=None
     # Build task URL - this will need to be adjusted based on your URL structure
     try:
         task_url = request.build_absolute_uri(
-            reverse('task_detail', kwargs={'pk': task.pk})
+            reverse('projects:task_detail', kwargs={'pk': task.pk})
         )
     except:
         # Fallback if the URL can't be built
@@ -522,7 +522,7 @@ def send_task_completed_email(request, task, recipient_list=None):
     # Build task URL - this will need to be adjusted based on your URL structure
     try:
         task_url = request.build_absolute_uri(
-            reverse('task_detail', kwargs={'pk': task.pk})
+            reverse('projects:task_detail', kwargs={'pk': task.pk})
         )
     except:
         # Fallback if the URL can't be built
@@ -555,7 +555,7 @@ def send_achievement_unlocked_email(request, user_achievement, user_points):
     achievement = user_achievement.achievement
     
     # Build dashboard URL
-    dashboard_url = request.build_absolute_uri(reverse('dashboard'))
+    dashboard_url = request.build_absolute_uri(reverse('projects:dashboard'))
     
     context = {
         'user': user,
