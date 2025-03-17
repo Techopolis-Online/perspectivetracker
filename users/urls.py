@@ -48,4 +48,7 @@ urlpatterns = [
              template_name='users/password_reset_complete.html'
          ), 
          name='password_reset_complete'),
+    
+    # Test email configuration
+    path('test-email/', views.test_email, name='test_email'),
 ]

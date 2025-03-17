@@ -1,0 +1,77 @@
+{% extends 'users/base.html' %}
+
+{% block title %}Test Email Configuration - Perspective Tracker{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Test Email Configuration</h4>
+                </div>
+                <div class="card-body">
+                    <p class="mb-4">Use this form to test the email configuration by sending a test email.</p>
+                    
+                    {% if messages %}
+                    <div class="mb-4">
+                        {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }}">
+                            {{ message }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-4">
+                        <h5>Test SMTP Connection</h5>
+                        <p>Test the connection to the SMTP server without sending an email.</p>
+                        <div class="d-flex gap-2">
+                            <form method="post" class="me-2">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="test_connection">
+                                <button type="submit" class="btn btn-secondary">Test Current Configuration</button>
+                            </form>
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="test_ports">
+                                <button type="submit" class="btn btn-info">Test All Port Configurations</button>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="mt-4">
+                        <h5>Send Test Email</h5>
+                        <p>Send a test email to verify the full email delivery process.</p>
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="send_email">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Recipient Email Address</label>
+                                <input type="email" class="form-control" id="email" name="email" required>
+                                <div class="form-text">Enter the email address where you want to send the test email.</div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Send Test Email</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="small">
+                        <strong>Current Email Configuration:</strong>
+                        <ul class="mt-2">
+                            <li>Email Backend: {{ email_backend }}</li>
+                            <li>SMTP Host: {{ email_host }}</li>
+                            <li>SMTP Port: {{ email_port }}</li>
+                            <li>Use SSL: {{ use_ssl }}</li>
+                            <li>Use TLS: {{ use_tls }}</li>
+                            <li>From Email: {{ default_from_email }}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

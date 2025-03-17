@@ -1,0 +1,60 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Issue Updated - Perspective Tracker{% endblock %}
+
+{% block content %}
+<h2>Issue Updated</h2>
+
+<p>Hello,</p>
+
+<p>An issue has been updated in Perspective Tracker.</p>
+
+<div class="info-box">
+    <div class="details">
+        <div class="details-item">
+            <span class="details-label">Project:</span> {{ project.name }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Milestone:</span> {{ milestone.name }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Page:</span> {{ page.name }}
+        </div>
+        {% if issue.violation %}
+        <div class="details-item">
+            <span class="details-label">Violation:</span> {{ issue.violation.name }}
+        </div>
+        {% endif %}
+        <div class="details-item">
+            <span class="details-label">Status:</span> {{ issue.get_current_status_display }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Updated By:</span> {{ updater.get_full_name|default:updater.email }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Updated On:</span> {{ issue.updated_at|date:"F j, Y" }}
+        </div>
+        {% if issue.assigned_to %}
+        <div class="details-item">
+            <span class="details-label">Assigned To:</span> {{ issue.assigned_to.get_full_name|default:issue.assigned_to.email }}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<h3>Changes Made:</h3>
+<ul>
+    {% for field in updated_fields %}
+    <li>{{ field }}</li>
+    {% endfor %}
+</ul>
+
+<p>You can view the updated issue details by clicking the button below:</p>
+
+<p style="text-align: center;">
+    <a href="{{ issue_url }}" class="button">View Issue</a>
+</p>
+
+<p>If the button doesn't work, you can copy and paste this URL into your browser:</p>
+<p>{{ issue_url }}</p>
+{% endblock %} 

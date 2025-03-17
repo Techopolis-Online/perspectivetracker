@@ -64,7 +64,9 @@ ROOT_URLCONF = 'perspectivetracker.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+            BASE_DIR / 'perspectivetracker' / 'templates',
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -151,9 +153,9 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 # Auth0 Settings
-SOCIAL_AUTH_AUTH0_DOMAIN = os.getenv('AUTH0_DOMAIN')
-SOCIAL_AUTH_AUTH0_KEY = os.getenv('AUTH0_CLIENT_ID')
-SOCIAL_AUTH_AUTH0_SECRET = os.getenv('AUTH0_CLIENT_SECRET')
+SOCIAL_AUTH_AUTH0_DOMAIN = 'dev-pgdtb0w4qfk0kenr.us.auth0.com'
+SOCIAL_AUTH_AUTH0_KEY = 'OPHq9XW5ne6MbUHdxFL04WqQBDcYFkTn'
+SOCIAL_AUTH_AUTH0_SECRET = '2SBCRrZa4W6dxW22CGw5CVy6wZ96urzHfl5Nl4uBEMuvaPLuJUGvUcXHDCrS5URm'
 SOCIAL_AUTH_AUTH0_SCOPE = [
     'openid',
     'profile',
@@ -174,7 +176,7 @@ SOCIAL_AUTH_LOGIN_ERROR_URL = '/login-error/'
 SOCIAL_AUTH_RAISE_EXCEPTIONS = False
 
 # Explicitly set the callback URL
-SOCIAL_AUTH_AUTH0_REDIRECT_URI = os.getenv('AUTH0_CALLBACK_URL')
+SOCIAL_AUTH_AUTH0_REDIRECT_URI = 'http://localhost:8000/users/complete/auth0/'
 
 SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.social_details',
@@ -194,5 +196,17 @@ LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
 # Email settings
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = 'noreply@perspectivetracker.com'
+# For development, uncomment this to use console backend:
+# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# SMTP configuration for production
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'mail.techopolis.app'
+EMAIL_PORT = 465  # Using port 465 for SSL
+EMAIL_USE_SSL = True  # Using SSL
+EMAIL_USE_TLS = False  # Not using TLS with SSL
+EMAIL_HOST_USER = 'tracker@techopolis.app'
+EMAIL_HOST_PASSWORD = 'Techopolis25@@'
+DEFAULT_FROM_EMAIL = 'Techopolis Online Solutions <tracker@techopolis.app>'
+SERVER_EMAIL = 'tracker@techopolis.app'
+EMAIL_TIMEOUT = 30  # Add timeout to prevent hanging

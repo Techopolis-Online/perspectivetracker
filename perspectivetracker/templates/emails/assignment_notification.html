@@ -1,0 +1,85 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}New Assignment - Perspective Tracker{% endblock %}
+
+{% block content %}
+<h2>New Assignment</h2>
+
+<p>Hello,</p>
+
+<p>You have been assigned to a {{ object_type }} in Perspective Tracker.</p>
+
+<div class="info-box">
+    <div class="details">
+        {% if object_type == 'Project' %}
+        <div class="details-item">
+            <span class="details-label">Project Name:</span> {{ object.name }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Client:</span> {{ object.client.company_name }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Project Type:</span> {{ object.project_type.name }}
+        </div>
+        {% elif object_type == 'Issue' %}
+        <div class="details-item">
+            <span class="details-label">Project:</span> {{ object.project.name }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Milestone:</span> {{ object.milestone.name }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Page:</span> {{ object.page.name }}
+        </div>
+        {% if object.violation %}
+        <div class="details-item">
+            <span class="details-label">Violation:</span> {{ object.violation.name }}
+        </div>
+        {% endif %}
+        <div class="details-item">
+            <span class="details-label">Status:</span> {{ object.get_current_status_display }}
+        </div>
+        {% elif object_type == 'Milestone' %}
+        <div class="details-item">
+            <span class="details-label">Project:</span> {{ object.project.name }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Milestone:</span> {{ object.name }}
+        </div>
+        {% if object.milestone_type %}
+        <div class="details-item">
+            <span class="details-label">Type:</span> {{ object.get_milestone_type_display }}
+        </div>
+        {% endif %}
+        <div class="details-item">
+            <span class="details-label">Status:</span> {{ object.get_status_display }}
+        </div>
+        {% if object.start_date %}
+        <div class="details-item">
+            <span class="details-label">Start Date:</span> {{ object.start_date|date:"F j, Y" }}
+        </div>
+        {% endif %}
+        {% if object.due_date %}
+        <div class="details-item">
+            <span class="details-label">Due Date:</span> {{ object.due_date|date:"F j, Y" }}
+        </div>
+        {% endif %}
+        {% endif %}
+        <div class="details-item">
+            <span class="details-label">Assigned By:</span> {{ assigner.get_full_name|default:assigner.email }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Assigned On:</span> {% now "F j, Y" %}
+        </div>
+    </div>
+</div>
+
+<p>You can view the details by clicking the button below:</p>
+
+<p style="text-align: center;">
+    <a href="{{ object_url }}" class="button">View {{ object_type }}</a>
+</p>
+
+<p>If the button doesn't work, you can copy and paste this URL into your browser:</p>
+<p>{{ object_url }}</p>
+{% endblock %} 

@@ -1,0 +1,48 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}New Comment on Issue - Perspective Tracker{% endblock %}
+
+{% block content %}
+<h2>New Comment on Issue</h2>
+
+<p>Hello,</p>
+
+<p>A new comment has been added to an issue in Perspective Tracker.</p>
+
+<div class="info-box">
+    <div class="details">
+        <div class="details-item">
+            <span class="details-label">Project:</span> {{ project.name }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Milestone:</span> {{ milestone.name }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Comment By:</span> {{ author.get_full_name|default:author.email }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Comment Type:</span> {{ comment.get_comment_type_display }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Date:</span> {{ comment.created_at|date:"F j, Y" }}
+        </div>
+        {% if comment.status_changed %}
+        <div class="details-item">
+            <span class="details-label">Status Changed:</span> {{ comment.previous_status }} → {{ comment.new_status }}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<h3>Comment:</h3>
+<p>{{ comment.text }}</p>
+
+<p>You can view the issue and respond by clicking the button below:</p>
+
+<p style="text-align: center;">
+    <a href="{{ issue_url }}" class="button">View Issue</a>
+</p>
+
+<p>If the button doesn't work, you can copy and paste this URL into your browser:</p>
+<p>{{ issue_url }}</p>
+{% endblock %} 

@@ -1,0 +1,58 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Task Notification - Perspective Tracker{% endblock %}
+
+{% block content %}
+<h2>Task Notification</h2>
+
+<p>Hello,</p>
+
+<p>A task has been {{ action_type }} in Perspective Tracker.</p>
+
+<div class="info-box">
+    <div class="details">
+        <div class="details-item">
+            <span class="details-label">Task:</span> {{ task.title }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Task List:</span> {{ task.task_list.name }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Priority:</span> {{ task.get_priority_display }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Status:</span> {{ task.get_status_display }}
+        </div>
+        {% if task.due_date %}
+        <div class="details-item">
+            <span class="details-label">Due Date:</span> {{ task.due_date|date:"F j, Y" }}
+        </div>
+        {% endif %}
+        {% if task.assigned_to %}
+        <div class="details-item">
+            <span class="details-label">Assigned To:</span> {{ task.assigned_to.get_full_name|default:task.assigned_to.email }}
+        </div>
+        {% endif %}
+        <div class="details-item">
+            <span class="details-label">{{ action_type|title }} By:</span> {{ actor.get_full_name|default:actor.email }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">{{ action_type|title }} On:</span> {% now "F j, Y" %}
+        </div>
+    </div>
+</div>
+
+{% if task.description %}
+<h3>Description:</h3>
+<p>{{ task.description }}</p>
+{% endif %}
+
+<p>You can view the task details by clicking the button below:</p>
+
+<p style="text-align: center;">
+    <a href="{{ task_url }}" class="button">View Task</a>
+</p>
+
+<p>If the button doesn't work, you can copy and paste this URL into your browser:</p>
+<p>{{ task_url }}</p>
+{% endblock %} 

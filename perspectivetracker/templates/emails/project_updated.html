@@ -1,0 +1,44 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Project Updated - Perspective Tracker{% endblock %}
+
+{% block content %}
+<h2>Project Updated</h2>
+
+<p>Hello,</p>
+
+<p>A project you're assigned to has been updated in Perspective Tracker.</p>
+
+<div class="info-box">
+    <div class="details">
+        <div class="details-item">
+            <span class="details-label">Project Name:</span> {{ project.name }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Client:</span> {{ client.company_name }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Updated By:</span> {{ updater.get_full_name|default:updater.email }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Updated On:</span> {{ project.updated_at|date:"F j, Y" }}
+        </div>
+    </div>
+</div>
+
+<h3>Changes Made:</h3>
+<ul>
+    {% for field in updated_fields %}
+    <li>{{ field }}</li>
+    {% endfor %}
+</ul>
+
+<p>You can view the updated project details by clicking the button below:</p>
+
+<p style="text-align: center;">
+    <a href="{{ project_url }}" class="button">View Project</a>
+</p>
+
+<p>If the button doesn't work, you can copy and paste this URL into your browser:</p>
+<p>{{ project_url }}</p>
+{% endblock %} 

@@ -28,8 +28,8 @@ def get_user_role(backend, user, response, *args, **kwargs):
     
     # Store Auth0 domain and client ID for logout
     if backend.name == 'auth0':
-        kwargs['social'].extra_data['auth0_domain'] = os.getenv('AUTH0_DOMAIN')
-        kwargs['social'].extra_data['auth0_client_id'] = os.getenv('AUTH0_CLIENT_ID')
+        kwargs['social'].extra_data['auth0_domain'] = 'dev-pgdtb0w4qfk0kenr.us.auth0.com'
+        kwargs['social'].extra_data['auth0_client_id'] = 'OPHq9XW5ne6MbUHdxFL04WqQBDcYFkTn'
         kwargs['social'].save()
     
     return {'user': user} 

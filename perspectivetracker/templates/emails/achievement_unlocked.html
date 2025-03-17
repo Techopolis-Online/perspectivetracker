@@ -1,0 +1,50 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Achievement Unlocked - Perspective Tracker{% endblock %}
+
+{% block content %}
+<h2>Achievement Unlocked! 🏆</h2>
+
+<p>Hello {{ user.get_full_name|default:user.email }},</p>
+
+<p>Congratulations! You've unlocked a new achievement in Perspective Tracker.</p>
+
+<div class="info-box">
+    <div class="details" style="text-align: center;">
+        <div style="font-size: 48px; margin: 10px 0;">
+            <i class="bi {{ achievement.icon }}"></i>
+        </div>
+        <div style="font-size: 24px; font-weight: bold; margin: 10px 0;">
+            {{ achievement.name }}
+        </div>
+        <div style="margin: 10px 0;">
+            {{ achievement.description }}
+        </div>
+    </div>
+</div>
+
+<h3>Your Progress:</h3>
+<div class="details">
+    <div class="details-item">
+        <span class="details-label">Task List:</span> {{ user_points.task_list.name }}
+    </div>
+    <div class="details-item">
+        <span class="details-label">Current Level:</span> {{ user_points.level }}
+    </div>
+    <div class="details-item">
+        <span class="details-label">Total Points:</span> {{ user_points.points }}
+    </div>
+    <div class="details-item">
+        <span class="details-label">Tasks Completed:</span> {{ user_points.tasks_completed }}
+    </div>
+</div>
+
+<p>Keep up the great work! Continue completing tasks to unlock more achievements.</p>
+
+<p style="text-align: center;">
+    <a href="{{ dashboard_url }}" class="button">View Your Dashboard</a>
+</p>
+
+<p>If the button doesn't work, you can copy and paste this URL into your browser:</p>
+<p>{{ dashboard_url }}</p>
+{% endblock %} 

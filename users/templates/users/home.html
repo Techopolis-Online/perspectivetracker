@@ -12,11 +12,8 @@
                 <p class="lead mb-4">A professional CRM system designed to streamline client management and project tracking for your business.</p>
                 {% if not user.is_authenticated %}
                 <div class="d-flex gap-3">
-                    <a href="{% url 'login' %}" class="btn btn-light btn-lg">
-                        <i class="bi bi-box-arrow-in-right me-2"></i>Login
-                    </a>
-                    <a href="{% url 'register' %}" class="btn btn-outline-light btn-lg">
-                        <i class="bi bi-person-plus me-2"></i>Register
+                    <a href="{% url 'social:begin' 'auth0' %}" class="btn btn-light btn-lg">
+                        <i class="bi bi-shield-lock me-2"></i>Login
                     </a>
                 </div>
                 {% else %}
@@ -260,11 +257,8 @@
                     <h2 class="fw-bold mb-3">Ready to Get Started?</h2>
                     <p class="lead mb-4">Join Perspective Tracker today and transform how you manage your business.</p>
                     <div class="d-flex justify-content-center gap-3">
-                        <a href="{% url 'login' %}" class="btn btn-primary btn-lg">
-                            <i class="bi bi-box-arrow-in-right me-2"></i>Login
-                        </a>
-                        <a href="{% url 'register' %}" class="btn btn-outline-primary btn-lg">
-                            <i class="bi bi-person-plus me-2"></i>Register
+                        <a href="{% url 'social:begin' 'auth0' %}" class="btn btn-primary btn-lg">
+                            <i class="bi bi-shield-lock me-2"></i>Login
                         </a>
                     </div>
                 </div>

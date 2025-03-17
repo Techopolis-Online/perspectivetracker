@@ -519,5 +519,30 @@
             </div>
         </div>
     </div>
+
+    <!-- Admin Tools Section -->
+    {% if user.is_superuser or user.role.name == 'admin' %}
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Admin Tools</h5>
+        </div>
+        <div class="card-body">
+            <div class="list-group">
+                <a href="{% url 'admin:index' %}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-gear-fill me-2"></i> Django Admin
+                </a>
+                <a href="{% url 'projects:project_type_list' %}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-list-check me-2"></i> Manage Project Types
+                </a>
+                <a href="{% url 'projects:standard_list' %}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-clipboard-check me-2"></i> Manage Standards
+                </a>
+                <a href="{% url 'test_email' %}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-envelope-check me-2"></i> Test Email Configuration
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %} 

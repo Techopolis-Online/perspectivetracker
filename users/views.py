@@ -7,6 +7,8 @@ from .models import CustomUser, Role
 from django.contrib.auth.forms import AuthenticationForm
 from django import forms
 from django.urls import reverse
+from perspectivetracker.utils import send_test_email, test_smtp_connection, test_smtp_ports
+from django.conf import settings
 
 class ProfileEditForm(forms.ModelForm):
     profile_picture = forms.ImageField(required=False, widget=forms.FileInput(attrs={'class': 'form-control'}))
@@ -154,3 +156,68 @@ def dashboard_view(request):
     }
     
     return render(request, 'users/dashboard.html', context)
+
+@login_required
+@admin_required
+def test_email(request):
+    """View to test email configuration"""
+    from django.conf import settings
+    from perspectivetracker.utils import send_test_email, test_smtp_connection, test_smtp_ports
+    
+    if request.method == 'POST':
+        action = request.POST.get('action', 'send_email')
+        
+        if action == 'test_connection':
+            # Test SMTP connection only
+            success, message = test_smtp_connection()
+            if success:
+                messages.success(request, f"SMTP connection test successful.")
+            else:
+                messages.error(request, f"SMTP connection test failed: {message}")
+        elif action == 'test_ports':
+            # Test different SMTP ports
+            results = test_smtp_ports()
+            
+            # Check if any connection was successful
+            any_success = any(success for _, _, success, _ in results)
+            
+            if any_success:
+                messages.success(request, "Successfully connected to at least one SMTP port configuration.")
+                
+                # Add detailed results as info messages
+                for port, protocol, success, message in results:
+                    if success:
+                        messages.info(request, f"✅ {protocol} (Port {port}): Connection successful")
+                    else:
+                        messages.info(request, f"❌ {protocol} (Port {port}): {message}")
+            else:
+                messages.error(request, "Failed to connect to any SMTP port configuration.")
+                
+                # Add detailed results as info messages
+                for port, protocol, success, message in results:
+                    messages.info(request, f"❌ {protocol} (Port {port}): {message}")
+        else:
+            # Send test email
+            recipient_email = request.POST.get('email')
+            if recipient_email:
+                success, error_message = send_test_email(request, recipient_email)
+                if success:
+                    messages.success(request, f"Test email sent to {recipient_email} successfully.")
+                else:
+                    messages.error(request, f"Failed to send test email: {error_message}")
+            else:
+                messages.error(request, "Please provide an email address.")
+        
+        return redirect('test_email')
+    
+    # Get email configuration details
+    context = {
+        'email_backend': settings.EMAIL_BACKEND.split('.')[-1],
+        'email_host': settings.EMAIL_HOST,
+        'email_port': settings.EMAIL_PORT,
+        'default_from_email': settings.DEFAULT_FROM_EMAIL,
+        'use_ssl': settings.EMAIL_USE_SSL,
+        'use_tls': settings.EMAIL_USE_TLS,
+    }
+    
+    return render(request, 'users/test_email.html', context)

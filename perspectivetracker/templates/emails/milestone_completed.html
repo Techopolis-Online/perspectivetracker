@@ -1,0 +1,65 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Milestone Completed - Perspective Tracker{% endblock %}
+
+{% block content %}
+<h2>Milestone Completed</h2>
+
+<p>Hello,</p>
+
+<p>A milestone has been marked as completed in Perspective Tracker.</p>
+
+<div class="info-box">
+    <div class="details">
+        <div class="details-item">
+            <span class="details-label">Project:</span> {{ project.name }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Milestone:</span> {{ milestone.name }}
+        </div>
+        {% if milestone.milestone_type %}
+        <div class="details-item">
+            <span class="details-label">Type:</span> {{ milestone.get_milestone_type_display }}
+        </div>
+        {% endif %}
+        <div class="details-item">
+            <span class="details-label">Completed By:</span> {{ completer.get_full_name|default:completer.email }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Completed On:</span> {{ milestone.completed_date|date:"F j, Y" }}
+        </div>
+        {% if milestone.assigned_to %}
+        <div class="details-item">
+            <span class="details-label">Assigned To:</span> {{ milestone.assigned_to.get_full_name|default:milestone.assigned_to.email }}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if milestone.description %}
+<h3>Description:</h3>
+<p>{{ milestone.description }}</p>
+{% endif %}
+
+<h3>Milestone Statistics:</h3>
+<div class="details">
+    <div class="details-item">
+        <span class="details-label">Total Issues:</span> {{ stats.total_issues }}
+    </div>
+    <div class="details-item">
+        <span class="details-label">Completed Issues:</span> {{ stats.completed_issues }}
+    </div>
+    <div class="details-item">
+        <span class="details-label">Completion Rate:</span> {{ stats.completion_rate }}%
+    </div>
+</div>
+
+<p>You can view the milestone details by clicking the button below:</p>
+
+<p style="text-align: center;">
+    <a href="{{ milestone_url }}" class="button">View Milestone</a>
+</p>
+
+<p>If the button doesn't work, you can copy and paste this URL into your browser:</p>
+<p>{{ milestone_url }}</p>
+{% endblock %} 

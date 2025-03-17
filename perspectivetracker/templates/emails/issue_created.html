@@ -1,0 +1,62 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}New Issue Created - Perspective Tracker{% endblock %}
+
+{% block content %}
+<h2>New Issue Created</h2>
+
+<p>Hello,</p>
+
+<p>A new issue has been created in Perspective Tracker.</p>
+
+<div class="info-box">
+    <div class="details">
+        <div class="details-item">
+            <span class="details-label">Project:</span> {{ project.name }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Milestone:</span> {{ milestone.name }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Page:</span> {{ page.name }}
+        </div>
+        {% if issue.violation %}
+        <div class="details-item">
+            <span class="details-label">Violation:</span> {{ issue.violation.name }}
+        </div>
+        {% endif %}
+        <div class="details-item">
+            <span class="details-label">Status:</span> {{ issue.get_current_status_display }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Created By:</span> {{ creator.get_full_name|default:creator.email }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Created On:</span> {{ issue.created_at|date:"F j, Y" }}
+        </div>
+        {% if issue.assigned_to %}
+        <div class="details-item">
+            <span class="details-label">Assigned To:</span> {{ issue.assigned_to.get_full_name|default:issue.assigned_to.email }}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<h3>Issue Description:</h3>
+<p>{{ issue.issue_description }}</p>
+
+<h3>Steps to Reproduce:</h3>
+<p>{{ issue.steps_to_reproduce }}</p>
+
+<h3>User Impact:</h3>
+<p>{{ issue.get_user_impact_display }}: {{ issue.user_impact_description }}</p>
+
+<p>You can view the issue details by clicking the button below:</p>
+
+<p style="text-align: center;">
+    <a href="{{ issue_url }}" class="button">View Issue</a>
+</p>
+
+<p>If the button doesn't work, you can copy and paste this URL into your browser:</p>
+<p>{{ issue_url }}</p>
+{% endblock %} 

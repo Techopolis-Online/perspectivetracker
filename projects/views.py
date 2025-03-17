@@ -6,6 +6,17 @@ from django.db.models import Count, Q
 from .models import ProjectType, Project, Standard, Violation, ProjectViolation, ProjectStandard, Page, Milestone, Issue, Comment, IssueModification
 from users.views import admin_required, staff_required
 from .forms import ProjectForm, StandardForm, ViolationForm, ProjectViolationForm, ProjectTypeForm, ProjectStandardForm, PageForm, MilestoneForm, IssueForm, CommentForm, IssueStatusForm
+from perspectivetracker.utils import (
+    send_project_created_email, 
+    send_project_updated_email,
+    send_issue_created_email,
+    send_issue_updated_email,
+    send_comment_notification_email,
+    send_milestone_created_email,
+    send_milestone_updated_email,
+    send_milestone_completed_email,
+    send_assignment_notification_email
+)
 
 @login_required
 def project_list(request):
@@ -112,6 +123,10 @@ def project_create(request):
             project.created_by = request.user
             project.save()
             form.save_m2m()  # Save many-to-many relationships
+            
+            # Send email notification
+            send_project_created_email(request, project)
+            
             messages.success(request, f"Project '{project.name}' created successfully.")
             return redirect('projects:project_detail', pk=project.pk)
     else:
@@ -131,6 +146,16 @@ def project_update(request, pk):
     project = get_object_or_404(Project, pk=pk)
     
     if request.method == 'POST':
+        # Store original values for comparison
+        original_data = {
+            'name': project.name,
+            'client': project.client,
+            'project_type': project.project_type,
+            'status': project.status,
+            'notes': project.notes,
+            'assigned_to': list(project.assigned_to.all()),
+        }
+        
         form = ProjectForm(request.POST, instance=project)
         
         # Get project type and set status choices
@@ -144,9 +169,47 @@ def project_update(request, pk):
                 pass
         
         if form.is_valid():
-            form.save()
-            messages.success(request, f"Project '{project.name}' updated successfully.")
-            return redirect('projects:project_detail', pk=project.pk)
+            updated_project = form.save()
+            
+            # Determine what fields were updated
+            updated_fields = []
+            if original_data['name'] != updated_project.name:
+                updated_fields.append(f"Name changed from '{original_data['name']}' to '{updated_project.name}'")
+            if original_data['client'] != updated_project.client:
+                updated_fields.append(f"Client changed from '{original_data['client']}' to '{updated_project.client}'")
+            if original_data['project_type'] != updated_project.project_type:
+                updated_fields.append(f"Project type changed from '{original_data['project_type']}' to '{updated_project.project_type}'")
+            if original_data['status'] != updated_project.status:
+                updated_fields.append(f"Status changed from '{project.get_status_display()}' to '{updated_project.get_status_display()}'")
+            if original_data['notes'] != updated_project.notes:
+                updated_fields.append("Notes were updated")
+                
+            # Check for changes in assigned users
+            current_assigned = set(updated_project.assigned_to.all())
+            original_assigned = set(original_data['assigned_to'])
+            
+            if current_assigned != original_assigned:
+                added_users = current_assigned - original_assigned
+                removed_users = original_assigned - current_assigned
+                
+                if added_users:
+                    user_names = ", ".join([user.get_full_name() or user.email for user in added_users])
+                    updated_fields.append(f"Added users: {user_names}")
+                    
+                    # Send assignment notifications to newly added users
+                    for user in added_users:
+                        send_assignment_notification_email(request, updated_project, [user.email])
+                        
+                if removed_users:
+                    user_names = ", ".join([user.get_full_name() or user.email for user in removed_users])
+                    updated_fields.append(f"Removed users: {user_names}")
+            
+            # Send email notification if there were changes
+            if updated_fields:
+                send_project_updated_email(request, updated_project, updated_fields)
+            
+            messages.success(request, f"Project '{updated_project.name}' updated successfully.")
+            return redirect('projects:project_detail', pk=updated_project.pk)
     else:
         form = ProjectForm(instance=project)
     
@@ -154,7 +217,6 @@ def project_update(request, pk):
         'form': form,
         'project': project,
         'title': 'Update Project',
-        'project_types': ProjectType.objects.all(),
     }
     return render(request, 'projects/project_form.html', context)
 
@@ -716,6 +778,10 @@ def milestone_create(request, project_id):
             milestone.project = project
             milestone.created_by = request.user
             milestone.save()
+            
+            # Send email notification
+            send_milestone_created_email(request, milestone)
+            
             messages.success(request, f"Milestone '{milestone.name}' created successfully.")
             return redirect('projects:project_detail', pk=project.id)
     else:
@@ -740,10 +806,61 @@ def milestone_update(request, pk):
         return HttpResponseForbidden("You don't have permission to edit this milestone.")
     
     if request.method == 'POST':
+        # Store original values for comparison
+        original_data = {
+            'name': milestone.name,
+            'description': milestone.description,
+            'status': milestone.status,
+            'milestone_type': milestone.milestone_type,
+            'start_date': milestone.start_date,
+            'due_date': milestone.due_date,
+            'completed_date': milestone.completed_date,
+            'assigned_to': milestone.assigned_to,
+        }
+        
         form = MilestoneForm(request.POST, instance=milestone, project=project)
         if form.is_valid():
-            form.save()
-            messages.success(request, f"Milestone '{milestone.name}' updated successfully.")
+            updated_milestone = form.save()
+            
+            # Determine what fields were updated
+            updated_fields = []
+            if original_data['name'] != updated_milestone.name:
+                updated_fields.append(f"Name changed from '{original_data['name']}' to '{updated_milestone.name}'")
+            if original_data['description'] != updated_milestone.description:
+                updated_fields.append("Description was updated")
+            if original_data['status'] != updated_milestone.status:
+                updated_fields.append(f"Status changed from '{milestone.get_status_display()}' to '{updated_milestone.get_status_display()}'")
+            if original_data['milestone_type'] != updated_milestone.milestone_type:
+                updated_fields.append(f"Type changed")
+            if original_data['start_date'] != updated_milestone.start_date:
+                updated_fields.append(f"Start date was updated")
+            if original_data['due_date'] != updated_milestone.due_date:
+                updated_fields.append(f"Due date was updated")
+            if original_data['completed_date'] != updated_milestone.completed_date:
+                updated_fields.append(f"Completed date was updated")
+            if original_data['assigned_to'] != updated_milestone.assigned_to:
+                updated_fields.append(f"Assigned user was changed")
+                
+                # If a new user was assigned, send them a notification
+                if updated_milestone.assigned_to and updated_milestone.assigned_to != original_data['assigned_to']:
+                    send_assignment_notification_email(request, updated_milestone, [updated_milestone.assigned_to.email])
+            
+            # Send email notification if there were changes
+            if updated_fields:
+                send_milestone_updated_email(request, updated_milestone, updated_fields)
+            
+            # Check if milestone was marked as completed
+            if original_data['status'] != 'completed' and updated_milestone.status == 'completed':
+                # Set completed date if not already set
+                if not updated_milestone.completed_date:
+                    from django.utils import timezone
+                    updated_milestone.completed_date = timezone.now().date()
+                    updated_milestone.save()
+                
+                # Send milestone completion email
+                send_milestone_completed_email(request, updated_milestone)
+            
+            messages.success(request, f"Milestone '{updated_milestone.name}' updated successfully.")
             return redirect('projects:project_detail', pk=project.id)
     else:
         form = MilestoneForm(instance=milestone, project=project)
@@ -871,6 +988,10 @@ def issue_create(request, project_id):
             issue.project = project
             issue.created_by = request.user
             issue.save()
+            
+            # Send email notification
+            send_issue_created_email(request, issue)
+            
             messages.success(request, 'Issue created successfully.')
             return redirect('projects:project_detail', pk=project.id)
     else:
@@ -896,9 +1017,56 @@ def issue_edit(request, project_id, pk):
         return HttpResponseForbidden("You don't have permission to access this project.")
     
     if request.method == 'POST':
+        # Store original values for comparison
+        original_data = {
+            'title': issue.title if hasattr(issue, 'title') else '',
+            'issue_description': issue.issue_description,
+            'steps_to_reproduce': issue.steps_to_reproduce,
+            'current_status': issue.current_status,
+            'user_impact': issue.user_impact,
+            'user_impact_description': issue.user_impact_description,
+            'milestone': issue.milestone,
+            'page': issue.page,
+            'assigned_to': issue.assigned_to,
+            'violation': issue.violation if hasattr(issue, 'violation') else None,
+        }
+        
         form = IssueForm(request.POST, instance=issue, project=project)
         if form.is_valid():
-            form.save()
+            updated_issue = form.save()
+            
+            # Determine what fields were updated
+            updated_fields = []
+            if hasattr(issue, 'title') and original_data['title'] != updated_issue.title:
+                updated_fields.append(f"Title was updated")
+            if original_data['issue_description'] != updated_issue.issue_description:
+                updated_fields.append("Description was updated")
+            if original_data['steps_to_reproduce'] != updated_issue.steps_to_reproduce:
+                updated_fields.append("Steps to reproduce were updated")
+            if original_data['current_status'] != updated_issue.current_status:
+                updated_fields.append(f"Status changed from '{issue.get_current_status_display()}' to '{updated_issue.get_current_status_display()}'")
+            if original_data['user_impact'] != updated_issue.user_impact:
+                updated_fields.append(f"User impact was updated")
+            if original_data['user_impact_description'] != updated_issue.user_impact_description:
+                updated_fields.append(f"User impact description was updated")
+            if original_data['milestone'] != updated_issue.milestone:
+                updated_fields.append(f"Milestone was updated")
+            if original_data['page'] != updated_issue.page:
+                updated_fields.append(f"Page was updated")
+            if original_data['assigned_to'] != updated_issue.assigned_to:
+                updated_fields.append(f"Assigned user was changed")
+                
+                # If a new user was assigned, send them a notification
+                if updated_issue.assigned_to and updated_issue.assigned_to != original_data['assigned_to']:
+                    send_assignment_notification_email(request, updated_issue, [updated_issue.assigned_to.email])
+            
+            if hasattr(issue, 'violation') and original_data['violation'] != updated_issue.violation:
+                updated_fields.append(f"Violation was updated")
+            
+            # Send email notification if there were changes
+            if updated_fields:
+                send_issue_updated_email(request, updated_issue, updated_fields)
+            
             messages.success(request, 'Issue updated successfully.')
             return redirect('projects:project_detail', pk=project.id)
     else:
@@ -1073,6 +1241,9 @@ def issue_detail(request, project_id, pk):
                 comment=comment
             )
             
+            # Send email notification
+            send_comment_notification_email(request, comment)
+            
             # Check if this is an AJAX request
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 # Determine if user can see internal comments
@@ -1170,24 +1341,37 @@ def issue_update_status(request, project_id, pk):
                 comment=comment
             )
             
-            messages.success(request, f"Issue status updated to '{updated_issue.get_current_status_display()}'.")
+            # Send email notification for the comment
+            send_comment_notification_email(request, comment)
             
-            # Redirect back to the referring page
-            referer = request.META.get('HTTP_REFERER')
-            if referer and 'milestones' in referer:
-                return redirect(referer)
+            # Also send issue updated email
+            updated_fields = [f"Status changed from '{old_status}' to '{updated_issue.get_current_status_display()}'"]
+            send_issue_updated_email(request, updated_issue, updated_fields)
             
-            return redirect('projects:issue_detail', project_id=project.id, pk=issue.id)
-    else:
-        form = IssueStatusForm(instance=issue)
+            # Check if this is an AJAX request
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'message': f"Status updated to {updated_issue.get_current_status_display()}",
+                    'new_status': updated_issue.current_status,
+                    'new_status_display': updated_issue.get_current_status_display()
+                })
+            else:
+                messages.success(request, f"Status updated to {updated_issue.get_current_status_display()}")
+                return redirect('projects:issue_detail', project_id=project.id, pk=issue.pk)
+        else:
+            # Handle form errors
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False,
+                    'errors': form.errors
+                }, status=400)
+            else:
+                messages.error(request, "Error updating status. Please try again.")
+                return redirect('projects:issue_detail', project_id=project.id, pk=issue.pk)
     
-    context = {
-        'form': form,
-        'project': project,
-        'issue': issue,
-    }
-    
-    return render(request, 'projects/issue_status_form.html', context)
+    # If not POST, redirect to issue detail
+    return redirect('projects:issue_detail', project_id=project.id, pk=issue.pk)
 
 @login_required
 def mark_issue_ready_for_testing(request, project_id, pk):
