@@ -1,2 +1,2 @@
-release: python manage.py migrate --noinput && python manage.py migrate sessions --noinput && python create_roles.py && python heroku_superuser.py
-web: gunicorn perspectivetracker.wsgi --log-file - 
+web: gunicorn perspectivetracker.wsgi --log-file -
+release: python manage.py migrate --noinput && python manage.py shell -c "from users.models import Role; [Role.objects.get_or_create(name=name) for name in ['admin', 'staff', 'client', 'user']]" 
