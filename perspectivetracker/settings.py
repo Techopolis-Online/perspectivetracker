@@ -37,18 +37,18 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-6a8xoo4jlia$(3f9ma^p+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-# Get allowed hosts from environment variable and split into list
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
+# Explicitly add Heroku domains to ALLOWED_HOSTS
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    '.herokuapp.com',
+    'perspectivetracker.herokuapp.com',
+    'perspectivetracker-16b3c6ba0f46.herokuapp.com',
+]
 
-# Add Heroku domain to allowed hosts in production
-if not DEBUG:
-    ALLOWED_HOSTS.extend([
-        '.herokuapp.com',  # Allow all Heroku subdomains
-        'perspectivetracker-16b3c6ba0f46.herokuapp.com',  # Your specific Heroku domain
-    ])
-
-# Remove any empty strings from ALLOWED_HOSTS
-ALLOWED_HOSTS = [host for host in ALLOWED_HOSTS if host]
+# Add any additional hosts from environment variables
+env_hosts = os.environ.get('ALLOWED_HOSTS', '').split(',')
+ALLOWED_HOSTS.extend([host for host in env_hosts if host])
 
 
 # Application definition
@@ -267,10 +267,19 @@ SOCIAL_AUTH_AUTH0_EXTRA_AUTHORIZE_PARAMS = {
 SOCIAL_AUTH_REDIRECT_IS_HTTPS = os.environ.get('SOCIAL_AUTH_REDIRECT_IS_HTTPS', 'False') == 'True'
 SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/'
 SOCIAL_AUTH_LOGIN_ERROR_URL = '/login-error/'
-SOCIAL_AUTH_RAISE_EXCEPTIONS = False
+SOCIAL_AUTH_RAISE_EXCEPTIONS = os.environ.get('SOCIAL_AUTH_RAISE_EXCEPTIONS', 'False') == 'True'
 
 # Explicitly set the callback URL
-SOCIAL_AUTH_AUTH0_REDIRECT_URI = os.environ.get('AUTH0_CALLBACK_URL')
+SOCIAL_AUTH_AUTH0_REDIRECT_URI = os.environ.get('AUTH0_CALLBACK_URL', 'https://perspectivetracker-16b3c6ba0f46.herokuapp.com/users/complete/auth0/')
+
+# Make sure the callback URL always has a value
+if not SOCIAL_AUTH_AUTH0_REDIRECT_URI or SOCIAL_AUTH_AUTH0_REDIRECT_URI == 'https://perspectivetracker.herokuapp.com/users/complete/auth0/':
+    SOCIAL_AUTH_AUTH0_REDIRECT_URI = 'https://perspectivetracker-16b3c6ba0f46.herokuapp.com/users/complete/auth0/'
+
+# For troubleshooting - set meaningful error messages with stacktraces in debug mode
+SOCIAL_AUTH_FIELDS_STORED_IN_SESSION = ['state']
+SOCIAL_AUTH_SANITIZE_REDIRECTS = False
+MIDDLEWARE.append('social_django.middleware.SocialAuthExceptionMiddleware')
 
 # Auth0 Pipeline
 SOCIAL_AUTH_PIPELINE = (
