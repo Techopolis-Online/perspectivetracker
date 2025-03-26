@@ -133,13 +133,16 @@ if 'DATABASE_URL' in os.environ:
         ssl_require=True,
         conn_health_checks=True,
     )
-    # Ensure we're using PostgreSQL on Heroku
+    # Force PostgreSQL on Heroku
     DATABASES['default']['ENGINE'] = 'django.db.backends.postgresql'
     DATABASES['default']['ATOMIC_REQUESTS'] = True
     DATABASES['default']['CONN_MAX_AGE'] = 600
     DATABASES['default']['OPTIONS'] = {
         'sslmode': 'require',
     }
+    # Remove any SQLite-specific settings
+    if 'NAME' in DATABASES['default']:
+        del DATABASES['default']['NAME']
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
