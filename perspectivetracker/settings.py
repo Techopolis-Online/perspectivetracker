@@ -15,8 +15,12 @@ import os
 import dj_database_url
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
+# Determine which .env file to load
+ENV = os.environ.get('DJANGO_ENV', 'development')
+if ENV == 'development':
+    load_dotenv('.env.development')
+else:
+    load_dotenv('.env')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,12 +30,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-6a8xoo4jlia$(3f9ma^p+8lkc-)8b0up6j*-p0w$@uw=1#qc^^')
+SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.herokuapp.com']
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
 
 
 # Application definition
@@ -117,32 +121,51 @@ LOGGING = {
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-# Parse database configuration from $DATABASE_URL
-DATABASES = {
-    'default': dj_database_url.config(
-        default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
-        conn_max_age=600,
-        conn_health_checks=True,
-    )
-}
-
-# Configure database for Heroku
-if 'DATABASE_URL' in os.environ:
-    DATABASES['default'] = dj_database_url.config(
-        conn_max_age=600,
-        ssl_require=True,
-        conn_health_checks=True,
-    )
-    # Force PostgreSQL on Heroku
-    DATABASES['default']['ENGINE'] = 'django.db.backends.postgresql'
-    DATABASES['default']['ATOMIC_REQUESTS'] = True
-    DATABASES['default']['CONN_MAX_AGE'] = 600
-    DATABASES['default']['OPTIONS'] = {
-        'sslmode': 'require',
+if ENV == 'development':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-    # Remove any SQLite-specific settings
-    if 'NAME' in DATABASES['default']:
-        del DATABASES['default']['NAME']
+else:
+    # Parse database configuration from $DATABASE_URL
+    DATABASES = {
+        'default': dj_database_url.config(
+            default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
+    }
+
+    # Configure database for Heroku
+    if 'DATABASE_URL' in os.environ:
+        DATABASES['default'] = dj_database_url.config(
+            conn_max_age=600,
+            ssl_require=True,
+            conn_health_checks=True,
+        )
+        # Force PostgreSQL on Heroku
+        DATABASES['default']['ENGINE'] = 'django.db.backends.postgresql'
+        DATABASES['default']['ATOMIC_REQUESTS'] = True
+        DATABASES['default']['CONN_MAX_AGE'] = 600
+        DATABASES['default']['OPTIONS'] = {
+            'sslmode': 'require',
+        }
+
+# Session configuration
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_AGE = 1209600  # 2 weeks
+SESSION_COOKIE_SECURE = ENV != 'development'
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+
+# Add this to ensure sessions are properly configured
+if 'DATABASE_URL' in os.environ:
+    SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -204,9 +227,9 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 # Auth0 Settings
-SOCIAL_AUTH_AUTH0_DOMAIN = os.environ.get('AUTH0_DOMAIN', 'dev-pgdtb0w4qfk0kenr.us.auth0.com')
-SOCIAL_AUTH_AUTH0_KEY = os.environ.get('AUTH0_CLIENT_ID', 'OPHq9XW5ne6MbUHdxFL04WqQBDcYFkTn')
-SOCIAL_AUTH_AUTH0_SECRET = os.environ.get('AUTH0_CLIENT_SECRET', '2SBCRrZa4W6dxW22CGw5CVy6wZ96urzHfl5Nl4uBEMuvaPLuJUGvUcXHDCrS5URm')
+SOCIAL_AUTH_AUTH0_DOMAIN = os.environ.get('AUTH0_DOMAIN')
+SOCIAL_AUTH_AUTH0_KEY = os.environ.get('AUTH0_CLIENT_ID')
+SOCIAL_AUTH_AUTH0_SECRET = os.environ.get('AUTH0_CLIENT_SECRET')
 SOCIAL_AUTH_AUTH0_SCOPE = [
     'openid',
     'profile',
@@ -227,7 +250,7 @@ SOCIAL_AUTH_LOGIN_ERROR_URL = '/login-error/'
 SOCIAL_AUTH_RAISE_EXCEPTIONS = False
 
 # Explicitly set the callback URL
-SOCIAL_AUTH_AUTH0_REDIRECT_URI = os.environ.get('AUTH0_CALLBACK_URL', 'http://localhost:8000/users/complete/auth0/')
+SOCIAL_AUTH_AUTH0_REDIRECT_URI = os.environ.get('AUTH0_CALLBACK_URL')
 
 # Auth0 Pipeline
 SOCIAL_AUTH_PIPELINE = (
@@ -261,16 +284,16 @@ LOGOUT_REDIRECT_URL = '/'
 # EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # SMTP configuration for production
-EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
-EMAIL_HOST = os.environ.get('EMAIL_HOST', 'mail.techopolis.app')
-EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 465))  # Using port 465 for SSL
-EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'True') == 'True'  # Using SSL
-EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'False') == 'True'  # Not using TLS with SSL
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'tracker@techopolis.app')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'Techopolis25@@')
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'Techopolis Online Solutions <tracker@techopolis.app>')
-SERVER_EMAIL = os.environ.get('SERVER_EMAIL', 'tracker@techopolis.app')
-EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', 30))  # Add timeout to prevent hanging
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND')
+EMAIL_HOST = os.environ.get('EMAIL_HOST')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 25))
+EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'False') == 'True'
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'False') == 'True'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL')
+SERVER_EMAIL = os.environ.get('SERVER_EMAIL')
+EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', 30))
 
 # Security settings for production
 if not DEBUG:
