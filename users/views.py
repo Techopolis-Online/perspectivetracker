@@ -36,13 +36,38 @@ def home_view(request):
 def login_view(request):
     """Redirect to Auth0 login page"""
     logger.info("Auth0 login initiated")
-    return redirect('social:begin', 'auth0')
+    
+    # Debug information
+    logger.info(f"AUTH0_DOMAIN: {settings.SOCIAL_AUTH_AUTH0_DOMAIN}")
+    logger.info(f"AUTH0_CLIENT_ID: {settings.SOCIAL_AUTH_AUTH0_KEY}")
+    logger.info(f"AUTH0_CALLBACK_URL: {settings.SOCIAL_AUTH_AUTH0_REDIRECT_URI}")
+    
+    try:
+        # Use try-except to catch potential errors
+        return redirect('social:begin', 'auth0')
+    except Exception as e:
+        # Log any exceptions that occur
+        logger.error(f"Error initiating Auth0 login: {str(e)}")
+        messages.error(request, "There was an error initiating Auth0 login. Please try again.")
+        return redirect('login_error')
 
 def login_error_view(request):
     """Display login error page"""
     logger.error("Auth0 login error occurred")
+    
+    # Log detailed error information
     if request.GET:
         logger.error(f"Error query params: {request.GET}")
+    
+    # Log all settings related to Auth0
+    logger.error(f"AUTH0_DOMAIN: {settings.SOCIAL_AUTH_AUTH0_DOMAIN}")
+    logger.error(f"AUTH0_CLIENT_ID: {settings.SOCIAL_AUTH_AUTH0_KEY}")
+    logger.error(f"AUTH0_CALLBACK_URL: {settings.SOCIAL_AUTH_AUTH0_REDIRECT_URI}")
+    logger.error(f"HTTPS: {settings.SOCIAL_AUTH_REDIRECT_IS_HTTPS}")
+    
+    if hasattr(settings, 'SOCIAL_AUTH_PIPELINE'):
+        logger.error(f"PIPELINE: {settings.SOCIAL_AUTH_PIPELINE}")
+    
     messages.error(request, "There was an error logging in with Auth0. Please try again or contact your administrator.")
     return render(request, 'users/login_error.html')
 

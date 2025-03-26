@@ -156,6 +156,10 @@ LOGGING = {
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# Set DATABASE_URL from heroku config
+database_url = os.environ.get('DATABASE_URL', None)
+
+# Force PostgreSQL on Heroku, SQLite locally
 if ENV == 'development' or 'test' in sys.argv:
     DATABASES = {
         'default': {
@@ -164,7 +168,7 @@ if ENV == 'development' or 'test' in sys.argv:
         }
     }
 else:
-    # Parse database configuration from $DATABASE_URL for Heroku
+    # Use PostgreSQL for production (Heroku)
     DATABASES = {
         'default': dj_database_url.config(
             conn_max_age=600,
@@ -172,20 +176,30 @@ else:
             conn_health_checks=True,
         )
     }
+    print("Using PostgreSQL database")
 
 # Session configuration
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_AGE = 1209600  # 2 weeks
-SESSION_COOKIE_SECURE = ENV != 'development'
+SESSION_COOKIE_SECURE = True  # Always use secure cookies in production
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_SAVE_EVERY_REQUEST = True  # Ensure sessions are created for anonymous users too
 
-# Add this to ensure sessions are properly configured
-if 'DATABASE_URL' in os.environ:
+# Development overrides
+if ENV == 'development':
+    SESSION_COOKIE_SECURE = False  # Allow cookies on http in development
+
+# Use a more reliable session configuration for Heroku
+if database_url:
+    # Ensure sessions use the PostgreSQL database
     SESSION_ENGINE = 'django.contrib.sessions.backends.db'
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
+
+# Ensure sessions are created for anonymous users too
+SESSION_SAVE_EVERY_REQUEST = True
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
