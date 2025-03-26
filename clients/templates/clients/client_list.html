@@ -111,7 +111,7 @@
                 <h2 class="modal-title h5" id="addClientModalLabel">Add New Client</h2>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form method="post" action="{% url 'client_create' %}" id="addClientForm">
+            <form method="post" action="{% url 'clients:client_create' %}" id="addClientForm">
                 <div class="modal-body">
                     {% csrf_token %}
                     <div id="addClientFormErrors" class="alert alert-danger d-none" role="alert"></div>
@@ -442,4 +442,4 @@
         }
     });
 </script>
-{% endblock %} 
+{% endblock %}
