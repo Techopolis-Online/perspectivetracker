@@ -55,7 +55,7 @@ def login_error_view(request):
     """Display login error page"""
     logger.error("Auth0 login error occurred")
     
-    # Log detailed error information
+    # Log detailed error information for server admins
     if request.GET:
         logger.error(f"Error query params: {request.GET}")
     
@@ -68,7 +68,8 @@ def login_error_view(request):
     if hasattr(settings, 'SOCIAL_AUTH_PIPELINE'):
         logger.error(f"PIPELINE: {settings.SOCIAL_AUTH_PIPELINE}")
     
-    messages.error(request, "There was an error logging in with Auth0. Please try again or contact your administrator.")
+    # Use a generic message for the user, keep detailed information in server logs only
+    messages.error(request, "There was an error logging in. Please try again or contact your administrator.")
     return render(request, 'users/login_error.html')
 
 @login_required
