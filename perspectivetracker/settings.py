@@ -156,18 +156,11 @@ LOGGING = {
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-# Set DATABASE_URL from heroku config
+# Get DATABASE_URL from Heroku
 database_url = os.environ.get('DATABASE_URL', None)
 
-# Force PostgreSQL on Heroku, SQLite locally
-if ENV == 'development' or 'test' in sys.argv:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
-else:
+# IMPORTANT: Always use PostgreSQL on Heroku
+if database_url:
     # Use PostgreSQL for production (Heroku)
     DATABASES = {
         'default': dj_database_url.config(
@@ -176,7 +169,24 @@ else:
             conn_health_checks=True,
         )
     }
-    print("Using PostgreSQL database")
+    print("Using PostgreSQL database via DATABASE_URL")
+elif ENV == 'development' or 'test' in sys.argv:
+    # SQLite for local development
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+else:
+    # Fallback to SQLite but this should never happen in production
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+    print("WARNING: Using SQLite as fallback, check your DATABASE_URL")
 
 # Session configuration
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
