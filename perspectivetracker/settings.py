@@ -109,41 +109,70 @@ LOGGING = {
             'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
             'style': '{',
         },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'filters': {
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        },
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
+        },
     },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
+            'filters': ['require_debug_true'],  # Only log to console in debug mode
+        },
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'django.log'),
+            'formatter': 'verbose',
+            'filters': ['require_debug_false'],  # Log to file in production
+        },
+        'mail_admins': {
+            'level': 'ERROR',
+            'class': 'django.utils.log.AdminEmailHandler',
+            'filters': ['require_debug_false'],
         },
     },
     'root': {
-        'handlers': ['console'],
+        'handlers': ['console', 'file'],
         'level': 'INFO',
     },
     'loggers': {
         'django': {
-            'handlers': ['console'],
+            'handlers': ['console', 'file'],
             'level': 'INFO',
-            'propagate': True,
+            'propagate': False,
         },
         'django.db': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': True,
+            'handlers': ['console', 'file'],
+            'level': 'INFO' if DEBUG else 'WARNING',
+            'propagate': False,
         },
         'django.request': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
+            'handlers': ['console', 'file', 'mail_admins'],
+            'level': 'DEBUG' if DEBUG else 'ERROR',
+            'propagate': False,
+        },
+        'django.server': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG' if DEBUG else 'ERROR',
             'propagate': False,
         },
         'social_django': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': True,
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG' if DEBUG else 'WARNING',
+            'propagate': False,
         },
         'auth0_debug': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG' if DEBUG else 'ERROR',
             'propagate': False,
         },
     },
@@ -161,10 +190,14 @@ DATABASES = {
 }
 
 # Override with PostgreSQL if DATABASE_URL is provided (Heroku)
-DATABASE_URL = os.environ.get('DATABASE_URL')
-if DATABASE_URL:
-    DATABASES['default'] = dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=True)
-    print("Using PostgreSQL database via DATABASE_URL")
+if 'DATABASE_URL' in os.environ:
+    DATABASE_URL = os.environ.get('DATABASE_URL')
+    DATABASES['default'] = dj_database_url.config(
+        default=DATABASE_URL,
+        conn_max_age=600,
+        ssl_require=True
+    )
+    # Removed print statement that was showing in production logs
 
 # Session configuration
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
