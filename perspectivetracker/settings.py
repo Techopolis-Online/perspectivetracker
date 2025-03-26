@@ -35,7 +35,18 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
+# Get allowed hosts from environment variable and split into list
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
+
+# Add Heroku domain to allowed hosts in production
+if not DEBUG:
+    ALLOWED_HOSTS.extend([
+        '.herokuapp.com',  # Allow all Heroku subdomains
+        'perspectivetracker-16b3c6ba0f46.herokuapp.com',  # Your specific Heroku domain
+    ])
+
+# Remove any empty strings from ALLOWED_HOSTS
+ALLOWED_HOSTS = [host for host in ALLOWED_HOSTS if host]
 
 
 # Application definition
