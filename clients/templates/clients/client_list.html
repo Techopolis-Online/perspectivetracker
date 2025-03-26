@@ -37,7 +37,7 @@
                                     {% for client in clients %}
                                         <tr>
                                             <td>
-                                                <a href="{% url 'client_detail' client.pk %}">
+                                                <a href="{% url 'clients:client_detail' client.pk %}">
                                                     {{ client.company_name }}
                                                 </a>
                                             </td>
@@ -54,7 +54,7 @@
                                             </td>
                                             <td>
                                                 <div class="btn-group" role="group" aria-label="Actions for {{ client.company_name }}">
-                                                    <a href="{% url 'client_detail' client.pk %}" class="btn btn-sm btn-outline-secondary">
+                                                    <a href="{% url 'clients:client_detail' client.pk %}" class="btn btn-sm btn-outline-secondary">
                                                         <i class="bi bi-eye" aria-hidden="true"></i>
                                                         <span class="visually-hidden">View {{ client.company_name }}</span>
                                                     </a>

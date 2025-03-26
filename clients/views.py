@@ -11,10 +11,15 @@ from .models import Client, ClientNote, ClientCoworker
 from .forms import ClientForm, ClientNoteForm, ClientCoworkerForm
 from users.views import admin_required, staff_required
 from users.models import CustomUser, Role
-from django.db.models import Q
+from django.db.models import Q, Count, Avg
 import json
 import uuid
 from django.utils import timezone
+from projects.models import Project
+import logging
+from django.db.models.functions import ExtractMonth
+
+logger = logging.getLogger(__name__)
 
 @login_required
 def client_list(request):
@@ -547,3 +552,134 @@ def send_coworker_invitation(request, coworker):
     )
     
     return True
+
+@login_required
+def client_dashboard(request):
+    """Display client dashboard with charts and progress"""
+    # Get clients based on user role
+    if request.user.is_superuser or (request.user.role and request.user.role.name in ['admin', 'staff']):
+        # Admins and staff can see all clients
+        clients = Client.objects.all()
+        logger.info(f"Admin/Staff user {request.user.email} accessing dashboard - showing all clients")
+    else:
+        # Regular users can only see their assigned clients
+        clients = Client.objects.filter(assigned_to=request.user)
+        logger.info(f"Regular user {request.user.email} accessing dashboard - showing assigned clients")
+    
+    # Get project statistics based on user role
+    if request.user.is_superuser or (request.user.role and request.user.role.name in ['admin', 'staff']):
+        total_projects = Project.objects.all().count()
+        active_projects = Project.objects.filter(status='active').count()
+        completed_projects = Project.objects.filter(status='completed').count()
+        status_distribution = Project.objects.values('status').annotate(count=Count('id'))
+        completed_projects_data = Project.objects.filter(
+            status='completed',
+            completed_date__isnull=False
+        )
+        total_comments = ClientNote.objects.count()
+    else:
+        total_projects = Project.objects.filter(client__in=clients).count()
+        active_projects = Project.objects.filter(client__in=clients, status='active').count()
+        completed_projects = Project.objects.filter(client__in=clients, status='completed').count()
+        status_distribution = Project.objects.filter(client__in=clients).values('status').annotate(count=Count('id'))
+        completed_projects_data = Project.objects.filter(
+            client__in=clients,
+            status='completed',
+            completed_date__isnull=False
+        )
+        total_comments = ClientNote.objects.filter(client__in=clients).count()
+    
+    # Calculate average completion time
+    avg_completion_time = completed_projects_data.aggregate(
+        avg_days=Avg('completed_date') - Avg('created_at')
+    )['avg_days']
+    
+    # Get monthly completion data
+    if request.user.is_superuser or (request.user.role and request.user.role.name in ['admin', 'staff']):
+        monthly_completion = Project.objects.filter(
+            status='completed',
+            completed_date__isnull=False
+        ).values('completed_date__month').annotate(count=Count('id'))
+        
+        # Get monthly comment data
+        monthly_comments = ClientNote.objects.annotate(
+            month=ExtractMonth('created_at')
+        ).values('month').annotate(count=Count('id'))
+    else:
+        monthly_completion = Project.objects.filter(
+            client__in=clients,
+            status='completed',
+            completed_date__isnull=False
+        ).values('completed_date__month').annotate(count=Count('id'))
+        
+        # Get monthly comment data for assigned clients
+        monthly_comments = ClientNote.objects.filter(
+            client__in=clients
+        ).annotate(
+            month=ExtractMonth('created_at')
+        ).values('month').annotate(count=Count('id'))
+    
+    # Prepare data for charts
+    chart_data = {
+        'status_distribution': list(status_distribution),
+        'project_counts': {
+            'total': total_projects,
+            'active': active_projects,
+            'completed': completed_projects
+        },
+        'avg_completion_time': avg_completion_time,
+        'monthly_completion': list(monthly_completion),
+        'monthly_comments': list(monthly_comments),
+        'total_comments': total_comments
+    }
+    
+    # Get additional admin-only data
+    admin_data = {}
+    if request.user.is_superuser or (request.user.role and request.user.role.name in ['admin', 'staff']):
+        admin_data = {
+            'total_clients': Client.objects.count(),
+            'total_users': CustomUser.objects.count(),
+            'recent_activities': Project.objects.order_by('-created_at')[:5],
+            'top_clients': Client.objects.annotate(
+                project_count=Count('project')
+            ).order_by('-project_count')[:5],
+            'recent_comments': ClientNote.objects.select_related('client', 'author').order_by('-created_at')[:5]
+        }
+    
+    context = {
+        'clients': clients,
+        'chart_data': json.dumps(chart_data),
+        'total_projects': total_projects,
+        'active_projects': active_projects,
+        'completed_projects': completed_projects,
+        'avg_completion_time': avg_completion_time,
+        'total_comments': total_comments,
+        'is_admin': request.user.is_superuser or (request.user.role and request.user.role.name in ['admin', 'staff']),
+        'admin_data': admin_data
+    }
+    
+    return render(request, 'clients/dashboard.html', context)
+
+@login_required
+def get_client_progress_data(request, client_id):
+    """API endpoint to get client progress data for charts"""
+    client = get_object_or_404(Client, id=client_id, assigned_to=request.user)
+    
+    # Get project status distribution for this client
+    status_distribution = Project.objects.filter(
+        client=client
+    ).values('status').annotate(count=Count('id'))
+    
+    # Get monthly project completion data
+    monthly_completion = Project.objects.filter(
+        client=client,
+        status='completed',
+        completed_date__isnull=False
+    ).values('completed_date__month').annotate(count=Count('id'))
+    
+    data = {
+        'status_distribution': list(status_distribution),
+        'monthly_completion': list(monthly_completion)
+    }
+    
+    return JsonResponse(data)

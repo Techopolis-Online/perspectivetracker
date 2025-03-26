@@ -9,7 +9,7 @@
             <h1>{{ title }}</h1>
         </div>
         <div class="col-md-4 text-end">
-            <a href="{% url 'client_list' %}" class="btn btn-outline-secondary">
+            <a href="{% url 'clients:client_list' %}" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left"></i> Back to Clients
             </a>
         </div>
@@ -84,7 +84,7 @@
                         </div>
                         
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <a href="{% url 'client_list' %}" class="btn btn-outline-secondary me-md-2">Cancel</a>
+                            <a href="{% url 'clients:client_list' %}" class="btn btn-outline-secondary me-md-2">Cancel</a>
                             <button type="submit" class="btn btn-primary">Save</button>
                         </div>
                     </form>
