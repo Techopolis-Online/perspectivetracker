@@ -26,7 +26,7 @@
     },
     "AUTH0_CALLBACK_URL": {
       "description": "Auth0 callback URL",
-      "value": "https://your-app-name.herokuapp.com/users/complete/auth0/"
+      "value": "https://perspectivetracker-16b3c6ba0f46.herokuapp.com/users/complete/auth0/"
     },
     "SOCIAL_AUTH_REDIRECT_IS_HTTPS": {
       "description": "Use HTTPS for Auth0 redirect",
@@ -71,10 +71,12 @@
     }
   ],
   "scripts": {
-    "predeploy": "python backup_db.py",
-    "postdeploy": "python manage.py migrate && python create_roles.py && python heroku_superuser.py && python restore_db.py"
+    "postdeploy": "python manage.py migrate --noinput && python create_roles.py && python heroku_superuser.py"
   },
   "addons": [
-    "heroku-postgresql"
+    {
+      "plan": "heroku-postgresql:hobby-dev",
+      "as": "DATABASE"
+    }
   ]
 } 
