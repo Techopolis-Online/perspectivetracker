@@ -1,0 +1,410 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Client Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+<style>
+    /* Base styles */
+    :root {
+        --primary-color: #4e73df;
+        --success-color: #1cc88a;
+        --info-color: #36b9cc;
+        --warning-color: #f6c23e;
+        --danger-color: #e74a3b;
+        --text-primary: #2c3e50;
+        --text-secondary: #6c757d;
+        --border-color: #e3e6f0;
+        --card-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    }
+
+    /* Card styles */
+    .dashboard-card {
+        background: white;
+        border-radius: 0.35rem;
+        box-shadow: var(--card-shadow);
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        margin-bottom: 1.5rem;
+    }
+
+    .dashboard-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.5rem 2rem rgba(58, 59, 69, 0.2);
+    }
+
+    .card-header {
+        background-color: #f8f9fc;
+        border-bottom: 1px solid var(--border-color);
+        padding: 1rem;
+    }
+
+    .card-body {
+        padding: 1.25rem;
+    }
+
+    /* Stat card styles */
+    .stat-card {
+        border-left: 4px solid;
+        border-radius: 0.35rem;
+        box-shadow: var(--card-shadow);
+        transition: transform 0.2s ease-in-out;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+    }
+
+    .stat-card.primary {
+        border-left-color: var(--primary-color);
+    }
+
+    .stat-card.success {
+        border-left-color: var(--success-color);
+    }
+
+    .stat-card.info {
+        border-left-color: var(--info-color);
+    }
+
+    .stat-card.warning {
+        border-left-color: var(--warning-color);
+    }
+
+    .stat-icon {
+        font-size: 2rem;
+        opacity: 0.8;
+        transition: opacity 0.2s ease-in-out;
+    }
+
+    .stat-card:hover .stat-icon {
+        opacity: 1;
+    }
+
+    /* Chart container */
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin-bottom: 1.5rem;
+    }
+
+    /* List group styles */
+    .list-group-item {
+        border: 1px solid var(--border-color);
+        transition: background-color 0.2s ease-in-out;
+    }
+
+    .list-group-item:hover {
+        background-color: #f8f9fc;
+    }
+
+    .list-group-item:focus {
+        outline: 2px solid var(--primary-color);
+        outline-offset: -2px;
+    }
+
+    /* Accessibility improvements */
+    .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+    }
+
+    /* Focus styles */
+    *:focus-visible {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+    }
+
+    /* High contrast mode support */
+    @media (forced-colors: active) {
+        .stat-card {
+            border: 2px solid;
+        }
+
+        .list-group-item {
+            border: 1px solid;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main role="main" class="container-fluid py-4">
+    <h1 class="visually-hidden">Client Dashboard</h1>
+    
+    <!-- Statistics Cards -->
+    <div class="row mb-4" role="list">
+        <div class="col-xl-3 col-md-6 mb-4" role="listitem">
+            <div class="stat-card primary shadow h-100 py-2" role="region" aria-label="Total Projects Statistics">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Projects</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" aria-label="{{ total_projects }} total projects">
+                                {{ total_projects }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-project-diagram stat-icon text-primary" aria-hidden="true"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4" role="listitem">
+            <div class="stat-card success shadow h-100 py-2" role="region" aria-label="Active Projects Statistics">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Active Projects</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" aria-label="{{ active_projects }} active projects">
+                                {{ active_projects }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-tasks stat-icon text-success" aria-hidden="true"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4" role="listitem">
+            <div class="stat-card info shadow h-100 py-2" role="region" aria-label="All Time Comments Statistics">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                All Time Comments</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" aria-label="{{ total_comments }} total comments">
+                                {{ total_comments }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-comments stat-icon text-info" aria-hidden="true"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4" role="listitem">
+            <div class="stat-card warning shadow h-100 py-2" role="region" aria-label="Completed Projects Statistics">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Completed Projects</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" aria-label="{{ completed_projects }} completed projects">
+                                {{ completed_projects }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle stat-icon text-warning" aria-hidden="true"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row">
+        <!-- Project Status Distribution -->
+        <div class="col-xl-6 col-lg-6">
+            <div class="dashboard-card shadow mb-4" role="region" aria-label="Project Status Distribution Chart">
+                <div class="card-header">
+                    <h2 class="h6 m-0 font-weight-bold text-primary">Project Status Distribution</h2>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="statusChart" aria-label="Doughnut chart showing project status distribution"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Comments -->
+        <div class="col-xl-6 col-lg-6">
+            <div class="dashboard-card shadow mb-4" role="region" aria-label="Monthly Comments Chart">
+                <div class="card-header">
+                    <h2 class="h6 m-0 font-weight-bold text-primary">Monthly Comments</h2>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="commentsChart" aria-label="Line chart showing monthly comment trends"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity and Top Clients -->
+    <div class="row">
+        <!-- Recent Activity -->
+        <div class="col-xl-6 col-lg-6">
+            <div class="dashboard-card shadow mb-4" role="region" aria-label="Recent Activity">
+                <div class="card-header">
+                    <h2 class="h6 m-0 font-weight-bold text-primary">Recent Activity</h2>
+                </div>
+                <div class="card-body">
+                    <div class="list-group" role="list">
+                        {% for activity in admin_data.recent_activities %}
+                        <a href="#" class="list-group-item list-group-item-action" role="listitem">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h3 class="h6 mb-1">{{ activity.name }}</h3>
+                                <time datetime="{{ activity.created_at|date:'Y-m-d' }}">{{ activity.created_at|date:"M d, Y" }}</time>
+                            </div>
+                            <p class="mb-1">{{ activity.description|truncatewords:20 }}</p>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Clients -->
+        <div class="col-xl-6 col-lg-6">
+            <div class="dashboard-card shadow mb-4" role="region" aria-label="Top Clients by Project Count">
+                <div class="card-header">
+                    <h2 class="h6 m-0 font-weight-bold text-primary">Top Clients by Project Count</h2>
+                </div>
+                <div class="card-body">
+                    <div class="list-group" role="list">
+                        {% for client in admin_data.top_clients %}
+                        <a href="{% url 'clients:client_detail' client.pk %}" class="list-group-item list-group-item-action" role="listitem">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h3 class="h6 mb-1">{{ client.company_name }}</h3>
+                                <span class="badge bg-primary rounded-pill">{{ client.project_count }} projects</span>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Parse the chart data from the template
+    const chartData = JSON.parse('{{ chart_data|safe }}');
+    
+    // Project Status Distribution Chart
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    new Chart(statusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: chartData.status_distribution.map(item => item.status),
+            datasets: [{
+                data: chartData.status_distribution.map(item => item.count),
+                backgroundColor: [
+                    '#4e73df',  // Primary
+                    '#1cc88a',  // Success
+                    '#36b9cc',  // Info
+                    '#f6c23e',  // Warning
+                    '#e74a3b'   // Danger
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true,
+                        pointStyle: 'circle'
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = Math.round((value * 100) / total);
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Monthly Comments Chart
+    const commentsCtx = document.getElementById('commentsChart').getContext('2d');
+    new Chart(commentsCtx, {
+        type: 'line',
+        data: {
+            labels: chartData.monthly_comments.map(item => {
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                return months[item.month - 1];
+            }),
+            datasets: [{
+                label: 'Comments',
+                data: chartData.monthly_comments.map(item => item.count),
+                borderColor: '#4e73df',
+                backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                tension: 0.1,
+                fill: true,
+                pointBackgroundColor: '#4e73df',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleFont: {
+                        size: 14
+                    },
+                    bodyFont: {
+                        size: 13
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    },
+                    ticks: {
+                        stepSize: 1
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %} 

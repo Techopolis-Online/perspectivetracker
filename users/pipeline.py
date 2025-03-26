@@ -1,44 +1,60 @@
-from .models import Role
-import os
 import logging
+from django.contrib.auth import get_user_model
+from django.db import transaction
+from users.models import Role
 
 logger = logging.getLogger(__name__)
 
+User = get_user_model()
+
 def get_user_role(backend, user, response, *args, **kwargs):
-    """
-    Pipeline function to assign a default role to users authenticated via Auth0.
-    By default, users are assigned the 'user' role.
-    """
-    logger.info(f"Processing user role assignment for user {user.email}")
-    
-    if user and not user.role:
-        try:
-            # Assign default user role
-            user_role = Role.objects.get(name=Role.USER)
-            user.role = user_role
-            user.save()
-            logger.info(f"Assigned default 'user' role to {user.email}")
-        except Role.DoesNotExist:
-            logger.error(f"Default 'user' role not found in database")
-            # Role doesn't exist yet (might be during initial migration)
-            pass
-    
-    # Set user's name from Auth0 profile if available
-    if backend.name == 'auth0' and user:
-        if 'name' in kwargs.get('details', {}):
-            name_parts = kwargs['details']['name'].split(' ', 1)
-            if len(name_parts) > 0 and not user.first_name:
-                user.first_name = name_parts[0]
-            if len(name_parts) > 1 and not user.last_name:
-                user.last_name = name_parts[1]
-            user.save()
-            logger.info(f"Updated user name for {user.email}")
-    
-    # Store Auth0 domain and client ID for logout
-    if backend.name == 'auth0':
-        kwargs['social'].extra_data['auth0_domain'] = os.environ.get('AUTH0_DOMAIN', 'dev-pgdtb0w4qfk0kenr.us.auth0.com')
-        kwargs['social'].extra_data['auth0_client_id'] = os.environ.get('AUTH0_CLIENT_ID', 'OPHq9XW5ne6MbUHdxFL04WqQBDcYFkTn')
-        kwargs['social'].save()
-        logger.info(f"Stored Auth0 credentials for {user.email}")
-    
-    return {'user': user} 
+    """Assign user role based on Auth0 profile and ensure user sync"""
+    try:
+        with transaction.atomic():
+            # Get or create default role
+            default_role, _ = Role.objects.get_or_create(name='user')
+            
+            # Get Auth0 email
+            auth0_email = response.get('email')
+            if not auth0_email:
+                logger.error("No email provided by Auth0")
+                return None
+                
+            # Try to find existing user by email
+            existing_user = User.objects.filter(email=auth0_email).first()
+            
+            if existing_user:
+                logger.info(f"Found existing user: {auth0_email}")
+                user = existing_user
+                # Update user's information from Auth0
+                user.first_name = response.get('given_name', user.first_name)
+                user.last_name = response.get('family_name', user.last_name)
+                user.save()
+            else:
+                logger.info(f"Creating new user from Auth0: {auth0_email}")
+                # Create new user with default role
+                user = User.objects.create(
+                    email=auth0_email,
+                    first_name=response.get('given_name', ''),
+                    last_name=response.get('family_name', ''),
+                    role=default_role
+                )
+            
+            # Ensure social auth association
+            social_auth = user.social_auth.filter(provider='auth0').first()
+            if not social_auth:
+                user.social_auth.create(
+                    provider='auth0',
+                    uid=response.get('sub'),
+                    extra_data=response
+                )
+            else:
+                social_auth.extra_data = response
+                social_auth.save()
+            
+            logger.info(f"Successfully synced user with Auth0: {auth0_email}")
+            return {'user': user}
+            
+    except Exception as e:
+        logger.error(f"Error in get_user_role pipeline: {str(e)}")
+        return None 

@@ -9,16 +9,16 @@
             <h1>{{ client.company_name }}</h1>
         </div>
         <div class="col-md-4 text-end">
-            <a href="{% url 'client_list' %}" class="btn btn-outline-secondary">
+            <a href="{% url 'clients:client_list' %}" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left" aria-hidden="true"></i> Back to Clients
             </a>
             {% if user.is_superuser or user.role.name == 'admin' or user.role.name == 'staff' %}
-                <a href="{% url 'client_update' client.pk %}" class="btn btn-outline-primary">
+                <a href="{% url 'clients:client_update' client.pk %}" class="btn btn-outline-primary">
                     <i class="bi bi-pencil" aria-hidden="true"></i> Edit
                 </a>
             {% endif %}
             {% if user.is_superuser or user.role.name == 'admin' %}
-                <a href="{% url 'client_delete' client.pk %}" class="btn btn-outline-danger">
+                <a href="{% url 'clients:client_delete' client.pk %}" class="btn btn-outline-danger">
                     <i class="bi bi-trash" aria-hidden="true"></i> Delete
                 </a>
             {% endif %}
@@ -104,7 +104,7 @@
                                                             </li>
                                                             {% if coworker.status == 'pending' %}
                                                                 <li>
-                                                                    <form method="post" action="{% url 'resend_invitation' coworker.pk %}">
+                                                                    <form method="post" action="{% url 'clients:resend_invitation' coworker.pk %}">
                                                                         {% csrf_token %}
                                                                         <button type="submit" class="dropdown-item">Resend Invitation</button>
                                                                     </form>
@@ -127,7 +127,7 @@
                                                                 <h2 class="modal-title h5" id="updateRoleModalLabel{{ coworker.pk }}">Update Role</h2>
                                                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                             </div>
-                                                            <form method="post" action="{% url 'coworker_update' coworker.pk %}">
+                                                            <form method="post" action="{% url 'clients:coworker_update' coworker.pk %}">
                                                                 <div class="modal-body">
                                                                     {% csrf_token %}
                                                                     <p>Update role for {{ coworker.user.first_name }} {{ coworker.user.last_name }}</p>
@@ -163,7 +163,7 @@
                                                             </div>
                                                             <div class="modal-footer">
                                                                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                                <form method="post" action="{% url 'coworker_delete' coworker.pk %}">
+                                                                <form method="post" action="{% url 'clients:coworker_delete' coworker.pk %}">
                                                                     {% csrf_token %}
                                                                     <button type="submit" class="btn btn-danger">Remove</button>
                                                                 </form>
@@ -188,7 +188,7 @@
             <div class="card mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h2 class="h5 card-title mb-0">Notes</h2>
-                    <a href="{% url 'note_create' client.pk %}" class="btn btn-sm btn-primary">
+                    <a href="{% url 'clients:note_create' client.pk %}" class="btn btn-sm btn-primary">
                         <i class="bi bi-plus" aria-hidden="true"></i> Add Note
                     </a>
                 </div>
@@ -204,15 +204,15 @@
                                     <p class="mb-1">{{ note.content|truncatewords:30 }}</p>
                                     <small>By: {{ note.author.first_name }} {{ note.author.last_name }}</small>
                                     <div class="mt-2">
-                                        <a href="{% url 'note_detail' note.pk %}" class="btn btn-sm btn-outline-secondary">
+                                        <a href="{% url 'clients:note_detail' note.pk %}" class="btn btn-sm btn-outline-secondary">
                                             <span class="visually-hidden">View note: {{ note.title }}</span>
                                             <i class="bi bi-eye" aria-hidden="true"></i> View
                                         </a>
-                                        <a href="{% url 'note_update' note.pk %}" class="btn btn-sm btn-outline-primary ms-1">
+                                        <a href="{% url 'clients:note_update' note.pk %}" class="btn btn-sm btn-outline-primary ms-1">
                                             <span class="visually-hidden">Edit note: {{ note.title }}</span>
                                             <i class="bi bi-pencil" aria-hidden="true"></i> Edit
                                         </a>
-                                        <a href="{% url 'note_delete' note.pk %}" class="btn btn-sm btn-outline-danger ms-1">
+                                        <a href="{% url 'clients:note_delete' note.pk %}" class="btn btn-sm btn-outline-danger ms-1">
                                             <span class="visually-hidden">Delete note: {{ note.title }}</span>
                                             <i class="bi bi-trash" aria-hidden="true"></i> Delete
                                         </a>

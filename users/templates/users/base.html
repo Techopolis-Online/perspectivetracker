@@ -43,7 +43,7 @@
                         </li>
                         {% if user.is_superuser or user.role.name == 'admin' or user.role.name == 'staff' %}
                             <li class="nav-item">
-                                <a class="nav-link {% if '/clients/' in request.path %}active{% endif %}" href="{% url 'client_list' %}">
+                                <a class="nav-link {% if '/clients/' in request.path %}active{% endif %}" href="{% url 'clients:client_list' %}">
                                     <i class="bi bi-people me-1"></i>Clients
                                 </a>
                             </li>
@@ -134,7 +134,7 @@
                             <li><a href="{% url 'dashboard' %}"><i class="bi bi-chevron-right me-1"></i>Dashboard</a></li>
                             <li><a href="{% url 'profile' %}"><i class="bi bi-chevron-right me-1"></i>Profile</a></li>
                             {% if user.is_superuser or user.role.name == 'admin' or user.role.name == 'staff' %}
-                                <li><a href="{% url 'client_list' %}"><i class="bi bi-chevron-right me-1"></i>Clients</a></li>
+                                <li><a href="{% url 'clients:client_list' %}"><i class="bi bi-chevron-right me-1"></i>Clients</a></li>
                                 <li><a href="{% url 'projects:project_list' %}"><i class="bi bi-chevron-right me-1"></i>Projects</a></li>
                             {% endif %}
                         {% else %}
