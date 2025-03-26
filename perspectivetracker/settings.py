@@ -145,6 +145,11 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': True,
         },
+        'auth0_debug': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
     },
 }
 
@@ -322,3 +327,14 @@ if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
+
+# Debug settings - helpful for troubleshooting
+if os.environ.get('HEROKU_DEBUG', 'False') == 'True':
+    DEBUG = True
+    SOCIAL_AUTH_RAISE_EXCEPTIONS = True
+    RAISE_EXCEPTIONS = True
+    # Only log to console if explicitly enabled
+    LOGGING['loggers']['django']['level'] = 'DEBUG'
+    LOGGING['loggers']['social_django']['level'] = 'DEBUG'
+    LOGGING['loggers']['django.request']['level'] = 'DEBUG'
+    LOGGING['root']['level'] = 'DEBUG'

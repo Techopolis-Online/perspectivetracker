@@ -9,6 +9,10 @@ from django import forms
 from django.urls import reverse
 from perspectivetracker.utils import send_test_email, test_smtp_connection, test_smtp_ports
 from django.conf import settings
+import logging
+
+# Set up logger for Auth0 debugging
+logger = logging.getLogger('auth0_debug')
 
 class ProfileEditForm(forms.ModelForm):
     profile_picture = forms.ImageField(required=False, widget=forms.FileInput(attrs={'class': 'form-control'}))
@@ -31,10 +35,14 @@ def home_view(request):
 
 def login_view(request):
     """Redirect to Auth0 login page"""
+    logger.info("Auth0 login initiated")
     return redirect('social:begin', 'auth0')
 
 def login_error_view(request):
     """Display login error page"""
+    logger.error("Auth0 login error occurred")
+    if request.GET:
+        logger.error(f"Error query params: {request.GET}")
     messages.error(request, "There was an error logging in with Auth0. Please try again or contact your administrator.")
     return render(request, 'users/login_error.html')
 
