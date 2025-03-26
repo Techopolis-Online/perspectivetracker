@@ -14,6 +14,7 @@ from pathlib import Path
 import os
 import dj_database_url
 from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
 
 # Determine which .env file to load
 ENV = os.environ.get('DJANGO_ENV', 'development')
@@ -30,7 +31,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY')
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-6a8xoo4jlia$(3f9ma^p+8lkc-)8b0up6j*-p0w$@uw=1#qc^^')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
@@ -106,9 +107,16 @@ WSGI_APPLICATION = 'perspectivetracker.wsgi.application'
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
         },
     },
     'root': {
@@ -124,6 +132,16 @@ LOGGING = {
         'django.db': {
             'handlers': ['console'],
             'level': 'INFO',
+            'propagate': True,
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'social_django': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
             'propagate': True,
         },
     },
@@ -163,6 +181,11 @@ else:
         DATABASES['default']['OPTIONS'] = {
             'sslmode': 'require',
         }
+        # Add connection timeout
+        DATABASES['default']['CONN_TIMEOUT'] = 30
+        # Add retry settings
+        DATABASES['default']['RETRY_ON_TIMEOUT'] = True
+        DATABASES['default']['MAX_RETRIES'] = 3
 
 # Session configuration
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
