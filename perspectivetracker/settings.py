@@ -1,5 +1,4 @@
-    
-
+"""
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
@@ -31,14 +30,17 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-6a8xoo4jlia$(3f9ma^p+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-# Explicitly add Heroku domains to ALLOWED_HOSTS
+# Update ALLOWED_HOSTS to include your Heroku domain
 ALLOWED_HOSTS = [
+    'perspectivetracker-16b3c6ba0f46.herokuapp.com',
+    'perspectivetracker.herokuapp.com',
+    '.herokuapp.com',
     'localhost',
     '127.0.0.1',
-    '.herokuapp.com',
-    'perspectivetracker.herokuapp.com',
-    'perspectivetracker-16b3c6ba0f46.herokuapp.com',
 ]
+
+# For better security in production environments, consider using environment variables:
+# ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 # Add any additional hosts from environment variables
 env_hosts = os.environ.get('ALLOWED_HOSTS', '').split(',')
