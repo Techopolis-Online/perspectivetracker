@@ -1,2 +1,2 @@
 web: gunicorn perspectivetracker.wsgi --log-file -
-release: python manage.py migrate --noinput && python manage.py shell -c "from users.models import Role; [Role.objects.get_or_create(name=name) for name in ['admin', 'staff', 'client', 'user']]" 
+release: python manage.py migrate --noinput && python manage.py shell -c "from users.models import Role; [Role.objects.get_or_create(name=name) for name in ['admin', 'staff', 'client', 'user']]" && python manage.py collectstatic --noinput 

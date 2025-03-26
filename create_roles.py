@@ -11,16 +11,15 @@ def create_roles():
     with transaction.atomic():
         # Create roles if they don't exist
         roles = [
-            (Role.ADMIN, 'Administrator'),
-            (Role.STAFF, 'Techopolis Staff'),
-            (Role.CLIENT, 'Client'),
-            (Role.USER, 'User'),
+            Role.ADMIN,
+            Role.STAFF,
+            Role.CLIENT,
+            Role.USER,
         ]
 
-        for role_name, role_display in roles:
+        for role_name in roles:
             role, created = Role.objects.get_or_create(
-                name=role_name,
-                defaults={'display_name': role_display}
+                name=role_name
             )
             if created:
                 print(f"Role '{role_name}' created.")
