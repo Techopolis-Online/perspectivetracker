@@ -1,2 +1,2 @@
-web: gunicorn perspectivetracker.wsgi --log-file - --workers 2 --timeout 120 --access-logfile - --error-logfile - --capture-output --enable-stdio-inheritance
+web: gunicorn perspectivetracker.wsgi --log-file - --workers 3 --timeout 120 --access-logfile - --error-logfile - --capture-output --enable-stdio-inheritance --max-requests 1000 --max-requests-jitter 50 --keep-alive 5
 release: python manage.py migrate --noinput && python manage.py shell -c "from users.models import Role; [Role.objects.get_or_create(name=name) for name in ['admin', 'staff', 'client', 'user']]" && python manage.py collectstatic --noinput && python manage.py migrate --run-syncdb && python manage.py migrate sessions && python manage.py migrate auth && python manage.py migrate admin 

@@ -1,0 +1,93 @@
+{
+    "version": "1.0",
+    "files": {
+        "admin/css/base.css": {
+            "path": "admin/css/base.css",
+            "hash": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "admin/css/forms.css": {
+            "path": "admin/css/forms.css",
+            "hash": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "admin/css/login.css": {
+            "path": "admin/css/login.css",
+            "hash": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "admin/css/widgets.css": {
+            "path": "admin/css/widgets.css",
+            "hash": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "admin/js/SelectFilter2.js": {
+            "path": "admin/js/SelectFilter2.js",
+            "hash": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "admin/js/SelectBox.js": {
+            "path": "admin/js/SelectBox.js",
+            "hash": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "admin/js/calendar.js": {
+            "path": "admin/js/calendar.js",
+            "hash": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "admin/js/admin/DateTimeShortcuts.js": {
+            "path": "admin/js/admin/DateTimeShortcuts.js",
+            "hash": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "admin/js/admin/RelatedObjectLookups.js": {
+            "path": "admin/js/admin/RelatedObjectLookups.js",
+            "hash": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "admin/js/admin/urlify.js": {
+            "path": "admin/js/admin/urlify.js",
+            "hash": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "admin/js/autocomplete.js": {
+            "path": "admin/js/autocomplete.js",
+            "hash": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "admin/js/change_form.js": {
+            "path": "admin/js/change_form.js",
+            "hash": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "admin/js/collapse.js": {
+            "path": "admin/js/collapse.js",
+            "hash": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "admin/js/collapse.min.js": {
+            "path": "admin/js/collapse.min.js",
+            "hash": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "admin/js/core.js": {
+            "path": "admin/js/core.js",
+            "hash": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "admin/js/inlines.js": {
+            "path": "admin/js/inlines.js",
+            "hash": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "admin/js/jquery.init.js": {
+            "path": "admin/js/jquery.init.js",
+            "hash": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "admin/js/prepopulate.js": {
+            "path": "admin/js/prepopulate.js",
+            "hash": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "admin/js/prepopulate.min.js": {
+            "path": "admin/js/prepopulate.min.js",
+            "hash": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "admin/js/timezone.js": {
+            "path": "admin/js/timezone.js",
+            "hash": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "admin/js/actions.js": {
+            "path": "admin/js/actions.js",
+            "hash": "d41d8cd98f00b204e9800998ecf8427e"
+        },
+        "admin/js/actions.min.js": {
+            "path": "admin/js/actions.min.js",
+            "hash": "d41d8cd98f00b204e9800998ecf8427e"
+        }
+    }
+} 

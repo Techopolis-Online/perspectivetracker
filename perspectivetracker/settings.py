@@ -15,6 +15,7 @@ import os
 import dj_database_url
 from dotenv import load_dotenv
 from django.core.exceptions import ImproperlyConfigured
+import sys
 
 # Determine which .env file to load
 ENV = os.environ.get('DJANGO_ENV', 'development')
@@ -150,51 +151,22 @@ LOGGING = {
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-# Using SQLite for both development and production until PostgreSQL is properly provisioned
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+if ENV == 'development' or 'test' in sys.argv:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
-
-# Comment out PostgreSQL configuration until properly provisioned
-# if ENV == 'development':
-#     DATABASES = {
-#         'default': {
-#             'ENGINE': 'django.db.backends.sqlite3',
-#             'NAME': BASE_DIR / 'db.sqlite3',
-#         }
-#     }
-# else:
-#     # Parse database configuration from $DATABASE_URL
-#     DATABASES = {
-#         'default': dj_database_url.config(
-#             default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
-#             conn_max_age=600,
-#             conn_health_checks=True,
-#         )
-#     }
-
-#     # Configure database for Heroku
-#     if 'DATABASE_URL' in os.environ:
-#         DATABASES['default'] = dj_database_url.config(
-#             conn_max_age=600,
-#             ssl_require=True,
-#             conn_health_checks=True,
-#         )
-#         # Force PostgreSQL on Heroku
-#         DATABASES['default']['ENGINE'] = 'django.db.backends.postgresql'
-#         DATABASES['default']['ATOMIC_REQUESTS'] = True
-#         DATABASES['default']['CONN_MAX_AGE'] = 600
-#         DATABASES['default']['OPTIONS'] = {
-#             'sslmode': 'require',
-#         }
-#         # Add connection timeout
-#         DATABASES['default']['CONN_TIMEOUT'] = 30
-#         # Add retry settings
-#         DATABASES['default']['RETRY_ON_TIMEOUT'] = True
-#         DATABASES['default']['MAX_RETRIES'] = 3
+else:
+    # Parse database configuration from $DATABASE_URL for Heroku
+    DATABASES = {
+        'default': dj_database_url.config(
+            conn_max_age=600,
+            ssl_require=True,
+            conn_health_checks=True,
+        )
+    }
 
 # Session configuration
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
