@@ -17,23 +17,41 @@ from perspectivetracker.utils import (
     send_milestone_completed_email,
     send_assignment_notification_email
 )
+import logging
+
+logger = logging.getLogger(__name__)
 
 @login_required
 def project_list(request):
     """Display list of projects"""
+    logger.info(f"User {request.user.email} accessing project list")
+    logger.info(f"User role: {request.user.role.name if hasattr(request.user, 'role') and request.user.role else 'None'}")
+    logger.info(f"User is superuser: {request.user.is_superuser}")
+    
+    # Get all projects first for debugging
+    all_projects = Project.objects.all()
+    logger.info(f"Total projects in database: {all_projects.count()}")
+    
     # Filter projects based on user role
     if request.user.is_superuser or (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']):
         projects = Project.objects.all()
+        logger.info(f"User has admin/staff role, showing all projects")
     else:
         projects = Project.objects.filter(assigned_to=request.user)
+        logger.info(f"User has regular role, showing only assigned projects")
+        logger.info(f"User's assigned projects: {[p.name for p in projects]}")
     
     # Filter by project type if specified
     project_type_slug = request.GET.get('type')
     if project_type_slug:
         projects = projects.filter(project_type__slug=project_type_slug)
+        logger.info(f"Filtered projects by type: {project_type_slug}")
     
     # Get all project types for filter dropdown
     project_types = ProjectType.objects.all()
+    
+    # Log the number of projects visible to the user
+    logger.info(f"Number of projects visible to user: {projects.count()}")
     
     context = {
         'projects': projects,
@@ -105,6 +123,9 @@ def project_detail(request, pk):
 @staff_required
 def project_create(request):
     """Create a new project"""
+    logger.info(f"User {request.user.email} attempting to create a project")
+    logger.info(f"User role: {request.user.role.name if hasattr(request.user, 'role') and request.user.role else 'None'}")
+    
     if request.method == 'POST':
         form = ProjectForm(request.POST)
         
@@ -116,6 +137,7 @@ def project_create(request):
                 temp_project = Project(project_type=project_type)
                 form.fields['status'].choices = temp_project.get_status_choices()
             except ProjectType.DoesNotExist:
+                logger.error(f"Project type with ID {project_type_id} not found")
                 pass
         
         if form.is_valid():
@@ -124,11 +146,18 @@ def project_create(request):
             project.save()
             form.save_m2m()  # Save many-to-many relationships
             
+            # Log project creation and assignments
+            logger.info(f"Created new project '{project.name}' by user {request.user.email}")
+            logger.info(f"Project assigned to users: {[user.email for user in project.assigned_to.all()]}")
+            logger.info(f"Project created_by: {project.created_by.email}")
+            
             # Send email notification
             send_project_created_email(request, project)
             
             messages.success(request, f"Project '{project.name}' created successfully.")
             return redirect('projects:project_detail', pk=project.pk)
+        else:
+            logger.error(f"Project creation form validation failed: {form.errors}")
     else:
         form = ProjectForm()
     
