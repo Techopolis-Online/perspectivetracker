@@ -1,0 +1,351 @@
+"""
+For the full list of settings and their values, see
+https://docs.djangoproject.com/en/5.1/ref/settings/
+"""
+
+from pathlib import Path
+import os
+import dj_database_url
+from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
+import sys
+
+# Determine which .env file to load
+ENV = os.environ.get('DJANGO_ENV', 'development')
+if ENV == 'development':
+    load_dotenv('.env.development')
+else:
+    load_dotenv('.env')
+
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+# Quick-start development settings - unsuitable for production
+# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-6a8xoo4jlia$(3f9ma^p+8lkc-)8b0up6j*-p0w$@uw=1#qc^^')
+
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+
+# Update ALLOWED_HOSTS to include your Heroku domain
+ALLOWED_HOSTS = [
+    'perspectivetracker-16b3c6ba0f46.herokuapp.com',
+    'perspectivetracker.herokuapp.com',
+    '.herokuapp.com',
+    'localhost',
+    '127.0.0.1',
+]
+
+# For better security in production environments, consider using environment variables:
+# ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+
+# Add any additional hosts from environment variables
+env_hosts = os.environ.get('ALLOWED_HOSTS', '').split(',')
+ALLOWED_HOSTS.extend([host for host in env_hosts if host])
+
+
+# Application definition
+
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'users',
+    'clients',
+    'projects',
+    'social_django',
+    'whitenoise.runserver_nostatic',
+]
+
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'social_django.middleware.SocialAuthExceptionMiddleware',
+]
+
+ROOT_URLCONF = 'perspectivetracker.urls'
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [
+            BASE_DIR / 'perspectivetracker' / 'templates',
+        ],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+                'social_django.context_processors.backends',
+                'social_django.context_processors.login_redirect',
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = 'perspectivetracker.wsgi.application'
+
+
+# Add logging configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'django.db': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'social_django': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'auth0_debug': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}
+
+# Database
+# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
+
+# Default to SQLite for local development
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
+
+# Override with PostgreSQL if DATABASE_URL is provided (Heroku)
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if DATABASE_URL:
+    DATABASES['default'] = dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=True)
+    print("Using PostgreSQL database via DATABASE_URL")
+
+# Session configuration
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_AGE = 1209600  # 2 weeks
+SESSION_COOKIE_SECURE = True  # Always use secure cookies in production
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_SAVE_EVERY_REQUEST = True  # Ensure sessions are created for anonymous users too
+
+# Development overrides
+if ENV == 'development':
+    SESSION_COOKIE_SECURE = False  # Allow cookies on http in development
+
+# Use a more reliable session configuration for Heroku
+if DATABASE_URL:
+    # Ensure sessions use the PostgreSQL database
+    SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+
+# Ensure sessions are created for anonymous users too
+SESSION_SAVE_EVERY_REQUEST = True
+
+# Password validation
+# https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
+
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
+
+
+# Internationalization
+# https://docs.djangoproject.com/en/5.1/topics/i18n/
+
+LANGUAGE_CODE = 'en-us'
+
+TIME_ZONE = 'UTC'
+
+USE_I18N = True
+
+USE_TZ = True
+
+
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/5.1/howto/static-files/
+
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'perspectivetracker/static'),
+]
+
+# Simplified static file serving with whitenoise
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Media files (User uploads)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Default primary key field type
+# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+AUTH_USER_MODEL = 'users.CustomUser'
+
+AUTHENTICATION_BACKENDS = [
+    'social_core.backends.auth0.Auth0OAuth2',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
+# Auth0 Settings
+SOCIAL_AUTH_AUTH0_DOMAIN = os.environ.get('AUTH0_DOMAIN')
+SOCIAL_AUTH_AUTH0_KEY = os.environ.get('AUTH0_CLIENT_ID')
+SOCIAL_AUTH_AUTH0_SECRET = os.environ.get('AUTH0_CLIENT_SECRET')
+SOCIAL_AUTH_AUTH0_SCOPE = [
+    'openid',
+    'profile',
+    'email'
+]
+
+# Auth0 UI customization
+SOCIAL_AUTH_AUTH0_EXTRA_AUTHORIZE_PARAMS = {
+    'ui_locales': 'en',
+    'auth0Client': '{"name":"Perspective Tracker","version":"1.0.0"}',
+    'screen_hint': 'login'
+}
+
+# Auth0 callback URL - this should match what's configured in Auth0
+SOCIAL_AUTH_REDIRECT_IS_HTTPS = os.environ.get('SOCIAL_AUTH_REDIRECT_IS_HTTPS', 'False') == 'True'
+SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/'
+SOCIAL_AUTH_LOGIN_ERROR_URL = '/login-error/'
+SOCIAL_AUTH_RAISE_EXCEPTIONS = os.environ.get('SOCIAL_AUTH_RAISE_EXCEPTIONS', 'False') == 'True'
+
+# Explicitly set the callback URL
+SOCIAL_AUTH_AUTH0_REDIRECT_URI = os.environ.get('AUTH0_CALLBACK_URL', 'https://perspectivetracker-16b3c6ba0f46.herokuapp.com/users/complete/auth0/')
+
+# Make sure the callback URL always has a value
+if not SOCIAL_AUTH_AUTH0_REDIRECT_URI or SOCIAL_AUTH_AUTH0_REDIRECT_URI == 'https://perspectivetracker.herokuapp.com/users/complete/auth0/':
+    SOCIAL_AUTH_AUTH0_REDIRECT_URI = 'https://perspectivetracker-16b3c6ba0f46.herokuapp.com/users/complete/auth0/'
+
+# For troubleshooting - set meaningful error messages with stacktraces in debug mode
+SOCIAL_AUTH_FIELDS_STORED_IN_SESSION = ['state']
+SOCIAL_AUTH_SANITIZE_REDIRECTS = False
+MIDDLEWARE.append('social_django.middleware.SocialAuthExceptionMiddleware')
+
+# Auth0 Pipeline
+SOCIAL_AUTH_PIPELINE = (
+    'social_core.pipeline.social_auth.social_details',
+    'social_core.pipeline.social_auth.social_uid',
+    'social_core.pipeline.social_auth.auth_allowed',
+    'social_core.pipeline.social_auth.social_user',
+    'social_core.pipeline.user.get_username',
+    'social_core.pipeline.social_auth.associate_by_email',  # Associate users by email
+    'social_core.pipeline.user.create_user',
+    'social_core.pipeline.social_auth.associate_user',
+    'social_core.pipeline.social_auth.load_extra_data',
+    'social_core.pipeline.user.user_details',
+    'users.pipeline.get_user_role',  # Custom pipeline to assign role
+)
+
+# Ensure Auth0 users are created with proper permissions
+SOCIAL_AUTH_CREATE_USERS = True
+SOCIAL_AUTH_USER_MODEL = 'users.CustomUser'
+SOCIAL_AUTH_STORAGE = 'social_django.models.DjangoStorage'
+
+# Associate users by email to prevent duplicate accounts
+SOCIAL_AUTH_ASSOCIATE_BY_EMAIL = True
+
+LOGIN_URL = '/users/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
+
+# Email settings
+# For development, uncomment this to use console backend:
+# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# SMTP configuration for production
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND')
+EMAIL_HOST = os.environ.get('EMAIL_HOST')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 25))
+EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'False') == 'True'
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'False') == 'True'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL')
+SERVER_EMAIL = os.environ.get('SERVER_EMAIL')
+EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', 30))
+
+# Security settings for production
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+
+# Debug settings - helpful for troubleshooting
+if os.environ.get('HEROKU_DEBUG', 'False') == 'True':
+    DEBUG = True
+    SOCIAL_AUTH_RAISE_EXCEPTIONS = True
+    RAISE_EXCEPTIONS = True
+    # Only log to console if explicitly enabled
+    LOGGING['loggers']['django']['level'] = 'DEBUG'
+    LOGGING['loggers']['social_django']['level'] = 'DEBUG'
+    LOGGING['loggers']['django.request']['level'] = 'DEBUG'
+    LOGGING['root']['level'] = 'DEBUG'
