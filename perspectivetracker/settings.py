@@ -188,6 +188,7 @@ SOCIAL_AUTH_RAISE_EXCEPTIONS = False
 # Explicitly set the callback URL
 SOCIAL_AUTH_AUTH0_REDIRECT_URI = os.environ.get('AUTH0_CALLBACK_URL', 'http://localhost:8000/users/complete/auth0/')
 
+# Auth0 Pipeline
 SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.social_details',
     'social_core.pipeline.social_auth.social_uid',
@@ -200,6 +201,11 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.user.user_details',
     'users.pipeline.get_user_role',  # Custom pipeline to assign role
 )
+
+# Ensure Auth0 users are created with proper permissions
+SOCIAL_AUTH_CREATE_USERS = True
+SOCIAL_AUTH_USER_MODEL = 'users.CustomUser'
+SOCIAL_AUTH_STORAGE = 'social_django.models.DjangoStorage'
 
 LOGIN_URL = '/users/login/'
 LOGIN_REDIRECT_URL = '/'

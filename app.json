@@ -71,7 +71,8 @@
     }
   ],
   "scripts": {
-    "postdeploy": "python manage.py migrate && python create_roles.py && python heroku_superuser.py"
+    "predeploy": "python backup_db.py",
+    "postdeploy": "python manage.py migrate && python create_roles.py && python heroku_superuser.py && python restore_db.py"
   },
   "addons": [
     "heroku-postgresql"
