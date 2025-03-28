@@ -1,18 +1,28 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import HttpResponseForbidden
-from .models import CustomUser, Role
+from django.http import HttpResponseForbidden, JsonResponse
+from .models import CustomUser, Role, AdminSettings
 from django.contrib.auth.forms import AuthenticationForm
 from django import forms
 from django.urls import reverse
 from perspectivetracker.utils import send_test_email, test_smtp_connection, test_smtp_ports
 from django.conf import settings
 import logging
+from .forms import UserRegistrationForm  # Import the form we just created
+from django.db.models import Q
 
 # Set up logger for Auth0 debugging
 logger = logging.getLogger('auth0_debug')
+
+class AdminSettingsForm(forms.ModelForm):
+    class Meta:
+        model = AdminSettings
+        fields = ['receive_all_emails']
+        widgets = {
+            'receive_all_emails': forms.CheckboxInput(attrs={'class': 'form-check-input'})
+        }
 
 class ProfileEditForm(forms.ModelForm):
     profile_picture = forms.ImageField(required=False, widget=forms.FileInput(attrs={'class': 'form-control'}))
@@ -75,6 +85,9 @@ def login_error_view(request):
 @login_required
 def logout_view(request):
     """Log out the user and redirect to login page"""
+    # Store user email before logout
+    user_email = request.user.email if request.user.is_authenticated else None
+    
     # Check if user is authenticated via Auth0
     auth0_user = request.user.social_auth.filter(provider='auth0').first()
     
@@ -83,11 +96,29 @@ def logout_view(request):
     
     # If user was authenticated with Auth0, redirect to Auth0 logout endpoint
     if auth0_user:
-        domain = auth0_user.extra_data['auth0_domain']
-        client_id = auth0_user.extra_data['auth0_client_id']
+        domain = settings.SOCIAL_AUTH_AUTH0_DOMAIN
+        client_id = settings.SOCIAL_AUTH_AUTH0_KEY
         return_to = request.build_absolute_uri(reverse('login'))
-        auth0_logout_url = f'https://{domain}/v2/logout?client_id={client_id}&returnTo={return_to}'
-        return redirect(auth0_logout_url)
+        
+        # Construct the Auth0 logout URL with all required parameters
+        auth0_logout_url = (
+            f'https://{domain}/v2/logout'
+            f'?client_id={client_id}'
+            f'&returnTo={return_to}'
+            f'&federated=true'
+        )
+        
+        # Log the logout attempt using stored email
+        if user_email:
+            logger.info(f"Attempting Auth0 logout for user {user_email}")
+        logger.info(f"Logout URL: {auth0_logout_url}")
+        
+        try:
+            return redirect(auth0_logout_url)
+        except Exception as e:
+            logger.error(f"Error during Auth0 logout: {str(e)}")
+            messages.error(request, "There was an error logging out from Auth0. Please try again.")
+            return redirect('login')
     
     # Regular Django logout
     messages.success(request, "You have been logged out.")
@@ -255,3 +286,177 @@ def test_email(request):
     }
     
     return render(request, 'users/test_email.html', context)
+
+@login_required
+@admin_required
+def user_list(request):
+    """View to list all users (for admin only)"""
+    users = CustomUser.objects.all().order_by('last_name', 'first_name')
+    
+    # Filter by role if requested
+    role_filter = request.GET.get('role', '')
+    if role_filter:
+        if role_filter == 'none':
+            users = users.filter(role__isnull=True)
+        else:
+            users = users.filter(role__name=role_filter)
+    
+    # Search functionality
+    search_query = request.GET.get('search', '')
+    if search_query:
+        users = users.filter(
+            Q(first_name__icontains=search_query) | 
+            Q(last_name__icontains=search_query) | 
+            Q(email__icontains=search_query) |
+            Q(job_title__icontains=search_query)
+        )
+    
+    context = {
+        'users': users,
+        'roles': Role.objects.all(),
+        'current_role': role_filter,
+        'search_query': search_query,
+    }
+    return render(request, 'users/user_list.html', context)
+
+@login_required
+@admin_required
+def user_create(request):
+    """View to create a new user (for admin only)"""
+    if request.method == 'POST':
+        form = UserRegistrationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            messages.success(request, f"User account for {user.email} created successfully.")
+            return redirect('user_list')
+    else:
+        form = UserRegistrationForm()
+    
+    context = {
+        'form': form,
+        'title': 'Create New User',
+    }
+    return render(request, 'users/user_form.html', context)
+
+@login_required
+@admin_required
+def user_edit(request, user_id):
+    """View to edit an existing user (for admin only)"""
+    user = get_object_or_404(CustomUser, id=user_id)
+    
+    if request.method == 'POST':
+        # Use the user registration form but don't require password
+        form = UserRegistrationForm(request.POST, instance=user)
+        # Set password fields as not required for editing
+        form.fields['password1'].required = False
+        form.fields['password2'].required = False
+        
+        if form.is_valid():
+            # Only set password if provided
+            password1 = form.cleaned_data.get('password1')
+            if password1:
+                user.set_password(password1)
+            
+            # Save all fields including role
+            user = form.save()
+            
+            messages.success(request, f"User account for {user.email} updated successfully.")
+            return redirect('user_list')
+    else:
+        form = UserRegistrationForm(instance=user)
+        # Set password fields as not required for editing
+        form.fields['password1'].required = False
+        form.fields['password2'].required = False
+    
+    context = {
+        'form': form,
+        'title': f'Edit User: {user.email}',
+        'user': user,
+    }
+    return render(request, 'users/user_form.html', context)
+
+@login_required
+@admin_required
+def user_delete(request, user_id):
+    """View to delete a user (for admin only)"""
+    user = get_object_or_404(CustomUser, id=user_id)
+    
+    # Prevent self-deletion
+    if user == request.user:
+        messages.error(request, "You cannot delete your own account.")
+        return redirect('user_list')
+    
+    if request.method == 'POST':
+        email = user.email
+        user.delete()
+        messages.success(request, f"User account for {email} deleted successfully.")
+        return redirect('user_list')
+    
+    context = {
+        'user': user,
+    }
+    return render(request, 'users/user_confirm_delete.html', context)
+
+@login_required
+@admin_required
+def change_user_role(request, user_id):
+    """View to change a user's role (for admin only)"""
+    user = get_object_or_404(CustomUser, pk=user_id)
+    
+    # Don't allow changing superuser roles through this interface
+    if user.is_superuser and request.user != user:
+        messages.error(request, "Superuser roles cannot be modified through this interface.")
+        return redirect('user_edit', user_id=user.pk)
+    
+    if request.method == 'POST':
+        role_id = request.POST.get('role')
+        
+        try:
+            if role_id:
+                new_role = Role.objects.get(pk=role_id)
+                user.role = new_role
+                user.save()
+                messages.success(request, f"{user.email}'s role has been changed to {new_role}.")
+            else:
+                user.role = None
+                user.save()
+                messages.success(request, f"{user.email}'s role has been removed.")
+                
+            # Redirect back to the user edit page
+            return redirect('user_edit', user_id=user.pk)
+            
+        except Role.DoesNotExist:
+            messages.error(request, "Invalid role selection.")
+    
+    # Get all available roles
+    roles = Role.objects.all()
+    
+    context = {
+        'user_to_edit': user,
+        'roles': roles,
+        'current_role': user.role,
+    }
+    
+    return render(request, 'users/change_user_role.html', context)
+
+@login_required
+@admin_required
+def admin_settings(request):
+    """View to manage admin settings"""
+    # Get or create settings for the current user
+    settings, created = AdminSettings.objects.get_or_create()
+    
+    if request.method == 'POST':
+        form = AdminSettingsForm(request.POST, instance=settings)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Admin settings updated successfully.")
+            return redirect('admin_settings')
+    else:
+        form = AdminSettingsForm(instance=settings)
+    
+    context = {
+        'form': form,
+        'title': 'Admin Settings',
+    }
+    return render(request, 'users/admin_settings.html', context)

@@ -202,17 +202,39 @@ if 'DATABASE_URL' in os.environ:
 # Session configuration
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_AGE = 1209600  # 2 weeks
-SESSION_COOKIE_SECURE = True  # Always use secure cookies in production
+# Set these conditionally based on environment
+SESSION_COOKIE_SECURE = not DEBUG  # Only use secure cookies in production
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_SAVE_EVERY_REQUEST = True  # Ensure sessions are created for anonymous users too
 
 # Development overrides
 if ENV == 'development':
-    SESSION_COOKIE_SECURE = False  # Allow cookies on http in development
+    # Explicitly disable all SSL/HTTPS settings for local development
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    SECURE_SSL_REDIRECT = False
+    SECURE_PROXY_SSL_HEADER = None
+    SECURE_HSTS_SECONDS = 0
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+    SECURE_HSTS_PRELOAD = False
+    # Remove any proxy headers that might trigger SSL
+    os.environ.pop('HTTP_X_FORWARDED_PROTO', None)
+    os.environ.pop('HTTPS', None)
+    # Force debug mode in development
+    DEBUG = True
+    # Set environment variables explicitly
+    os.environ['SECURE_SSL_REDIRECT'] = 'False'
+    os.environ['DEBUG'] = 'True'
+    # Make sure Auth0 works with HTTP
+    SOCIAL_AUTH_REDIRECT_IS_HTTPS = False
+    
+    # Instead of custom middleware, just remove the security middleware
+    MIDDLEWARE = [m for m in MIDDLEWARE if m != 'django.middleware.security.SecurityMiddleware']
 
 # Use a more reliable session configuration for Heroku
-if DATABASE_URL:
+database_url = os.environ.get('DATABASE_URL', None)
+if database_url:
     # Ensure sessions use the PostgreSQL database
     SESSION_ENGINE = 'django.contrib.sessions.backends.db'
     SESSION_COOKIE_SECURE = True
@@ -307,6 +329,15 @@ SOCIAL_AUTH_RAISE_EXCEPTIONS = os.environ.get('SOCIAL_AUTH_RAISE_EXCEPTIONS', 'F
 # Explicitly set the callback URL
 SOCIAL_AUTH_AUTH0_REDIRECT_URI = os.environ.get('AUTH0_CALLBACK_URL', 'https://perspectivetracker-16b3c6ba0f46.herokuapp.com/users/complete/auth0/')
 
+# Set HTTP callback URL for development
+if ENV == 'development':
+    # Force HTTP for development
+    if SOCIAL_AUTH_AUTH0_REDIRECT_URI and SOCIAL_AUTH_AUTH0_REDIRECT_URI.startswith('https://'):
+        SOCIAL_AUTH_AUTH0_REDIRECT_URI = SOCIAL_AUTH_AUTH0_REDIRECT_URI.replace('https://', 'http://')
+    # Default to localhost if not set
+    if not SOCIAL_AUTH_AUTH0_REDIRECT_URI or ('localhost' not in SOCIAL_AUTH_AUTH0_REDIRECT_URI and '127.0.0.1' not in SOCIAL_AUTH_AUTH0_REDIRECT_URI):
+        SOCIAL_AUTH_AUTH0_REDIRECT_URI = 'http://localhost:8000/users/complete/auth0/'
+
 # Make sure the callback URL always has a value
 if not SOCIAL_AUTH_AUTH0_REDIRECT_URI or SOCIAL_AUTH_AUTH0_REDIRECT_URI == 'https://perspectivetracker.herokuapp.com/users/complete/auth0/':
     SOCIAL_AUTH_AUTH0_REDIRECT_URI = 'https://perspectivetracker-16b3c6ba0f46.herokuapp.com/users/complete/auth0/'
@@ -344,23 +375,31 @@ LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
 # Email settings
-# For development, uncomment this to use console backend:
-# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-
-# SMTP configuration for production
-EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND')
-EMAIL_HOST = os.environ.get('EMAIL_HOST')
-EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 25))
-EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'False') == 'True'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'mail.techopolis.app')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 465))
+EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'True') == 'True'
 EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'False') == 'True'
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL')
-SERVER_EMAIL = os.environ.get('SERVER_EMAIL')
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'tracker@techopolis.app')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'Techopolis25@@')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'Techopolis Online Solutions <tracker@techopolis.app>')
+SERVER_EMAIL = os.environ.get('SERVER_EMAIL', 'tracker@techopolis.app')
 EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', 30))
 
+# Only override email settings if explicitly set to use console backend
+if os.environ.get('USE_CONSOLE_EMAIL', 'False') == 'True':
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    EMAIL_HOST = 'localhost'
+    EMAIL_PORT = 25
+    EMAIL_USE_SSL = False
+    EMAIL_USE_TLS = False
+    EMAIL_HOST_USER = ''
+    EMAIL_HOST_PASSWORD = ''
+    DEFAULT_FROM_EMAIL = 'noreply@localhost'
+    SERVER_EMAIL = 'noreply@localhost'
+
 # Security settings for production
-if not DEBUG:
+if not DEBUG and ENV != 'development':
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
@@ -371,6 +410,11 @@ if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
+else:
+    # Explicitly disable SSL settings for local development
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
 
 # Debug settings - helpful for troubleshooting
 if os.environ.get('HEROKU_DEBUG', 'False') == 'True':

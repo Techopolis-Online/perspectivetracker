@@ -1,0 +1,77 @@
+{% extends 'users/base.html' %}
+
+{% block title %}Change User Role - Perspective Tracker{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h1 class="h4 mb-0">Change User Role</h1>
+                </div>
+                
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h5>User: {{ user_to_edit.first_name }} {{ user_to_edit.last_name }} ({{ user_to_edit.email }})</h5>
+                        <p class="mb-0">
+                            Current role: 
+                            {% if current_role %}
+                                <span class="badge 
+                                    {% if current_role.name == 'admin' %}bg-danger
+                                    {% elif current_role.name == 'staff' %}bg-primary
+                                    {% elif current_role.name == 'client' %}bg-success
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ current_role }}
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">No Role</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label for="role" class="form-label">Select New Role:</label>
+                            <select name="role" id="role" class="form-select" autofocus>
+                                <option value="">-- No Role --</option>
+                                {% for role in roles %}
+                                <option value="{{ role.id }}" {% if current_role == role %}selected{% endif %}>
+                                    {{ role }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <div class="d-flex">
+                                <div class="me-3">
+                                    <i class="bi bi-exclamation-triangle" style="font-size: 2rem;"></i>
+                                </div>
+                                <div>
+                                    <h5>Important!</h5>
+                                    <p class="mb-0">
+                                        Changing a user's role will affect their permissions and access to various features 
+                                        in the system. The user will receive email notifications about this change.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'user_edit' user_id=user_to_edit.id %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i>Back to User Edit
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle me-1"></i>Change Role
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

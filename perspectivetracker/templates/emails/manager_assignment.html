@@ -1,0 +1,67 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Management Relationship Update{% endblock %}
+
+{% block content %}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: auto;">
+    <tr>
+        <td style="padding: 20px; text-align: center; font-family: sans-serif; mso-height-rule: exactly; line-height: 24px; color: #414042;">
+            <h1 style="font-size: 24px; margin: 0 0 20px 0; font-family: sans-serif;">Management Relationship Update</h1>
+            
+            <p style="margin: 0 0 20px 0; font-size: 16px;">
+                Hello {{ user.first_name }},
+            </p>
+            
+            {% if user.email == manager.email %}
+            <!-- Content specifically for the manager -->
+            <p style="margin: 0 0 20px 0; font-size: 16px;">
+                This is to inform you that {{ user.first_name }} {{ user.last_name }} has been assigned to your team. 
+                As their manager, you will be responsible for their professional development, work assignment, 
+                and performance evaluation at Techopolis.
+            </p>
+            
+            <p style="margin: 0 0 20px 0; font-size: 16px;">
+                Please schedule an onboarding meeting with them soon to discuss your management style, expectations, 
+                and to answer any questions they may have.
+            </p>
+            
+            {% else %}
+            <!-- Content for the employee -->
+            <p style="margin: 0 0 20px 0; font-size: 16px;">
+                This is to inform you that {{ manager.first_name }} {{ manager.last_name }} has been assigned as your manager at Techopolis. 
+                They will be your primary point of contact for professional development, work assignments, 
+                and performance evaluation.
+            </p>
+            
+            <p style="margin: 0 0 20px 0; font-size: 16px;">
+                Your manager will be in touch soon to schedule an introductory meeting. Feel free to reach out to them 
+                directly if you have any immediate questions or concerns.
+            </p>
+            
+            <p style="margin: 0 0 20px 0; font-size: 16px;">
+                Manager's contact information:
+            </p>
+            
+            <ul style="margin: 0 0 20px 0; padding-left: 20px; text-align: left; list-style-type: none;">
+                <li style="margin-bottom: 10px;"><strong>Email:</strong> {{ manager.email }}</li>
+                {% if manager.phone_number %}
+                <li style="margin-bottom: 10px;"><strong>Phone:</strong> {{ manager.phone_number }}</li>
+                {% endif %}
+                {% if manager.job_title %}
+                <li style="margin-bottom: 10px;"><strong>Title:</strong> {{ manager.job_title }}</li>
+                {% endif %}
+            </ul>
+            {% endif %}
+            
+            <p style="margin: 0 0 20px 0; font-size: 16px;">
+                If you have any questions about this change, please contact Human Resources.
+            </p>
+            
+            <p style="margin: 0; font-size: 16px;">
+                Regards,<br>
+                Techopolis HR Department
+            </p>
+        </td>
+    </tr>
+</table>
+{% endblock %}

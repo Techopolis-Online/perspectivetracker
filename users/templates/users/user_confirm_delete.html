@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">Delete User</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <h4 class="alert-heading">Warning!</h4>
+                        <p>You are about to delete the following user:</p>
+                        <hr>
+                        <div class="d-flex align-items-center mb-3">
+                            {% if user.profile_picture %}
+                            <img src="{{ user.profile_picture.url }}" class="rounded-circle me-3" width="64" height="64">
+                            {% else %}
+                            <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-3" style="width: 64px; height: 64px;">
+                                <span style="font-size: 24px;">{{ user.first_name.0 }}{{ user.last_name.0 }}</span>
+                            </div>
+                            {% endif %}
+                            <div>
+                                <h5 class="mb-1">{{ user.first_name }} {{ user.last_name }}</h5>
+                                <p class="mb-1">{{ user.email }}</p>
+                                {% if user.role %}
+                                <span class="badge bg-info">{{ user.role }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Basic User</span>
+                                {% endif %}
+                                {% if user.is_superuser %}
+                                <span class="badge bg-danger">Superuser</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <p class="mb-0">This action cannot be undone. All data associated with this user will be permanently removed.</p>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'user_list' %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> Confirm Delete
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

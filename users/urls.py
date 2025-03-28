@@ -9,6 +9,13 @@ urlpatterns = [
     path('profile/edit/', views.edit_profile_view, name='edit_profile'),
     path('dashboard/', views.dashboard_view, name='dashboard'),
     
+    # User management (admin only)
+    path('users/', views.user_list, name='user_list'),
+    path('users/create/', views.user_create, name='user_create'),
+    path('users/<int:user_id>/edit/', views.user_edit, name='user_edit'),
+    path('users/<int:user_id>/delete/', views.user_delete, name='user_delete'),
+    path('users/<int:user_id>/change-role/', views.change_user_role, name='change_user_role'),
+    
     # Social Auth URLs
     path('', include('social_django.urls', namespace='social')),
     
@@ -51,4 +58,5 @@ urlpatterns = [
     
     # Test email configuration
     path('test-email/', views.test_email, name='test_email'),
+    path('admin/settings/', views.admin_settings, name='admin_settings'),
 ]

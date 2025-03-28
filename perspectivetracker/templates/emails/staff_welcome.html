@@ -1,0 +1,48 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Welcome to Techopolis Online Solutions!{% endblock %}
+
+{% block content %}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: auto;">
+    <tr>
+        <td style="padding: 20px; text-align: center; font-family: sans-serif; mso-height-rule: exactly; line-height: 24px; color: #414042;">
+            <h1 style="font-size: 24px; margin: 0 0 20px 0; font-family: sans-serif;">Congratulations and Welcome to Techopolis!</h1>
+            
+            <p style="margin: 0 0 20px 0; font-size: 16px;">
+                Hello {{ user.first_name }},
+            </p>
+            
+            <p style="margin: 0 0 20px 0; font-size: 16px;">
+                Congratulations on joining the Techopolis team! We're thrilled to have you on board as a valued staff member. 
+                Your skills and expertise will be a fantastic addition to our organization.
+            </p>
+            
+            <p style="margin: 0 0 20px 0; font-size: 16px;">
+                Your Perspective Tracker account has been set up with staff privileges, giving you access to our project management
+                and client tracking tools.
+            </p>
+            
+            <p style="margin: 0 0 20px 0; font-size: 16px;">
+                If you have any questions about getting started or need assistance with any aspect of your role, 
+                please don't hesitate to reach out to your manager.
+            </p>
+            
+            <p style="margin: 0 0 20px 0; font-size: 16px;">
+                We look forward to seeing the great work you'll do with us!
+            </p>
+            
+            <a href="{{ login_url }}" style="background: #4A74B3; color: white; text-decoration: none; padding: 10px 25px; font-size: 16px; font-weight: bold; border-radius: 4px; display: inline-block; margin-bottom: 20px;">
+                Access Your Account
+            </a>
+            
+            <p style="margin: 0 0 10px 0; font-size: 16px;">
+                Welcome to the team!
+            </p>
+            
+            <p style="margin: 0; font-size: 16px;">
+                The Techopolis Management Team
+            </p>
+        </td>
+    </tr>
+</table>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Change User Role</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-4">
+                        {% if user.profile_picture %}
+                        <img src="{{ user.profile_picture.url }}" class="rounded-circle me-3" width="64" height="64">
+                        {% else %}
+                        <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-3" style="width: 64px; height: 64px;">
+                            <span style="font-size: 24px;">{{ user.first_name.0 }}{{ user.last_name.0 }}</span>
+                        </div>
+                        {% endif %}
+                        <div>
+                            <h5 class="mb-1">{{ user.first_name }} {{ user.last_name }}</h5>
+                            <p class="mb-1">{{ user.email }}</p>
+                            <div class="mt-1">
+                                {% if user.role %}
+                                <span class="badge bg-info">Current Role: {{ user.role }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary">No Role Assigned</span>
+                                {% endif %}
+                                
+                                {% if user.is_superuser %}
+                                <span class="badge bg-danger">Superuser</span>
+                                {% endif %}
+                                
+                                {% if is_auth0_user %}
+                                <span class="badge bg-warning text-dark">Auth0 User</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if is_auth0_user %}
+                    <div class="alert alert-info mb-4">
+                        <p class="mb-0">
+                            <i class="bi bi-info-circle me-2"></i>
+                            This user authenticated via Auth0. Changing their role in the database will only affect their permissions in this application. 
+                            Their Auth0 permissions will remain unchanged.
+                        </p>
+                    </div>
+                    {% endif %}
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <label for="role" class="form-label">Select Role</label>
+                            <select name="role" id="role" class="form-select">
+                                <option value="">No Role (Basic User)</option>
+                                {% for role in roles %}
+                                <option value="{{ role.id }}" {% if user.role and user.role.id == role.id %}selected{% endif %}>
+                                    {{ role.get_name_display }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">
+                                The role determines what permissions and access level the user has in the system.
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'user_list' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Back to User List
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-lg"></i> Save Role
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

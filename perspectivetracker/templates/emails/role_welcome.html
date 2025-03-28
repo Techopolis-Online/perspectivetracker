@@ -1,0 +1,118 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Welcome to Your New Role{% endblock %}
+
+{% block content %}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: auto;">
+    <tr>
+        <td style="padding: 20px; text-align: center; font-family: sans-serif; mso-height-rule: exactly; line-height: 24px; color: #414042;">
+            {% if role.name == 'admin' %}
+            <h1 style="font-size: 24px; margin: 0 0 20px 0; font-family: sans-serif;">Welcome to the Administrative Team!</h1>
+            {% elif role.name == 'staff' %}
+            <h1 style="font-size: 24px; margin: 0 0 20px 0; font-family: sans-serif;">Welcome to the Techopolis Staff!</h1>
+            {% elif role.name == 'client' %}
+            <h1 style="font-size: 24px; margin: 0 0 20px 0; font-family: sans-serif;">Welcome to Perspective Tracker!</h1>
+            {% else %}
+            <h1 style="font-size: 24px; margin: 0 0 20px 0; font-family: sans-serif;">Welcome to Your New Role!</h1>
+            {% endif %}
+            
+            <p style="margin: 0 0 20px 0; font-size: 16px;">
+                Hello {{ user.first_name }},
+            </p>
+            
+            <p style="margin: 0 0 20px 0; font-size: 16px;">
+                {% if role.name == 'admin' %}
+                Congratulations on your promotion to Administrator! This role comes with significant responsibilities and capabilities within the Perspective Tracker system.
+                {% elif role.name == 'staff' %}
+                Welcome to the Techopolis staff team! Your new role allows you to work directly with clients and manage projects.
+                {% elif role.name == 'client' %}
+                Welcome to Perspective Tracker! As a client user, you now have access to view and interact with your project details.
+                {% else %}
+                Congratulations on your new role in our system!
+                {% endif %}
+            </p>
+            
+            <div style="background-color: #f8f9fa; border-left: 4px solid #4A74B3; padding: 15px; margin-bottom: 20px; text-align: left;">
+                <h2 style="font-size: 18px; margin: 0 0 10px 0;">Your Role: {{ role }}</h2>
+                
+                {% if role.name == 'admin' %}
+                <p style="margin: 0 0 10px 0;"><strong>Key Responsibilities:</strong></p>
+                <ul style="margin: 0 0 15px 0; padding-left: 20px;">
+                    <li style="margin-bottom: 8px;">User management - creating, editing, and managing system users</li>
+                    <li style="margin-bottom: 8px;">Role assignment - determining appropriate access levels for users</li>
+                    <li style="margin-bottom: 8px;">System configuration and maintenance</li>
+                    <li style="margin-bottom: 8px;">Oversight of all client accounts and projects</li>
+                    <li style="margin-bottom: 8px;">Access to all system features and reports</li>
+                </ul>
+                
+                <p style="margin: 0 0 10px 0;"><strong>Common Tasks:</strong></p>
+                <ul style="margin: 0 0 15px 0; padding-left: 20px;">
+                    <li style="margin-bottom: 8px;">Add new users and assign appropriate roles</li>
+                    <li style="margin-bottom: 8px;">Create and manage project types and standards</li>
+                    <li style="margin-bottom: 8px;">Supervise staff activities and client relationships</li>
+                    <li style="margin-bottom: 8px;">Generate and review system reports</li>
+                </ul>
+                
+                {% elif role.name == 'staff' %}
+                <p style="margin: 0 0 10px 0;"><strong>Key Responsibilities:</strong></p>
+                <ul style="margin: 0 0 15px 0; padding-left: 20px;">
+                    <li style="margin-bottom: 8px;">Client relationship management</li>
+                    <li style="margin-bottom: 8px;">Project creation, assignment and management</li>
+                    <li style="margin-bottom: 8px;">Task tracking and milestone management</li>
+                    <li style="margin-bottom: 8px;">Communication with clients about project progress</li>
+                </ul>
+                
+                <p style="margin: 0 0 10px 0;"><strong>Common Tasks:</strong></p>
+                <ul style="margin: 0 0 15px 0; padding-left: 20px;">
+                    <li style="margin-bottom: 8px;">Create and update client information</li>
+                    <li style="margin-bottom: 8px;">Set up new projects and assign team members</li>
+                    <li style="margin-bottom: 8px;">Track and update project milestones</li>
+                    <li style="margin-bottom: 8px;">Generate client-facing reports</li>
+                </ul>
+                
+                {% elif role.name == 'client' %}
+                <p style="margin: 0 0 10px 0;"><strong>Features Available to You:</strong></p>
+                <ul style="margin: 0 0 15px 0; padding-left: 20px;">
+                    <li style="margin-bottom: 8px;">View your projects and their current status</li>
+                    <li style="margin-bottom: 8px;">Access project milestones and deliverables</li>
+                    <li style="margin-bottom: 8px;">Communicate with your assigned project team</li>
+                    <li style="margin-bottom: 8px;">Review project documentation and reports</li>
+                </ul>
+                
+                <p style="margin: 0 0 10px 0;"><strong>Getting Started:</strong></p>
+                <ul style="margin: 0 0 15px 0; padding-left: 20px;">
+                    <li style="margin-bottom: 8px;">Complete your profile information</li>
+                    <li style="margin-bottom: 8px;">Review your current projects on the dashboard</li>
+                    <li style="margin-bottom: 8px;">Reach out to your project manager with any questions</li>
+                </ul>
+                {% endif %}
+            </div>
+            
+            <p style="margin: 0 0 20px 0; font-size: 16px;">
+                {% if role.name == 'admin' %}
+                Your admin dashboard can be accessed <a href="{{ login_url }}" style="color: #4A74B3; text-decoration: underline;">here</a>.
+                Please remember that with this elevated access comes the responsibility to maintain data security and privacy.
+                {% elif role.name == 'staff' %}
+                You can access your staff dashboard <a href="{{ login_url }}" style="color: #4A74B3; text-decoration: underline;">here</a>.
+                Our team lead will reach out shortly to schedule an orientation session.
+                {% else %}
+                You can access your dashboard <a href="{{ login_url }}" style="color: #4A74B3; text-decoration: underline;">here</a>.
+                {% endif %}
+            </p>
+            
+            <p style="margin: 0 0 10px 0; font-size: 16px;">
+                If you have any questions about your role or need assistance, please don't hesitate to contact:
+            </p>
+            
+            <p style="margin: 0 0 20px 0; font-size: 16px;">
+                <strong>Techopolis Support:</strong> support@techopolis.com
+            </p>
+            
+            <p style="margin: 0; font-size: 16px;">
+                Welcome aboard!<br>
+                The Techopolis Team
+            </p>
+        </td>
+    </tr>
+</table>
+{% endblock %}

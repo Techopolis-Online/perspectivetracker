@@ -1,0 +1,75 @@
+from django import forms
+from django.contrib.auth.forms import UserCreationForm
+from .models import CustomUser, Role, AdminSettings
+from django.db import models
+
+class UserRegistrationForm(UserCreationForm):
+    """
+    Form for admin users to create new user accounts
+    """
+    first_name = forms.CharField(required=True, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    last_name = forms.CharField(required=True, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={'class': 'form-control'}))
+    role = forms.ModelChoiceField(
+        queryset=Role.objects.all(),
+        required=False,
+        empty_label="No specific role (basic user)",
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    job_title = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    phone_number = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    bio = forms.CharField(required=False, widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}))
+    
+    # Staff/Admin permissions
+    is_staff = forms.BooleanField(
+        required=False, 
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        help_text="Designates whether the user can log into the admin site."
+    )
+    is_superuser = forms.BooleanField(
+        required=False, 
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        help_text="Designates that this user has all permissions without explicitly assigning them."
+    )
+    
+    # Manager fields
+    no_manager = forms.BooleanField(
+        required=False, 
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        help_text="Check if this user does not require a manager."
+    )
+    manager = forms.ModelChoiceField(
+        queryset=CustomUser.objects.filter(is_staff=True),
+        required=False, 
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        help_text="Primary manager for this user."
+    )
+    
+    class Meta:
+        model = CustomUser
+        fields = [
+            'first_name', 'last_name', 'email', 'password1', 'password2',
+            'role', 'job_title', 'phone_number', 'bio',
+            'is_staff', 'is_superuser', 'no_manager', 'manager'
+        ]
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Update the manager queryset to only include staff and admin users
+        self.fields['manager'].queryset = CustomUser.objects.filter(
+            models.Q(is_superuser=True) | 
+            models.Q(role__name__in=['admin', 'staff'])
+        )
+        
+        # Make password fields use Bootstrap styling
+        self.fields['password1'].widget.attrs.update({'class': 'form-control'})
+        self.fields['password2'].widget.attrs.update({'class': 'form-control'})
+
+class AdminSettingsForm(forms.ModelForm):
+    """Form for managing admin settings"""
+    class Meta:
+        model = AdminSettings
+        fields = ['receive_all_emails']
+        widgets = {
+            'receive_all_emails': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        } 

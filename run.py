@@ -5,7 +5,12 @@ from pathlib import Path
 def run_development():
     """Run the development server with development settings"""
     os.environ['DJANGO_ENV'] = 'development'
-    os.system('python manage.py runserver')
+    os.environ['DEBUG'] = 'True'
+    os.environ['SECURE_SSL_REDIRECT'] = 'False'
+    os.environ['SOCIAL_AUTH_REDIRECT_IS_HTTPS'] = 'False'
+    # Force disable SSL redirect
+    print("Starting development server with SSL disabled...")
+    os.system('python manage.py runserver --nothreading --insecure 0.0.0.0:8000')
 
 def run_production():
     """Run the production server with production settings"""

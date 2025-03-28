@@ -1,0 +1,48 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Welcome as Administrator to Perspective Tracker!{% endblock %}
+
+{% block content %}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: auto;">
+    <tr>
+        <td style="padding: 20px; text-align: center; font-family: sans-serif; mso-height-rule: exactly; line-height: 24px; color: #414042;">
+            <h1 style="font-size: 24px; margin: 0 0 20px 0; font-family: sans-serif;">Welcome to Perspective Tracker Admin Team!</h1>
+            
+            <p style="margin: 0 0 20px 0; font-size: 16px;">
+                Hello {{ user.first_name }},
+            </p>
+            
+            <p style="margin: 0 0 20px 0; font-size: 16px;">
+                Congratulations on becoming an administrator for Techopolis Online Solutions' Perspective Tracker system! 
+                Your account has been configured with administrative privileges, giving you complete access to manage 
+                the platform.
+            </p>
+            
+            <p style="margin: 0 0 20px 0; font-size: 16px;">
+                As an administrator, you'll have access to:
+            </p>
+            
+            <ul style="margin: 0 0 20px 0; padding-left: 20px; text-align: left;">
+                <li style="margin-bottom: 10px;">User management for the entire system</li>
+                <li style="margin-bottom: 10px;">Project creation and oversight across all departments</li>
+                <li style="margin-bottom: 10px;">Client relationship management</li>
+                <li style="margin-bottom: 10px;">System configuration settings</li>
+                <li style="margin-bottom: 10px;">Analytics and reporting tools</li>
+            </ul>
+            
+            <p style="margin: 0 0 20px 0; font-size: 16px;">
+                With great power comes great responsibility! If you need any assistance understanding the administrative 
+                features or have questions about your new role, please reach out to  Michael and taylor or your manager
+            </p>
+            
+            <a href="{{ login_url }}" style="background: #4A74B3; color: white; text-decoration: none; padding: 10px 25px; font-size: 16px; font-weight: bold; border-radius: 4px; display: inline-block; margin-bottom: 20px;">
+                Access Admin Dashboard
+            </a>
+            
+            <p style="margin: 0; font-size: 16px;">
+                We appreciate your leadership and commitment to Techopolis!
+            </p>
+        </td>
+    </tr>
+</table>
+{% endblock %}

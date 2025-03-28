@@ -1,0 +1,43 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Team Member Reassignment Notice{% endblock %}
+
+{% block content %}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: auto;">
+    <tr>
+        <td style="padding: 20px; text-align: center; font-family: sans-serif; mso-height-rule: exactly; line-height: 24px; color: #414042;">
+            <h1 style="font-size: 24px; margin: 0 0 20px 0; font-family: sans-serif;">Team Member Reassignment</h1>
+            
+            <p style="margin: 0 0 20px 0; font-size: 16px;">
+                Hello {{ previous_manager.first_name }},
+            </p>
+            
+            <p style="margin: 0 0 20px 0; font-size: 16px;">
+                This is to inform you that {{ user.first_name }} {{ user.last_name }} has been reassigned and will no longer be reporting to you.
+            </p>
+            
+            <p style="margin: 0 0 20px 0; font-size: 16px;">
+                {% if new_manager %}
+                They have been assigned to {{ new_manager.first_name }} {{ new_manager.last_name }}'s team effective immediately.
+                {% else %}
+                They do not currently have a new manager assigned.
+                {% endif %}
+            </p>
+            
+            <p style="margin: 0 0 20px 0; font-size: 16px;">
+                Please ensure any ongoing projects or responsibilities are properly transitioned. If you have any questions
+                about this change or need assistance with the transition, please contact Human Resources.
+            </p>
+            
+            <p style="margin: 0 0 20px 0; font-size: 16px;">
+                We appreciate your leadership and mentorship during the time {{ user.first_name }} was on your team.
+            </p>
+            
+            <p style="margin: 0; font-size: 16px;">
+                Regards,<br>
+                Techopolis HR Department
+            </p>
+        </td>
+    </tr>
+</table>
+{% endblock %}

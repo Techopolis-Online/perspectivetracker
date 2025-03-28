@@ -8,6 +8,10 @@ from django.conf import settings
 from django.urls import reverse
 from django.core.mail import get_connection
 from django.core.mail import EmailMultiAlternatives
+from django.db import models
+import datetime
+import logging
+from users.models import CustomUser, Role, AdminSettings
 
 
 def send_email(subject, template_name, context, recipient_list, from_email=None):
@@ -586,22 +590,31 @@ def send_test_email(request, recipient_email):
     import socket
     from smtplib import SMTPException
     from django.conf import settings
+    import logging
+    
+    logger = logging.getLogger(__name__)
     
     subject = "Test Email from Perspective Tracker"
-    message = "This is a test email from Techopolis Online Solutions to verify that the email configuration is working correctly."
+    message = "This is a test email from Techopolis Online Solutions, LLC to verify that the email configuration is working correctly."
     from_email = settings.DEFAULT_FROM_EMAIL
     
     try:
-        # Print configuration for debugging
-        print(f"Sending test email with the following configuration:")
-        print(f"  Host: {settings.EMAIL_HOST}")
-        print(f"  Port: {settings.EMAIL_PORT}")
-        print(f"  Use SSL: {settings.EMAIL_USE_SSL}")
-        print(f"  Use TLS: {settings.EMAIL_USE_TLS}")
-        print(f"  Username: {settings.EMAIL_HOST_USER}")
-        print(f"  From: {from_email}")
-        print(f"  To: {recipient_email}")
+        # Log configuration for debugging
+        logger.info(f"Sending test email with the following configuration:")
+        logger.info(f"  Host: {settings.EMAIL_HOST}")
+        logger.info(f"  Port: {settings.EMAIL_PORT}")
+        logger.info(f"  Use SSL: {settings.EMAIL_USE_SSL}")
+        logger.info(f"  Use TLS: {settings.EMAIL_USE_TLS}")
+        logger.info(f"  Username: {settings.EMAIL_HOST_USER}")
+        logger.info(f"  From: {from_email}")
+        logger.info(f"  To: {recipient_email}")
         
+        # Test SMTP connection first
+        success, error_message = test_smtp_connection()
+        if not success:
+            return False, f"SMTP connection failed: {error_message}"
+        
+        # Send the email
         send_mail(
             subject,
             message,
@@ -609,18 +622,19 @@ def send_test_email(request, recipient_email):
             [recipient_email],
             fail_silently=False,
         )
+        logger.info("Test email sent successfully")
         return True, None
     except SMTPException as e:
         error_message = f"SMTP Error: {str(e)}"
-        print(error_message)
+        logger.error(error_message)
         return False, error_message
     except socket.error as e:
         error_message = f"Socket Error: {str(e)}"
-        print(error_message)
+        logger.error(error_message)
         return False, error_message
     except Exception as e:
         error_message = f"Error sending test email: {str(e)}"
-        print(error_message)
+        logger.error(error_message)
         return False, error_message
 
 
@@ -694,19 +708,51 @@ def send_email_with_fallback(subject, template_name, context, recipient_list, fr
     from django.template.loader import render_to_string
     from django.utils.html import strip_tags
     from django.conf import settings
+    import logging
+    from users.models import CustomUser, Role, AdminSettings
+    
+    logger = logging.getLogger(__name__)
     
     if from_email is None:
         from_email = settings.DEFAULT_FROM_EMAIL
     
     # Add company name to context
     if 'company_name' not in context:
-        context['company_name'] = 'Techopolis Online Solutions'
+        context['company_name'] = 'Techopolis Online Solutions, LLC'
+    
+    # Check if admin emails should be included based on admin settings
+    try:
+        admin_settings = AdminSettings.objects.first()
+        if admin_settings and admin_settings.receive_all_emails:
+            # Get all admin users (both superusers and users with admin role)
+            admin_users = CustomUser.objects.filter(
+                models.Q(is_superuser=True) | 
+                models.Q(role__name='admin')
+            )
+            
+            # Add admin emails to the recipient list if they're not already included
+            admin_emails = [admin.email for admin in admin_users]
+            for admin_email in admin_emails:
+                if admin_email not in recipient_list:
+                    recipient_list.append(admin_email)
+                    logger.info(f"Added admin {admin_email} to recipient list based on admin settings")
+    except Exception as e:
+        logger.error(f"Error including admin emails: {str(e)}")
         
     html_message = render_to_string(template_name, context)
     plain_message = strip_tags(html_message)
     
     # Try with SMTP backend first
     try:
+        # Log SMTP configuration
+        logger.info(f"Attempting to send email with SMTP configuration:")
+        logger.info(f"  Host: {settings.EMAIL_HOST}")
+        logger.info(f"  Port: {settings.EMAIL_PORT}")
+        logger.info(f"  Use SSL: {settings.EMAIL_USE_SSL}")
+        logger.info(f"  Use TLS: {settings.EMAIL_USE_TLS}")
+        logger.info(f"  From: {from_email}")
+        logger.info(f"  To: {recipient_list}")
+        
         email = EmailMultiAlternatives(
             subject=subject,
             body=plain_message,
@@ -715,10 +761,11 @@ def send_email_with_fallback(subject, template_name, context, recipient_list, fr
         )
         email.attach_alternative(html_message, "text/html")
         email.send()
+        logger.info("Email sent successfully via SMTP")
         return True
     except Exception as e:
-        print(f"SMTP email failed: {str(e)}")
-        print("Falling back to console email backend")
+        logger.error(f"SMTP email failed: {str(e)}")
+        logger.info("Falling back to console email backend")
         
         # Fall back to console backend
         try:
@@ -734,10 +781,10 @@ def send_email_with_fallback(subject, template_name, context, recipient_list, fr
             )
             email.attach_alternative(html_message, "text/html")
             email.send()
-            print("Email sent using console backend")
+            logger.info("Email sent using console backend")
             return True
         except Exception as e:
-            print(f"Console email failed: {str(e)}")
+            logger.error(f"Console email failed: {str(e)}")
             return False
 
 
@@ -792,4 +839,213 @@ def test_smtp_ports():
         except Exception as e:
             results.append((port, protocol, False, str(e)))
     
-    return results 
+    return results
+
+
+def send_user_created_email(user):
+    """
+    Send notification email when a new user is created via admin interface.
+    Only sends emails to users with specific roles (superuser, staff, admin, client)
+    or with is_staff=True.
+    
+    Args:
+        user: CustomUser instance
+    
+    Returns:
+        bool: True if email was sent successfully, None if skipped
+    """
+    logger = logging.getLogger(__name__)
+    
+    recipient_email = user.email
+    
+    # Log user information to help with troubleshooting
+    logger.info(f"Processing welcome email for user: {user.email}")
+    logger.info(f"User details - is_superuser: {user.is_superuser}, is_staff: {user.is_staff}, role: {user.role}")
+    
+    # Different messages based on role
+    if user.is_superuser:
+        subject = "Welcome to Perspective Tracker as Administrator"
+        template = 'emails/superuser_welcome.html'
+        logger.info(f"Using superuser template for {user.email}")
+    elif user.is_staff or (user.role and user.role.name in ['admin', 'staff']):
+        subject = "Welcome to Techopolis - You're on the Team!"
+        template = 'emails/staff_welcome.html'
+        logger.info(f"Using staff template for {user.email}")
+    elif user.role and user.role.name == 'client':
+        subject = "Welcome to Perspective Tracker - Client Account"
+        template = 'emails/client_welcome.html'
+        logger.info(f"Using client template for {user.email}")
+    else:
+        # Skip sending email to basic users with no role
+        logger.info(f"Skipping welcome email for basic user with no specific role: {user.email}")
+        return None
+    
+    context = {
+        'user': user,
+        'company_name': 'Techopolis Online Solutions',
+        'login_url': '/users/login/',
+        'current_year': datetime.datetime.now().year,
+    }
+    
+    result = send_email(subject, template, context, [recipient_email])
+    logger.info(f"Email sending result for {user.email}: {result}")
+    return result
+
+
+def send_manager_assignment_email(user, previous_manager=None):
+    """
+    Send notification emails when a user's manager is changed.
+    
+    Args:
+        user: CustomUser instance whose manager was changed
+        previous_manager: Previous manager (CustomUser instance or None)
+    
+    Returns:
+        bool: True if emails were sent successfully
+    """
+    recipients = []
+    
+    # Email to the user who got a new manager
+    recipients.append(user.email)
+    
+    # Email to the new manager
+    if user.manager:
+        recipients.append(user.manager.email)
+    
+    # Different email to the previous manager if applicable
+    if previous_manager and previous_manager != user.manager:
+        send_manager_reassignment_email(user, previous_manager)
+    
+    subject = "Management Relationship Update"
+    template = 'emails/manager_assignment.html'
+    
+    context = {
+        'user': user,
+        'manager': user.manager,
+        'company_name': 'Techopolis Online Solutions',
+        'current_year': datetime.datetime.now().year,
+    }
+    
+    return send_email(subject, template, context, recipients)
+
+
+def send_manager_reassignment_email(user, previous_manager):
+    """
+    Send notification email to the previous manager when their direct report is reassigned.
+    
+    Args:
+        user: CustomUser instance whose manager was changed
+        previous_manager: Previous manager (CustomUser instance)
+    
+    Returns:
+        bool: True if email was sent successfully
+    """
+    subject = "Team Member Reassignment"
+    template = 'emails/manager_reassignment.html'
+    
+    context = {
+        'user': user,
+        'previous_manager': previous_manager,
+        'new_manager': user.manager,
+        'company_name': 'Techopolis Online Solutions',
+        'current_year': datetime.datetime.now().year,
+    }
+    
+    return send_email(subject, template, context, [previous_manager.email])
+
+
+def send_role_change_email(user, old_role=None, new_role=None):
+    """
+    Send notification email when a user's role is changed.
+    
+    Args:
+        user: CustomUser instance whose role was changed
+        old_role: Previous role (Role instance or None)
+        new_role: New role (Role instance or None)
+    
+    Returns:
+        bool: True if email was sent successfully
+    """
+    logger = logging.getLogger(__name__)
+    
+    recipient_email = user.email
+    
+    # Log role change information
+    logger.info(f"Sending role change email to user: {user.email}")
+    logger.info(f"Role change details - old role: {old_role}, new role: {new_role}")
+    
+    # Different messages based on role change
+    if new_role and old_role:
+        subject = f"Your Role Has Changed: {old_role} → {new_role}"
+        message_intro = f"Your role has been changed from {old_role} to {new_role}."
+    elif new_role and not old_role:
+        subject = f"Role Assigned: {new_role}"
+        message_intro = f"You have been assigned the role of {new_role}."
+    elif old_role and not new_role:
+        subject = "Role Removed"
+        message_intro = f"Your previous role of {old_role} has been removed."
+    else:
+        # This shouldn't happen, but just in case
+        subject = "Account Update: Role Change"
+        message_intro = "Your account permissions have been updated."
+    
+    template = 'emails/role_change.html'
+    
+    context = {
+        'user': user,
+        'old_role': old_role,
+        'new_role': new_role,
+        'message_intro': message_intro,
+        'company_name': 'Techopolis Online Solutions',
+        'login_url': '/users/login/',
+        'current_year': datetime.datetime.now().year,
+    }
+    
+    result = send_email(subject, template, context, [recipient_email])
+    logger.info(f"Role change email sending result for {user.email}: {result}")
+    return result
+
+
+def send_role_welcome_email(user, role):
+    """
+    Send a detailed welcome email with role-specific responsibilities when a user
+    is promoted to a new role.
+    
+    Args:
+        user: CustomUser instance who has received the new role
+        role: Role instance the user was promoted to
+    
+    Returns:
+        bool: True if email was sent successfully
+    """
+    logger = logging.getLogger(__name__)
+    
+    recipient_email = user.email
+    
+    # Log role welcome information
+    logger.info(f"Sending role welcome email to user: {user.email}")
+    logger.info(f"New role details: {role}")
+    
+    # Different subject based on role
+    if role.name == 'admin':
+        subject = "Welcome to the Administrative Team"
+    elif role.name == 'staff':
+        subject = "Welcome to the Techopolis Staff Team"
+    elif role.name == 'client':
+        subject = "Welcome to Perspective Tracker as a Client"
+    else:
+        subject = "Welcome to Your New Role"
+    
+    template = 'emails/role_welcome.html'
+    
+    context = {
+        'user': user,
+        'role': role,
+        'login_url': '/users/login/',
+        'company_name': 'Techopolis Online Solutions',
+        'current_year': datetime.datetime.now().year,
+    }
+    
+    result = send_email(subject, template, context, [recipient_email])
+    logger.info(f"Role welcome email sending result for {user.email}: {result}")
+    return result

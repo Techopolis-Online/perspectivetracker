@@ -1,0 +1,62 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Role Change Notification{% endblock %}
+
+{% block content %}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: auto;">
+    <tr>
+        <td style="padding: 20px; text-align: center; font-family: sans-serif; mso-height-rule: exactly; line-height: 24px; color: #414042;">
+            <h1 style="font-size: 24px; margin: 0 0 20px 0; font-family: sans-serif;">Role Change Notification</h1>
+            
+            <p style="margin: 0 0 20px 0; font-size: 16px;">
+                Hello {{ user.first_name }},
+            </p>
+            
+            <p style="margin: 0 0 20px 0; font-size: 16px;">
+                {{ message_intro }}
+            </p>
+            
+            {% if new_role %}
+            <div style="background-color: #f8f9fa; border-left: 4px solid #4A74B3; padding: 15px; margin-bottom: 20px; text-align: left;">
+                <h2 style="font-size: 18px; margin: 0 0 10px 0;">Your New Role: {{ new_role }}</h2>
+                
+                {% if new_role.name == 'admin' %}
+                <p style="margin: 0 0 10px 0;">As an Administrator, you now have access to:</p>
+                <ul style="margin: 0 0 15px 0; padding-left: 20px;">
+                    <li style="margin-bottom: 8px;">Complete user management</li>
+                    <li style="margin-bottom: 8px;">System configuration settings</li>
+                    <li style="margin-bottom: 8px;">All client and project data</li>
+                    <li style="margin-bottom: 8px;">Full administrative controls</li>
+                </ul>
+                {% elif new_role.name == 'staff' %}
+                <p style="margin: 0 0 10px 0;">As a Techopolis Staff member, you now have access to:</p>
+                <ul style="margin: 0 0 15px 0; padding-left: 20px;">
+                    <li style="margin-bottom: 8px;">Client management</li>
+                    <li style="margin-bottom: 8px;">Project creation and management</li>
+                    <li style="margin-bottom: 8px;">Team collaboration tools</li>
+                </ul>
+                {% elif new_role.name == 'client' %}
+                <p style="margin: 0 0 10px 0;">As a Client, you now have access to:</p>
+                <ul style="margin: 0 0 15px 0; padding-left: 20px;">
+                    <li style="margin-bottom: 8px;">Your project details and progress</li>
+                    <li style="margin-bottom: 8px;">Communication with project team members</li>
+                    <li style="margin-bottom: 8px;">Project milestones and deliverables</li>
+                </ul>
+                {% endif %}
+            </div>
+            
+            <p style="margin: 0 0 20px 0; font-size: 16px;">
+                Please <a href="{{ login_url }}" style="color: #4A74B3; text-decoration: underline;">log in to your account</a> 
+                to explore your new capabilities. If you have any questions about your role responsibilities, 
+                please contact your manager or the HR department.
+            </p>
+            {% endif %}
+            
+            <p style="margin: 0; font-size: 16px;">
+                Regards,<br>
+                Techopolis HR Department
+            </p>
+        </td>
+    </tr>
+</table>
+{% endblock %}
