@@ -65,6 +65,60 @@ class UserRegistrationForm(UserCreationForm):
         self.fields['password1'].widget.attrs.update({'class': 'form-control'})
         self.fields['password2'].widget.attrs.update({'class': 'form-control'})
 
+class ProfileEditForm(forms.ModelForm):
+    profile_picture = forms.ImageField(required=False, widget=forms.FileInput(attrs={'class': 'form-control'}))
+    bio = forms.CharField(required=False, widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}))
+    phone_number = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    job_title = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    
+    class Meta:
+        model = CustomUser
+        fields = ['first_name', 'last_name', 'email', 'profile_picture', 'bio', 'phone_number', 'job_title']
+        widgets = {
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+        }
+
+class AdminProfileEditForm(forms.ModelForm):
+    """
+    Form for administrators to edit user profiles including manager assignment
+    """
+    profile_picture = forms.ImageField(required=False, widget=forms.FileInput(attrs={'class': 'form-control'}))
+    bio = forms.CharField(required=False, widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}))
+    phone_number = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    job_title = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    
+    # Manager fields - only available to administrators
+    no_manager = forms.BooleanField(
+        required=False, 
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        help_text="Check if this user does not require a manager."
+    )
+    manager = forms.ModelChoiceField(
+        queryset=CustomUser.objects.none(),  # Will be set in __init__
+        required=False, 
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        help_text="Primary manager for this user."
+    )
+    
+    class Meta:
+        model = CustomUser
+        fields = ['first_name', 'last_name', 'email', 'profile_picture', 'bio', 'phone_number', 'job_title', 'no_manager', 'manager']
+        widgets = {
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+        }
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Update the manager queryset to only include staff and admin users
+        self.fields['manager'].queryset = CustomUser.objects.filter(
+            models.Q(is_superuser=True) | 
+            models.Q(role__name__in=['admin', 'staff'])
+        )
+
 class AdminSettingsForm(forms.ModelForm):
     """Form for managing admin settings"""
     class Meta:
@@ -72,4 +126,30 @@ class AdminSettingsForm(forms.ModelForm):
         fields = ['receive_all_emails']
         widgets = {
             'receive_all_emails': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-        } 
+        }
+
+class ManagerAssignmentForm(forms.ModelForm):
+    """Form for assigning managers to users"""
+    no_manager = forms.BooleanField(
+        required=False, 
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        help_text="Check if this user does not require a manager."
+    )
+    manager = forms.ModelChoiceField(
+        queryset=CustomUser.objects.none(),  # Will be set in __init__
+        required=False, 
+        widget=forms.Select(attrs={'class': 'form-control select2'}),
+        help_text="Primary manager for this user."
+    )
+    
+    class Meta:
+        model = CustomUser
+        fields = ['manager']
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Update the manager queryset to only include staff and admin users
+        self.fields['manager'].queryset = CustomUser.objects.filter(
+            models.Q(is_superuser=True) | 
+            models.Q(role__name__in=['admin', 'staff'])
+        )

@@ -16,6 +16,11 @@ urlpatterns = [
     path('users/<int:user_id>/delete/', views.user_delete, name='user_delete'),
     path('users/<int:user_id>/change-role/', views.change_user_role, name='change_user_role'),
     
+    # Manager assignment features
+    path('users/manager-assignment/', views.manager_assignment_view, name='manager_assignment'),
+    path('users/<int:user_id>/assign-manager/', views.assign_manager, name='assign_manager'),
+    path('users/<int:user_id>/direct-reports/', views.user_direct_reports, name='user_direct_reports'),
+    
     # Social Auth URLs
     path('', include('social_django.urls', namespace='social')),
     

@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <h1 class="mb-4">{{ title }}</h1>
+    
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Manager Assignment</h5>
+                <a href="{% if next == 'manager_assignment' %}{% url 'manager_assignment' %}{% else %}{% url 'user_edit' user.id %}{% endif %}" class="btn btn-sm btn-outline-secondary">
+                    Back
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h6>User Information</h6>
+                    <p><strong>Name:</strong> {{ user.first_name }} {{ user.last_name }}</p>
+                    <p><strong>Email:</strong> {{ user.email }}</p>
+                    <p>
+                        <strong>Role:</strong> 
+                        {% if user.role %}
+                            {{ user.role }}
+                        {% else %}
+                            <span class="text-muted">No role</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="col-md-6">
+                    <h6>Current Manager</h6>
+                    {% if user.no_manager %}
+                        <p><span class="badge bg-secondary">No Manager Required</span></p>
+                    {% elif user.manager %}
+                        <p><strong>Name:</strong> {{ user.manager.first_name }} {{ user.manager.last_name }}</p>
+                        <p><strong>Email:</strong> {{ user.manager.email }}</p>
+                        <p>
+                            <a href="{% url 'user_direct_reports' user.manager.id %}" class="btn btn-sm btn-outline-info">
+                                View Manager's Team
+                            </a>
+                        </p>
+                    {% else %}
+                        <p><span class="text-warning">Unassigned</span></p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ next }}">
+                
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        {{ form.non_field_errors }}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-check mb-3">
+                            {{ form.no_manager }}
+                            <label class="form-check-label" for="{{ form.no_manager.id_for_label }}">
+                                No manager required
+                            </label>
+                            {% if form.no_manager.help_text %}
+                                <small class="form-text text-muted">{{ form.no_manager.help_text }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="{{ form.manager.id_for_label }}" class="form-label">Primary Manager</label>
+                        {{ form.manager }}
+                        {% if form.manager.help_text %}
+                            <small class="form-text text-muted">{{ form.manager.help_text }}</small>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="{{ form.additional_managers.id_for_label }}" class="form-label">Additional Managers</label>
+                        {{ form.additional_managers }}
+                        {% if form.additional_managers.help_text %}
+                            <small class="form-text text-muted">{{ form.additional_managers.help_text }}</small>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="d-flex">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <a href="{% if next == 'manager_assignment' %}{% url 'manager_assignment' %}{% else %}{% url 'user_edit' user.id %}{% endif %}" class="btn btn-outline-secondary ms-2">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle the no_manager checkbox to disable manager field when checked
+        const noManagerCheckbox = document.getElementById('{{ form.no_manager.id_for_label }}');
+        const managerSelect = document.getElementById('{{ form.manager.id_for_label }}');
+        
+        if (noManagerCheckbox && managerSelect) {
+            noManagerCheckbox.addEventListener('change', function() {
+                managerSelect.disabled = this.checked;
+                if (this.checked) {
+                    managerSelect.selectedIndex = 0;
+                }
+            });
+            
+            // Initialize state on page load
+            managerSelect.disabled = noManagerCheckbox.checked;
+        }
+    });
+</script>
+{% endblock %}

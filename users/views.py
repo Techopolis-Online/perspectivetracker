@@ -10,34 +10,11 @@ from django.urls import reverse
 from perspectivetracker.utils import send_test_email, test_smtp_connection, test_smtp_ports
 from django.conf import settings
 import logging
-from .forms import UserRegistrationForm  # Import the form we just created
+from .forms import UserRegistrationForm, ProfileEditForm, AdminSettingsForm, ManagerAssignmentForm  # Import all forms
 from django.db.models import Q
 
 # Set up logger for Auth0 debugging
 logger = logging.getLogger('auth0_debug')
-
-class AdminSettingsForm(forms.ModelForm):
-    class Meta:
-        model = AdminSettings
-        fields = ['receive_all_emails']
-        widgets = {
-            'receive_all_emails': forms.CheckboxInput(attrs={'class': 'form-check-input'})
-        }
-
-class ProfileEditForm(forms.ModelForm):
-    profile_picture = forms.ImageField(required=False, widget=forms.FileInput(attrs={'class': 'form-control'}))
-    bio = forms.CharField(required=False, widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}))
-    phone_number = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
-    job_title = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
-    
-    class Meta:
-        model = CustomUser
-        fields = ['first_name', 'last_name', 'email', 'profile_picture', 'bio', 'phone_number', 'job_title']
-        widgets = {
-            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control'}),
-        }
 
 def home_view(request):
     """Home page view"""
@@ -165,17 +142,34 @@ def profile_view(request):
 @login_required
 def edit_profile_view(request):
     """Edit user profile information"""
+    # Determine if the user is an admin or superuser
+    is_admin = request.user.is_superuser or (request.user.role and request.user.role.name == Role.ADMIN)
+    
     if request.method == 'POST':
-        form = ProfileEditForm(request.POST, request.FILES, instance=request.user)
+        # Use the appropriate form class based on user role
+        if is_admin:
+            # Import AdminProfileEditForm here to avoid circular imports
+            from .forms import AdminProfileEditForm
+            form = AdminProfileEditForm(request.POST, request.FILES, instance=request.user)
+        else:
+            form = ProfileEditForm(request.POST, request.FILES, instance=request.user)
+        
         if form.is_valid():
             form.save()
             messages.success(request, "Your profile has been updated successfully.")
             return redirect('profile')
     else:
-        form = ProfileEditForm(instance=request.user)
+        # Use the appropriate form class based on user role
+        if is_admin:
+            # Import AdminProfileEditForm here to avoid circular imports
+            from .forms import AdminProfileEditForm
+            form = AdminProfileEditForm(instance=request.user)
+        else:
+            form = ProfileEditForm(instance=request.user)
     
     context = {
         'form': form,
+        'is_admin': is_admin,
     }
     return render(request, 'users/edit_profile.html', context)
 
@@ -460,3 +454,147 @@ def admin_settings(request):
         'title': 'Admin Settings',
     }
     return render(request, 'users/admin_settings.html', context)
+
+@login_required
+@admin_required
+def manager_assignment_view(request):
+    """View for bulk manager assignment (for admins only)"""
+    from .forms import ManagerAssignmentForm
+    from perspectivetracker.utils import send_manager_assignment_email
+    
+    # Get list of all users
+    users = CustomUser.objects.all().order_by('last_name', 'first_name')
+    
+    # Filter users by search or role if provided
+    search_query = request.GET.get('search', '')
+    role_filter = request.GET.get('role', '')
+    
+    if search_query:
+        users = users.filter(
+            Q(first_name__icontains=search_query) | 
+            Q(last_name__icontains=search_query) | 
+            Q(email__icontains=search_query)
+        )
+    
+    if role_filter:
+        if role_filter == 'none':
+            users = users.filter(role__isnull=True)
+        else:
+            users = users.filter(role__name=role_filter)
+    
+    # Handle form submission for a specific user
+    if request.method == 'POST':
+        user_id = request.POST.get('user_id')
+        if user_id:
+            user = get_object_or_404(CustomUser, id=user_id)
+            form = ManagerAssignmentForm(request.POST, instance=user)
+            
+            if form.is_valid():
+                # Store the old manager for notification purposes
+                old_manager = user.manager
+                
+                # Save the form
+                user = form.save()
+                
+                # Send notification email if manager changed
+                if user.manager != old_manager:
+                    try:
+                        send_manager_assignment_email(user, old_manager)
+                        messages.info(request, f"Notification email sent to manager and user.")
+                    except Exception as e:
+                        logger.error(f"Error sending manager assignment email: {str(e)}")
+                        messages.warning(request, "Manager updated but email notification could not be sent.")
+                
+                messages.success(request, f"Manager assignments updated for {user.email}")
+                return redirect('manager_assignment')
+        else:
+            messages.error(request, "Invalid user selection.")
+    
+    # Get all available managers (staff and admin users)
+    potential_managers = CustomUser.objects.filter(
+        Q(is_superuser=True) | 
+        Q(role__name__in=['admin', 'staff'])
+    ).order_by('first_name', 'last_name')
+    
+    # Get all roles for filtering
+    roles = Role.objects.all()
+    
+    context = {
+        'users': users,
+        'potential_managers': potential_managers,
+        'roles': roles,
+        'search_query': search_query,
+        'current_role': role_filter,
+        'title': 'Manager Assignment',
+    }
+    
+    return render(request, 'users/manager_assignment.html', context)
+
+@login_required
+@admin_required
+def assign_manager(request, user_id):
+    """View to assign a manager to a specific user (for admins only)"""
+    from .forms import ManagerAssignmentForm
+    from perspectivetracker.utils import send_manager_assignment_email
+    
+    user = get_object_or_404(CustomUser, id=user_id)
+    
+    if request.method == 'POST':
+        form = ManagerAssignmentForm(request.POST, instance=user)
+        
+        if form.is_valid():
+            # Store the old manager for notification purposes
+            old_manager = user.manager
+            
+            # Save the form
+            user = form.save()
+            
+            # Send notification email if manager changed
+            if user.manager != old_manager:
+                try:
+                    send_manager_assignment_email(user, old_manager)
+                    messages.info(request, f"Notification email sent to manager and user.")
+                except Exception as e:
+                    logger.error(f"Error sending manager assignment email: {str(e)}")
+                    messages.warning(request, "Manager updated but email notification could not be sent.")
+            
+            messages.success(request, f"Manager assignments updated for {user.email}")
+            
+            # Determine where to redirect based on where the user came from
+            next_page = request.POST.get('next', 'user_edit')
+            if next_page == 'manager_assignment':
+                return redirect('manager_assignment')
+            else:
+                return redirect('user_edit', user_id=user.id)
+    else:
+        form = ManagerAssignmentForm(instance=user)
+    
+    context = {
+        'form': form,
+        'user': user,
+        'title': f'Assign Manager: {user.email}',
+        'next': request.GET.get('next', 'user_edit'),
+    }
+    
+    return render(request, 'users/assign_manager.html', context)
+
+@login_required
+@admin_required
+def user_direct_reports(request, user_id):
+    """View to show a user's direct reports (for admins only)"""
+    user = get_object_or_404(CustomUser, id=user_id)
+    
+    # Get direct reports (users where this user is the manager)
+    direct_reports = CustomUser.objects.filter(manager=user).order_by('last_name', 'first_name')
+    
+    # Get all roles for filtering
+    roles = Role.objects.all()
+    
+    context = {
+        'user': user,
+        'direct_reports': direct_reports,
+        'roles': roles,
+        'title': f"Direct Reports for {user.get_full_name()}",
+    }
+    
+    return render(request, 'users/user_direct_reports.html', context)

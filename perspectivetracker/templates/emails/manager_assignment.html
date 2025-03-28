@@ -9,10 +9,10 @@
             <h1 style="font-size: 24px; margin: 0 0 20px 0; font-family: sans-serif;">Management Relationship Update</h1>
             
             <p style="margin: 0 0 20px 0; font-size: 16px;">
-                Hello {{ user.first_name }},
+                Hello {{ recipient.first_name }},
             </p>
             
-            {% if user.email == manager.email %}
+            {% if is_manager %}
             <!-- Content specifically for the manager -->
             <p style="margin: 0 0 20px 0; font-size: 16px;">
                 This is to inform you that {{ user.first_name }} {{ user.last_name }} has been assigned to your team. 
@@ -26,31 +26,43 @@
             </p>
             
             {% else %}
-            <!-- Content for the employee -->
-            <p style="margin: 0 0 20px 0; font-size: 16px;">
-                This is to inform you that {{ manager.first_name }} {{ manager.last_name }} has been assigned as your manager at Techopolis. 
-                They will be your primary point of contact for professional development, work assignments, 
-                and performance evaluation.
-            </p>
-            
-            <p style="margin: 0 0 20px 0; font-size: 16px;">
-                Your manager will be in touch soon to schedule an introductory meeting. Feel free to reach out to them 
-                directly if you have any immediate questions or concerns.
-            </p>
-            
-            <p style="margin: 0 0 20px 0; font-size: 16px;">
-                Manager's contact information:
-            </p>
-            
-            <ul style="margin: 0 0 20px 0; padding-left: 20px; text-align: left; list-style-type: none;">
-                <li style="margin-bottom: 10px;"><strong>Email:</strong> {{ manager.email }}</li>
-                {% if manager.phone_number %}
-                <li style="margin-bottom: 10px;"><strong>Phone:</strong> {{ manager.phone_number }}</li>
+                {% if manager %}
+                <!-- Content for the employee with a manager -->
+                <p style="margin: 0 0 20px 0; font-size: 16px;">
+                    This is to inform you that {{ manager.first_name }} {{ manager.last_name }} has been assigned as your manager at Techopolis. 
+                    They will be your primary point of contact for professional development, work assignments, 
+                    and performance evaluation.
+                </p>
+                
+                <p style="margin: 0 0 20px 0; font-size: 16px;">
+                    Your manager will be in touch soon to schedule an introductory meeting. Feel free to reach out to them 
+                    directly if you have any immediate questions or concerns.
+                </p>
+                
+                <p style="margin: 0 0 20px 0; font-size: 16px;">
+                    Manager's contact information:
+                </p>
+                
+                <ul style="margin: 0 0 20px 0; padding-left: 20px; text-align: left; list-style-type: none;">
+                    <li style="margin-bottom: 10px;"><strong>Email:</strong> {{ manager.email }}</li>
+                    {% if manager.phone_number %}
+                    <li style="margin-bottom: 10px;"><strong>Phone:</strong> {{ manager.phone_number }}</li>
+                    {% endif %}
+                    {% if manager.job_title %}
+                    <li style="margin-bottom: 10px;"><strong>Title:</strong> {{ manager.job_title }}</li>
+                    {% endif %}
+                </ul>
+                {% else %}
+                <!-- Content for the employee with no manager -->
+                <p style="margin: 0 0 20px 0; font-size: 16px;">
+                    This is to inform you that you currently do not have a manager assigned at Techopolis.
+                </p>
+                
+                <p style="margin: 0 0 20px 0; font-size: 16px;">
+                    If you have any questions about your assignments, professional development, or require assistance,
+                    please reach out directly to the HR department or the appropriate department head.
+                </p>
                 {% endif %}
-                {% if manager.job_title %}
-                <li style="margin-bottom: 10px;"><strong>Title:</strong> {{ manager.job_title }}</li>
-                {% endif %}
-            </ul>
             {% endif %}
             
             <p style="margin: 0 0 20px 0; font-size: 16px;">

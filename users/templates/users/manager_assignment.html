@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <h1 class="mb-4">{{ title }}</h1>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Find Users</h5>
+            <form method="get" class="mb-3">
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <input type="text" name="search" class="form-control" placeholder="Search by name or email" value="{{ search_query }}">
+                    </div>
+                    <div class="col-md-4">
+                        <select name="role" class="form-select">
+                            <option value="">All roles</option>
+                            <option value="none" {% if current_role == 'none' %}selected{% endif %}>No role</option>
+                            {% for role in roles %}
+                                <option value="{{ role.name }}" {% if current_role == role.name %}selected{% endif %}>{{ role.get_name_display }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary w-100">Search</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Users and Managers</h5>
+        </div>
+        <div class="card-body">
+            {% if users %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Current Manager</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                                <tr>
+                                    <td>
+                                        {% if user.first_name or user.last_name %}
+                                            {{ user.first_name }} {{ user.last_name }}
+                                        {% else %}
+                                            <em>No name</em>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ user.email }}</td>
+                                    <td>
+                                        {% if user.role %}
+                                            {{ user.role }}
+                                        {% else %}
+                                            <span class="text-muted">No role</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if user.no_manager %}
+                                            <span class="badge bg-secondary">No Manager Required</span>
+                                        {% elif user.manager %}
+                                            {{ user.manager.first_name }} {{ user.manager.last_name }}
+                                        {% else %}
+                                            <span class="text-warning">Unassigned</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'assign_manager' user.id %}?next=manager_assignment" 
+                                           class="btn btn-sm btn-primary">
+                                            Assign Manager
+                                        </a>
+                                        {% if user.manager %}
+                                            <a href="{% url 'user_direct_reports' user.manager.id %}" 
+                                               class="btn btn-sm btn-outline-info">
+                                                View Team
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    No users found matching the current filters.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add any JavaScript functionality here
+    });
+</script>
+{% endblock %}

@@ -904,11 +904,12 @@ def send_manager_assignment_email(user, previous_manager=None):
         bool: True if emails were sent successfully
     """
     recipients = []
+    logger = logging.getLogger(__name__)
     
-    # Email to the user who got a new manager
+    # Email to the user who got a new manager or no manager
     recipients.append(user.email)
     
-    # Email to the new manager
+    # Email to the new manager (if there is one)
     if user.manager:
         recipients.append(user.manager.email)
     
@@ -919,14 +920,28 @@ def send_manager_assignment_email(user, previous_manager=None):
     subject = "Management Relationship Update"
     template = 'emails/manager_assignment.html'
     
-    context = {
-        'user': user,
-        'manager': user.manager,
-        'company_name': 'Techopolis Online Solutions',
-        'current_year': datetime.datetime.now().year,
-    }
+    # Create separate context entries for each recipient
+    results = []
     
-    return send_email(subject, template, context, recipients)
+    for recipient_email in recipients:
+        # Determine if this recipient is the manager or the user
+        is_manager = (user.manager and recipient_email == user.manager.email)
+        
+        context = {
+            'user': user,
+            'manager': user.manager,
+            'recipient': user.manager if is_manager else user,
+            'is_manager': is_manager,
+            'company_name': 'Techopolis Online Solutions',
+            'current_year': datetime.datetime.now().year,
+        }
+        
+        result = send_email(subject, template, context, [recipient_email])
+        logger.info(f"Manager assignment email to {recipient_email}: {result}")
+        results.append(result)
+    
+    # Return True if all emails were sent successfully
+    return all(results) if results else False
 
 
 def send_manager_reassignment_email(user, previous_manager):
