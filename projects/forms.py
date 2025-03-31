@@ -64,7 +64,8 @@ class ProjectTypeForm(forms.ModelForm):
             field_names = [field.get('name') for field in instance.issue_fields]
             has_accessibility_fields = all(name in field_names for name in [
                 'page_scenario', 'violation_type', 'issue_description', 
-                'steps_to_reproduce', 'tool_or_method', 'user_impact'
+                'steps_to_reproduce', 'tool_or_method', 'user_impact',
+                'user_impact_description', 'workarounds', 'current_status'
             ])
             
             self.fields['use_predefined_accessibility_fields'].initial = has_accessibility_fields
@@ -179,18 +180,18 @@ class ProjectTypeForm(forms.ModelForm):
             # Define the predefined accessibility issue fields
             predefined_fields = [
                 {
-                    "name": "milestone", 
-                    "type": "select", 
-                    "required": True, 
-                    "label": "Milestone"
-                    # Milestone choices will be loaded from the project's milestones list
-                },
-                {
                     "name": "page_scenario", 
                     "type": "select", 
                     "required": True, 
                     "label": "Page / Scenario"
-                    # Page choices will be loaded from the project's pages list
+                    # Page choices will be loaded from the pages app
+                },
+                {
+                    "name": "violation_type", 
+                    "type": "select", 
+                    "required": True, 
+                    "label": "Violation"
+                    # Violation choices will be loaded from the project standard only if project type is accessibility
                 },
                 {
                     "name": "issue_description", 
@@ -202,7 +203,7 @@ class ProjectTypeForm(forms.ModelForm):
                     "name": "steps_to_reproduce", 
                     "type": "textarea", 
                     "required": True, 
-                    "label": "Steps"
+                    "label": "Steps to Reproduce"
                 },
                 {
                     "name": "tool_or_method", 
@@ -256,18 +257,6 @@ class ProjectTypeForm(forms.ModelForm):
                         ["in_remediation", "In Remediation"],
                         ["ready_for_testing", "Ready For Testing"]
                     ]
-                },
-                {
-                    "name": "date_logged", 
-                    "type": "date", 
-                    "required": True, 
-                    "label": "Date"
-                },
-                {
-                    "name": "attachments", 
-                    "type": "file", 
-                    "required": False, 
-                    "label": "Attachments"
                 }
             ]
             
@@ -471,6 +460,10 @@ class PageForm(forms.ModelForm):
             'page_type': forms.Select(attrs={'class': 'form-select'}),
             'url': forms.URLInput(attrs={'class': 'form-control'}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        project = kwargs.pop('project', None)
+        super().__init__(*args, **kwargs)
 
 class MilestoneForm(forms.ModelForm):
     class Meta:
@@ -546,11 +539,31 @@ class IssueForm(forms.ModelForm):
         if project:
             self.fields['milestone'].queryset = Milestone.objects.filter(project=project)
             self.fields['page'].queryset = Page.objects.filter(project=project)
+            
+            # Filter violations by project standards if project type is accessibility
+            if project.project_type and project.project_type.supports_standards:
+                # Get all standards associated with this project
+                project_standards = ProjectStandard.objects.filter(project=project).values_list('standard_id', flat=True)
+                # Filter violations to only include those from the project's standards
+                self.fields['violation'].queryset = Violation.objects.filter(standard_id__in=project_standards)
+            else:
+                # If not accessibility project, don't require violation
+                self.fields['violation'].required = False
         
         # If instance exists, filter by its project
         elif self.instance and self.instance.project:
             self.fields['milestone'].queryset = Milestone.objects.filter(project=self.instance.project)
             self.fields['page'].queryset = Page.objects.filter(project=self.instance.project)
+            
+            # Filter violations by project standards if project type is accessibility
+            if self.instance.project.project_type and self.instance.project.project_type.supports_standards:
+                # Get all standards associated with this project
+                project_standards = ProjectStandard.objects.filter(project=self.instance.project).values_list('standard_id', flat=True)
+                # Filter violations to only include those from the project's standards
+                self.fields['violation'].queryset = Violation.objects.filter(standard_id__in=project_standards)
+            else:
+                # If not accessibility project, don't require violation
+                self.fields['violation'].required = False
 
 class CommentForm(forms.ModelForm):
     class Meta:
@@ -564,13 +577,20 @@ class CommentForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         issue = kwargs.pop('issue', None)
+        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
         # Filter milestone options by project
         if issue and issue.project:
             self.fields['milestone'].queryset = Milestone.objects.filter(project=issue.project)
-        elif self.instance and self.instance.issue and self.instance.issue.project:
-            self.fields['milestone'].queryset = Milestone.objects.filter(project=self.instance.issue.project)
+        elif self.instance and hasattr(self.instance, 'issue'):
+            try:
+                # Safely check if the related issue exists and has a project
+                if self.instance.issue and self.instance.issue.project:
+                    self.fields['milestone'].queryset = Milestone.objects.filter(project=self.instance.issue.project)
+            except Comment.issue.RelatedObjectDoesNotExist:
+                # Handle the case where there is no related issue
+                pass
 
 class IssueStatusForm(forms.Form):
     """A simple form for updating the status of an issue"""

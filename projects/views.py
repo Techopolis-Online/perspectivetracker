@@ -1161,94 +1161,34 @@ def issue_detail(request, project_id, pk):
     
     # Handle POST requests
     if request.method == 'POST':
-        # Check if this is a "Mark as Ready for Testing" action
-        if request.POST.get('action') == 'mark_ready_for_testing':
-            # Check if user has permission to mark as ready for testing
-            if not (request.user.is_superuser or 
-                   (request.user.is_authenticated and 
-                   hasattr(request.user, 'role') and 
-                   request.user.role and 
-                   request.user.role.name != 'standard')):
-                return HttpResponseForbidden("You don't have permission to mark this issue as ready for testing.")
-            
-            # Store the old status for the response
-            old_status = issue.get_current_status_display()
-            old_status_value = issue.current_status
-            
-            # Update the issue status
-            issue.current_status = 'ready_for_testing'
-            issue.save()
-            
-            # Add a system comment about the status change
-            comment = Comment.objects.create(
-                issue=issue,
-                author=request.user,
-                text=f"Status changed to Ready for Testing by {request.user.get_full_name()}",
-                comment_type='external',
-                status_changed=True,
-                previous_status=old_status_value,
-                new_status='ready_for_testing'
-            )
-            
-            # Record the modification
-            IssueModification.objects.create(
-                issue=issue,
-                milestone=issue.milestone,
-                modified_by=request.user,
-                modification_type='status_change',
-                previous_value=old_status_value,
-                new_value='ready_for_testing',
-                comment=comment
-            )
-            
-            # If this is an AJAX request, return JSON response
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({
-                    'success': True,
-                    'message': 'Issue marked as Ready for Testing.',
-                    'old_status': old_status
-                })
-            
-            # Otherwise redirect to the issue detail page
-            messages.success(request, 'Issue marked as Ready for Testing.')
-            return redirect('projects:issue_detail', project_id=project.id, pk=issue.id)
-        
-        # Handle comment form submission
-        comment_form = CommentForm(request.POST, user=request.user)
+        comment_form = CommentForm(request.POST, user=request.user, issue=issue)
         if comment_form.is_valid():
-            # Check if status is being updated
-            new_status = request.POST.get('current_status')
-            status_changed = False
-            old_status_value = issue.current_status
-            old_status_display = issue.get_current_status_display()
-            
-            # If status is being changed, update the issue
-            if new_status and new_status != issue.current_status:
-                issue.current_status = new_status
-                issue.save()
-                status_changed = True
-            
-            # Create the comment
             comment = comment_form.save(commit=False)
             comment.issue = issue
             comment.author = request.user
             comment.milestone = issue.milestone
             
-            # If status was changed, add that to the comment text and set status change fields
-            if status_changed:
-                status_message = f"\n\nStatus changed from '{old_status_display}' to '{issue.get_current_status_display()}'."
-                if comment.text:
-                    comment.text += status_message
-                else:
-                    comment.text = status_message.strip()
-                
-                comment.status_changed = True
-                comment.previous_status = old_status_value
-                comment.new_status = new_status
+            # Check if status change is requested
+            status_changed = False
+            old_status_value = issue.current_status
+            new_status = None
             
+            if 'change_status' in request.POST and request.POST.get('new_status'):
+                new_status = request.POST.get('new_status')
+                if new_status != old_status_value:
+                    status_changed = True
+                    comment.status_changed = True
+                    comment.previous_status = old_status_value
+                    comment.new_status = new_status
+                    
+                    # Update the issue status
+                    issue.current_status = new_status
+                    issue.save()
+            
+            # Save the comment
             comment.save()
             
-            # Record the modification
+            # Record the status change modification if applicable
             if status_changed:
                 IssueModification.objects.create(
                     issue=issue,
@@ -1291,11 +1231,23 @@ def issue_detail(request, project_id, pk):
                     'project': project,
                 })
                 
-                return JsonResponse({
+                response_data = {
                     'success': True,
                     'message': 'Comment added successfully.',
-                    'html': comments_html
-                })
+                    'comments_html': comments_html,
+                    'comment_count': issue.comments.count()
+                }
+                
+                # Add status information if status was changed
+                if status_changed:
+                    response_data.update({
+                        'status_changed': True,
+                        'new_status': issue.current_status,
+                        'new_status_display': issue.get_current_status_display(),
+                        'previous_status': old_status_value
+                    })
+                
+                return JsonResponse(response_data)
             
             messages.success(request, 'Comment added successfully.')
             
@@ -1306,7 +1258,7 @@ def issue_detail(request, project_id, pk):
                 
             return redirect('projects:issue_detail', project_id=project.id, pk=issue.id)
     else:
-        comment_form = CommentForm(user=request.user)
+        comment_form = CommentForm(user=request.user, issue=issue)
     
     # Determine if user can see internal comments
     can_see_internal = request.user.is_superuser or (

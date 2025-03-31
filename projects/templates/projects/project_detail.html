@@ -342,7 +342,7 @@
                                         </a>
                                     </td>
                                     <td>
-                                        <span class="badge {% if issue.current_status == 'ready_for_testing' %}bg-info{% elif issue.current_status == 'in_progress' %}bg-warning{% elif issue.current_status == 'resolved' %}bg-success{% elif issue.current_status == 'closed' %}bg-secondary{% else %}bg-danger{% endif %} status-badge">
+                                        <span class="badge {% if issue.current_status == 'ready_for_testing' %}bg-info{% elif issue.current_status == 'in_progress' %}bg-warning{% elif issue.current_status == 'resolved' %}bg-success{% elif issue.current_status == 'closed' %}bg-secondary{% else %}bg-danger{% endif %} status-badge" data-issue-id="{{ issue.id }}">
                                             {{ issue.get_current_status_display }}
                                         </span>
                                     </td>
@@ -406,6 +406,35 @@
                                                                 <label for="id_text{{ issue.id }}" class="form-label">Comment:</label>
                                                                 <textarea class="form-control" id="id_text{{ issue.id }}" name="text" rows="4" required></textarea>
                                                             </div>
+                                                            
+                                                            <div class="mb-3">
+                                                                <div class="form-check">
+                                                                    <input class="form-check-input" type="checkbox" id="id_change_status{{ issue.id }}" name="change_status">
+                                                                    <label class="form-check-label" for="id_change_status{{ issue.id }}">
+                                                                        Change Issue Status
+                                                                    </label>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div class="mb-3 status-select-container{{ issue.id }}" style="display: none;">
+                                                                <label for="id_new_status{{ issue.id }}" class="form-label">New Status:</label>
+                                                                <select class="form-select" id="id_new_status{{ issue.id }}" name="new_status">
+                                                                    {% if project.project_type.status_choices %}
+                                                                        {% for choice in project.project_type.status_choices %}
+                                                                            <option value="{{ choice.0 }}" {% if choice.0 == issue.current_status %}selected{% endif %}>{{ choice.1 }}</option>
+                                                                        {% endfor %}
+                                                                    {% else %}
+                                                                        <option value="fail" {% if issue.current_status == 'fail' %}selected{% endif %}>Fail</option>
+                                                                        <option value="pass" {% if issue.current_status == 'pass' %}selected{% endif %}>Pass</option>
+                                                                        <option value="qa" {% if issue.current_status == 'qa' %}selected{% endif %}>QA</option>
+                                                                        <option value="in_remediation" {% if issue.current_status == 'in_remediation' %}selected{% endif %}>In Remediation</option>
+                                                                        <option value="ready_for_testing" {% if issue.current_status == 'ready_for_testing' %}selected{% endif %}>Ready For Testing</option>
+                                                                        <option value="resolved" {% if issue.current_status == 'resolved' %}selected{% endif %}>Resolved</option>
+                                                                        <option value="closed" {% if issue.current_status == 'closed' %}selected{% endif %}>Closed</option>
+                                                                    {% endif %}
+                                                                </select>
+                                                            </div>
+                                                            
                                                             {% if user.is_superuser or user.role.name == 'admin' or user.role.name == 'staff' %}
                                                             <div class="mb-3">
                                                                 <label for="id_comment_type{{ issue.id }}" class="form-label">Comment Type:</label>
@@ -449,9 +478,9 @@
                     {% else %}
                     <div class="alert alert-info">
                         <p class="mb-0">No accessibility issues have been added to this project yet.</p>
-                        <a href="{% url 'projects:issue_create' project.id %}" class="btn btn-sm btn-primary mt-2">
+                        <button type="button" class="btn btn-sm btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#addIssueModal">
                             <i class="bi bi-plus-lg"></i> Create Issue
-                        </a>
+                        </button>
                     </div>
                     {% endif %}
                 </div>
@@ -460,9 +489,9 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h2 class="card-title mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Project Issues</h2>
-                    <a href="{% url 'projects:issue_create' project.id %}" class="btn btn-primary btn-sm">
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addIssueModal">
                         <i class="bi bi-plus-lg me-1"></i> Add Issue
-                    </a>
+                    </button>
                 </div>
                 <div class="card-body">
                     <div class="alert alert-info">
@@ -499,7 +528,7 @@
                                         </a>
                                     </td>
                                     <td>
-                                        <span class="badge {% if issue.current_status == 'ready_for_testing' %}bg-info{% elif issue.current_status == 'in_progress' %}bg-warning{% elif issue.current_status == 'resolved' %}bg-success{% elif issue.current_status == 'closed' %}bg-secondary{% else %}bg-danger{% endif %} status-badge">
+                                        <span class="badge {% if issue.current_status == 'ready_for_testing' %}bg-info{% elif issue.current_status == 'in_progress' %}bg-warning{% elif issue.current_status == 'resolved' %}bg-success{% elif issue.current_status == 'closed' %}bg-secondary{% else %}bg-danger{% endif %} status-badge" data-issue-id="{{ issue.id }}">
                                             {{ issue.get_current_status_display }}
                                         </span>
                                     </td>
@@ -574,6 +603,7 @@
                     {% endif %}
                 </div>
             </div>
+            {% endif %}
         </div>
 
         <!-- Milestones Tab -->
@@ -751,31 +781,350 @@
     border-bottom: 2px solid var(--secondary-color);
     background-color: transparent;
 }
+
+/* Modal styling fixes */
+.modal {
+    z-index: 1050;
+}
+
+.modal-backdrop {
+    z-index: 1040;
+    opacity: 0.5 !important;
+}
+
+.modal-content {
+    background-color: #fff;
+    border-radius: 0.3rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    color: #212529;
+}
+
+.modal-header {
+    border-bottom: 1px solid #dee2e6;
+    padding: 1rem;
+}
+
+.modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+.modal-footer {
+    border-top: 1px solid #dee2e6;
+    padding: 1rem;
+}
 </style>
 
 <script>
-// Helper function to show alerts
-function showAlert(type, message) {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-    alertDiv.setAttribute('role', 'alert');
-    alertDiv.innerHTML = `
-        <strong>${type === 'success' ? 'Success!' : 'Error!'}</strong> ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    `;
-    document.querySelector('.container').prepend(alertDiv);
-    
-    // Auto-dismiss after 5 seconds
-    setTimeout(() => {
-        const bsAlert = new bootstrap.Alert(alertDiv);
-        bsAlert.close();
-    }, 5000);
-}
-
-// Page type filter functionality
+// Make sure Bootstrap is available
 document.addEventListener('DOMContentLoaded', function() {
-    const filterButtons = document.querySelectorAll('[data-filter]');
+    // Check if Bootstrap is loaded and provide a fallback if it's not
+    if (typeof bootstrap === 'undefined') {
+        console.error('Bootstrap JavaScript is not loaded. Modal functionality will not work.');
+        // Create a basic modal implementation for fallback
+        window.bootstrap = {
+            Modal: function(element) {
+                this.element = element;
+                this.show = function() {
+                    if (this.element) {
+                        this.element.style.display = 'block';
+                        this.element.classList.add('show');
+                        document.body.classList.add('modal-open');
+                        const backdrop = document.createElement('div');
+                        backdrop.className = 'modal-backdrop fade show';
+                        document.body.appendChild(backdrop);
+                    }
+                };
+                this.hide = function() {
+                    if (this.element) {
+                        this.element.style.display = 'none';
+                        this.element.classList.remove('show');
+                        document.body.classList.remove('modal-open');
+                        const backdrop = document.querySelector('.modal-backdrop');
+                        if (backdrop) document.body.removeChild(backdrop);
+                    }
+                };
+                return this;
+            },
+            Alert: function(element) {
+                this.element = element;
+                this.close = function() {
+                    if (this.element && this.element.parentNode) {
+                        this.element.parentNode.removeChild(this.element);
+                    }
+                };
+                return this;
+            }
+        };
+    }
+
+    // Helper function to show alerts
+    function showAlert(type, message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.setAttribute('role', 'alert');
+        alertDiv.innerHTML = `
+            <strong>${type === 'success' ? 'Success!' : 'Error!'}</strong> ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        const container = document.querySelector('.container');
+        if (container) {
+            container.prepend(alertDiv);
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                try {
+                    const bsAlert = new bootstrap.Alert(alertDiv);
+                    bsAlert.close();
+                } catch (e) {
+                    if (alertDiv.parentNode) {
+                        alertDiv.parentNode.removeChild(alertDiv);
+                    }
+                }
+            }, 5000);
+        }
+    }
     
+    // Make showAlert globally available
+    window.showAlert = showAlert;
+
+    // Initialize all modals
+    document.querySelectorAll('.modal').forEach(function(modalEl) {
+        try {
+            new bootstrap.Modal(modalEl);
+        } catch (e) {
+            console.error('Error initializing modal:', e);
+        }
+    });
+
+    // Initialize all Bootstrap modals properly
+    const addIssueModalEl = document.getElementById('addIssueModal');
+    if (addIssueModalEl) {
+        // Add event listeners for modal events
+        addIssueModalEl.addEventListener('shown.bs.modal', function() {
+            const firstField = document.getElementById('id_milestone');
+            if (firstField) firstField.focus();
+        });
+        
+        // Reset the form when the modal is closed
+        addIssueModalEl.addEventListener('hidden.bs.modal', function() {
+            const form = document.getElementById('addIssueForm');
+            if (form) form.reset();
+        });
+    }
+
+    // Initialize click handlers for issue comments
+    document.querySelectorAll('[id^="showCommentForm"]').forEach(function(button) {
+        button.addEventListener('click', function() {
+            // Get the issue ID from the button ID
+            const issueId = this.id.replace('showCommentForm', '');
+            
+            // Hide the comments modal
+            const commentsModal = document.getElementById('commentsModal' + issueId);
+            if (commentsModal) {
+                try {
+                    const commentsModalInstance = bootstrap.Modal.getInstance(commentsModal);
+                    if (commentsModalInstance) {
+                        commentsModalInstance.hide();
+                    } else {
+                        commentsModal.style.display = 'none';
+                        commentsModal.classList.remove('show');
+                    }
+                } catch (e) {
+                    console.error('Error hiding comments modal:', e);
+                    commentsModal.style.display = 'none';
+                    commentsModal.classList.remove('show');
+                }
+            }
+            
+            // Show the add comment modal
+            const addCommentModal = document.getElementById('addCommentModal' + issueId);
+            if (addCommentModal) {
+                try {
+                    // If add comment modal already has an instance, use it, otherwise create a new one
+                    const existingModalInstance = bootstrap.Modal.getInstance(addCommentModal);
+                    if (existingModalInstance) {
+                        existingModalInstance.show();
+                    } else {
+                        const addCommentModalInstance = new bootstrap.Modal(addCommentModal);
+                        addCommentModalInstance.show();
+                    }
+                } catch (e) {
+                    console.error('Error showing add comment modal:', e);
+                    // Fallback for when bootstrap is not loaded properly
+                    addCommentModal.style.display = 'block';
+                    addCommentModal.classList.add('show');
+                    document.body.classList.add('modal-open');
+                    const backdrop = document.createElement('div');
+                    backdrop.className = 'modal-backdrop fade show';
+                    document.body.appendChild(backdrop);
+                }
+            }
+        });
+    });
+    
+    // Handle status change checkboxes in comment forms
+    document.querySelectorAll('[id^="id_change_status"]').forEach(function(checkbox) {
+        checkbox.addEventListener('change', function() {
+            const issueId = this.id.replace('id_change_status', '');
+            const statusContainer = document.querySelector('.status-select-container' + issueId);
+            
+            if (this.checked) {
+                statusContainer.style.display = 'block';
+            } else {
+                statusContainer.style.display = 'none';
+            }
+        });
+    });
+    
+    // Handle comment form submissions via AJAX
+    document.querySelectorAll('.submit-comment').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const formId = this.getAttribute('data-form-id');
+            const form = document.getElementById(formId);
+            
+            if (form) {
+                // Prevent default form submission
+                const submitEvent = new Event('submit', { cancelable: true });
+                form.dispatchEvent(submitEvent);
+                
+                if (!submitEvent.defaultPrevented) {
+                    // Extract issue ID from the form ID
+                    const issueIdMatch = formId.match(/addCommentForm(\d+)/);
+                    const issueId = issueIdMatch ? issueIdMatch[1] : null;
+                    
+                    if (!issueId) {
+                        console.error('Could not determine issue ID from form ID:', formId);
+                        showAlert('danger', 'Error: Could not determine issue ID');
+                        return;
+                    }
+                    
+                    const formData = new FormData(form);
+                    
+                    // Check if status change is requested
+                    const statusCheckbox = form.querySelector('[name="change_status"]');
+                    const isStatusChange = statusCheckbox ? statusCheckbox.checked : false;
+                    const statusSelect = form.querySelector('[name="new_status"]');
+                    const newStatus = isStatusChange && statusSelect ? statusSelect.value : null;
+                    
+                    // Submit form via AJAX
+                    fetch(form.getAttribute('action'), {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            showAlert('success', 'Comment added successfully!');
+                            
+                            // Close the add comment modal
+                            const addCommentModal = document.getElementById(`addCommentModal${issueId}`);
+                            if (addCommentModal) {
+                                try {
+                                    const addCommentModalInstance = bootstrap.Modal.getInstance(addCommentModal);
+                                    if (addCommentModalInstance) addCommentModalInstance.hide();
+                                    else new bootstrap.Modal(addCommentModal).hide();
+                                } catch (e) {
+                                    console.error('Error closing comment modal:', e);
+                                    addCommentModal.style.display = 'none';
+                                    addCommentModal.classList.remove('show');
+                                }
+                            }
+                            
+                            // Reset the form
+                            form.reset();
+                            
+                            // If status was changed, update the status badge in the UI
+                            if (isStatusChange && data.new_status_display) {
+                                // Find issue rows that contain this issue ID in their href
+                                const statusBadges = document.querySelectorAll(`.status-badge[data-issue-id="${issueId}"]`);
+                                if (statusBadges.length > 0) {
+                                    statusBadges.forEach(badge => {
+                                        badge.textContent = data.new_status_display;
+                                        
+                                        // Update badge class based on status
+                                        badge.className = 'badge status-badge ';
+                                        if (newStatus === 'ready_for_testing') badge.className += 'bg-info';
+                                        else if (newStatus === 'in_progress' || newStatus === 'in_remediation') badge.className += 'bg-warning';
+                                        else if (newStatus === 'resolved' || newStatus === 'pass') badge.className += 'bg-success';
+                                        else if (newStatus === 'closed') badge.className += 'bg-secondary';
+                                        else badge.className += 'bg-danger';
+                                    });
+                                } else {
+                                    // Try finding by row data-href
+                                    const rows = document.querySelectorAll(`tr[data-href*="issues/${issueId}"]`);
+                                    rows.forEach(row => {
+                                        const badge = row.querySelector('.status-badge');
+                                        if (badge) {
+                                            badge.textContent = data.new_status_display;
+                                            
+                                            // Update badge class based on status
+                                            badge.className = 'badge status-badge ';
+                                            if (newStatus === 'ready_for_testing') badge.className += 'bg-info';
+                                            else if (newStatus === 'in_progress' || newStatus === 'in_remediation') badge.className += 'bg-warning';
+                                            else if (newStatus === 'resolved' || newStatus === 'pass') badge.className += 'bg-success';
+                                            else if (newStatus === 'closed') badge.className += 'bg-secondary';
+                                            else badge.className += 'bg-danger';
+                                        }
+                                    });
+                                }
+
+                                // Update ready for testing checkbox if present
+                                const readyCheckbox = document.querySelector(`input[data-issue-id="${issueId}"].ready-for-testing-checkbox`);
+                                if (readyCheckbox) {
+                                    readyCheckbox.checked = newStatus === 'ready_for_testing';
+                                }
+                            }
+                            
+                            // Update the comments in the comments modal
+                            const commentsModal = document.getElementById(`commentsModal${issueId}`);
+                            if (commentsModal) {
+                                const commentsContainer = commentsModal.querySelector('.comments-container');
+                                if (commentsContainer && data.comments_html) {
+                                    commentsContainer.innerHTML = data.comments_html;
+                                }
+                                
+                                // Update the comment count
+                                const commentCountElem = document.querySelector(`[data-bs-target="#commentsModal${issueId}"] .badge`);
+                                if (commentCountElem && data.comment_count) {
+                                    commentCountElem.textContent = data.comment_count;
+                                }
+                                
+                                // Show the comments modal
+                                try {
+                                    const modal = new bootstrap.Modal(commentsModal);
+                                    modal.show();
+                                } catch (e) {
+                                    console.error('Error showing comments modal:', e);
+                                    commentsModal.style.display = 'block';
+                                    commentsModal.classList.add('show');
+                                }
+                            }
+                        } else {
+                            showAlert('danger', data.message || 'Error adding comment');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showAlert('danger', 'There was a problem submitting your comment');
+                    });
+                }
+            }
+        });
+    });
+    
+    // Page type filter functionality
+    const filterButtons = document.querySelectorAll('[data-filter]');
     filterButtons.forEach(button => {
         button.addEventListener('click', function() {
             // Remove active class from all buttons
@@ -801,111 +1150,28 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Make table rows clickable
-    const clickableRows = document.querySelectorAll('.clickable-row');
-    clickableRows.forEach(row => {
+    // Make table rows clickable to navigate to detail pages
+    document.querySelectorAll('.clickable-row').forEach(function(row) {
         row.style.cursor = 'pointer';
         row.addEventListener('click', function(e) {
-            // Don't navigate if clicking on a button or link
-            if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON' || 
-                e.target.closest('a') || e.target.closest('button')) {
-                return;
-            }
-            const href = this.dataset.href;
-            if (href) {
-                window.location.href = href;
-            }
-        });
-    });
-
-    // Set up the comment form toggles for each issue
-    document.querySelectorAll('[id^="showCommentForm"]').forEach(function(button) {
-        button.addEventListener('click', function() {
-            const issueId = this.id.replace('showCommentForm', '');
-            // Hide the comments modal
-            const commentsModalEl = document.getElementById('commentsModal' + issueId);
-            if (commentsModalEl) {
-                const commentsModal = bootstrap.Modal.getInstance(commentsModalEl);
-                if (commentsModal) {
-                    commentsModal.hide();
-                    
-                    // Show the add comment modal after the comments modal is hidden
-                    commentsModalEl.addEventListener('hidden.bs.modal', function() {
-                        const addCommentModalEl = document.getElementById('addCommentModal' + issueId);
-                        if (addCommentModalEl) {
-                            const addCommentModal = new bootstrap.Modal(addCommentModalEl);
-                            addCommentModal.show();
-                        }
-                    }, { once: true });
+            // Only navigate if the click wasn't on a button, link, or input
+            if (e.target.tagName !== 'BUTTON' && 
+                e.target.tagName !== 'A' && 
+                e.target.tagName !== 'INPUT' && 
+                !e.target.closest('button') && 
+                !e.target.closest('a') && 
+                !e.target.closest('input')) {
+                
+                const href = this.dataset.href;
+                if (href) {
+                    window.location.href = href;
                 }
             }
         });
     });
 
-    // Handle comment form submissions
-    document.querySelectorAll('.submit-comment').forEach(button => {
-        button.addEventListener('click', function() {
-            const formId = this.getAttribute('data-form-id');
-            const form = document.getElementById(formId);
-            const formData = new FormData(form);
-            const issueId = formId.replace('addCommentForm', '');
-            
-            // Add a loading state to the button
-            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
-            this.disabled = true;
-            
-            fetch(form.action, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                }
-            })
-            .then(response => {
-                if (response.status === 403) {
-                    throw new Error('Permission denied: You do not have permission to add comments.');
-                }
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    // Close the modal
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('addCommentModal' + issueId));
-                    modal.hide();
-                    
-                    // Show success message
-                    showAlert('success', data.message);
-                    
-                    // Reset the form
-                    form.reset();
-                    
-                    // Update the comments list if needed
-                    if (data.html) {
-                        const commentsContainer = document.querySelector('#commentsModal' + issueId + ' .modal-body');
-                        commentsContainer.innerHTML = data.html;
-                    }
-                } else {
-                    alert('Error: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred while submitting the comment. Please try again.');
-            })
-            .finally(() => {
-                // Reset button state
-                this.innerHTML = 'Save Comment';
-                this.disabled = false;
-            });
-        });
-    });
-
-    // Add event listeners to all Ready for Testing checkboxes
-    document.querySelectorAll('.ready-for-testing-checkbox').forEach(checkbox => {
+    // Ready for testing checkboxes
+    document.querySelectorAll('.ready-for-testing-checkbox').forEach(function(checkbox) {
         checkbox.addEventListener('change', function(e) {
             e.stopPropagation();
             
@@ -958,6 +1224,114 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Reset checkbox state
                 this.checked = false;
             });
+        });
+    });
+
+    // Comment modal handling
+    document.querySelectorAll('.show-comments-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const issueId = this.getAttribute('data-issue-id');
+            const commentsModal = document.getElementById(`commentsModal${issueId}`);
+            
+            // Close any open modals first to avoid ARIA issues
+            document.querySelectorAll('.modal.show').forEach(function(openModal) {
+                try {
+                    const bsModal = bootstrap.Modal.getInstance(openModal);
+                    if (bsModal) bsModal.hide();
+                } catch (e) {
+                    console.error('Error closing open modal:', e);
+                    openModal.style.display = 'none';
+                    openModal.classList.remove('show');
+                    
+                    // Remove aria-hidden to prevent ARIA errors
+                    openModal.removeAttribute('aria-hidden');
+                    
+                    // Remove modal backdrop if exists
+                    const backdrop = document.querySelector('.modal-backdrop');
+                    if (backdrop && backdrop.parentNode) {
+                        backdrop.parentNode.removeChild(backdrop);
+                    }
+                }
+            });
+            
+            // Remove any stray backdrops that might be causing issues
+            document.querySelectorAll('.modal-backdrop').forEach(function(backdrop) {
+                if (backdrop.parentNode) {
+                    backdrop.parentNode.removeChild(backdrop);
+                }
+            });
+            
+            // Remove aria-hidden from the modal we're about to show
+            if (commentsModal) {
+                commentsModal.removeAttribute('aria-hidden');
+            }
+            
+            // Ensure body doesn't have modal-open if all modals are closed
+            if (document.querySelectorAll('.modal.show').length === 0) {
+                document.body.classList.remove('modal-open');
+            }
+            
+            // Show the comments modal
+            if (commentsModal) {
+                try {
+                    const modal = new bootstrap.Modal(commentsModal);
+                    modal.show();
+                } catch (e) {
+                    console.error('Error showing comments modal:', e);
+                    commentsModal.style.display = 'block';
+                    commentsModal.classList.add('show');
+                    document.body.classList.add('modal-open');
+                }
+            }
+        });
+    });
+
+    // Show comment form
+    document.querySelectorAll('.show-comment-form').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const issueId = this.getAttribute('data-issue-id');
+            const commentsModal = document.getElementById(`commentsModal${issueId}`);
+            const addCommentModal = document.getElementById(`addCommentModal${issueId}`);
+            
+            // Close comments modal
+            if (commentsModal) {
+                try {
+                    const commentsModalInstance = bootstrap.Modal.getInstance(commentsModal);
+                    if (commentsModalInstance) commentsModalInstance.hide();
+                } catch (e) {
+                    console.error('Error closing comments modal:', e);
+                    commentsModal.style.display = 'none';
+                    commentsModal.classList.remove('show');
+                    
+                    // Remove aria-hidden to prevent ARIA errors
+                    commentsModal.removeAttribute('aria-hidden');
+                }
+            }
+            
+            // Remove any stray backdrops that might be causing issues
+            document.querySelectorAll('.modal-backdrop').forEach(function(backdrop) {
+                if (backdrop.parentNode) {
+                    backdrop.parentNode.removeChild(backdrop);
+                }
+            });
+            
+            // Remove aria-hidden from the modal we're about to show
+            if (addCommentModal) {
+                addCommentModal.removeAttribute('aria-hidden');
+            }
+            
+            // Show add comment modal
+            if (addCommentModal) {
+                try {
+                    const modal = new bootstrap.Modal(addCommentModal);
+                    modal.show();
+                } catch (e) {
+                    console.error('Error showing add comment modal:', e);
+                    addCommentModal.style.display = 'block';
+                    addCommentModal.classList.add('show');
+                    document.body.classList.add('modal-open');
+                }
+            }
         });
     });
 });
@@ -1086,7 +1460,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <select class="form-select" id="id_current_status" name="current_status" required>
                             {% if project.project_type.status_choices %}
                                 {% for choice in project.project_type.status_choices %}
-                                    <option value="{{ choice.value }}" {% if choice.value == 'fail' %}selected{% endif %}>{{ choice.label }}</option>
+                                    <option value="{{ choice.0 }}" {% if choice.0 == 'fail' %}selected{% endif %}>{{ choice.1 }}</option>
                                 {% endfor %}
                             {% else %}
                                 <option value="fail" selected>Fail</option>
@@ -1186,5 +1560,6 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </div>
 </div>
+{% if project.project_type.supports_standards %}
 {% endif %}
 {% endblock %}
