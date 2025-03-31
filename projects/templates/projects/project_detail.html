@@ -66,7 +66,7 @@
                 <div class="col-md-6 mb-4">
                     <div class="card h-100">
                         <div class="card-header">
-                            <h2 class="h5 mb-0"><i class="bi bi-info-circle me-2"></i>Project Details</h2>
+                            <h2 class="card-title mb-0"><i class="bi bi-info-circle me-2"></i>Project Details</h2>
                         </div>
                         <div class="card-body">
                             <div class="mb-3">
@@ -105,13 +105,13 @@
                 <div class="col-md-6 mb-4">
                     <div class="card h-100">
                         <div class="card-header">
-                            <h2 class="h5 mb-0"><i class="bi bi-file-text me-2"></i>Description & Notes</h2>
+                            <h2 class="card-title mb-0"><i class="bi bi-file-text me-2"></i>Description & Notes</h2>
                         </div>
                         <div class="card-body">
-                            <h3 class="h6">Description</h3>
+                            <h3>Description</h3>
                             <p>{{ project.description|linebreaks|default:"No description provided." }}</p>
                             
-                            <h3 class="h6 mt-4">Notes</h3>
+                            <h3 class="mt-4">Notes</h3>
                             <p>{{ project.notes|linebreaks|default:"No notes available." }}</p>
                         </div>
                     </div>
@@ -121,13 +121,13 @@
             <!-- Team Members -->
             <div class="card mb-4">
                 <div class="card-header">
-                    <h2 class="h5 mb-0"><i class="bi bi-people me-2"></i>Team Members</h2>
+                    <h2 class="card-title mb-0"><i class="bi bi-people me-2"></i>Team Members</h2>
                 </div>
                 <div class="card-body">
                     <div class="row">
                         <!-- Project Staff -->
                         <div class="col-md-6 mb-3">
-                            <h3 class="h6 border-bottom pb-2">Project Staff</h3>
+                            <h3 class="border-bottom pb-2">Project Staff</h3>
                             {% if staff_members %}
                                 <ul class="list-unstyled">
                                 {% for member in staff_members %}
@@ -149,7 +149,7 @@
                         
                         <!-- Client Team -->
                         <div class="col-md-6 mb-3">
-                            <h3 class="h6 border-bottom pb-2">Client Team</h3>
+                            <h3 class="border-bottom pb-2">Client Team</h3>
                             {% if client_members %}
                                 <ul class="list-unstyled">
                                 {% for member in client_members %}
@@ -177,7 +177,7 @@
         <div class="tab-pane fade" id="pages" role="tabpanel" aria-labelledby="pages-tab">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h2 class="h5 mb-0"><i class="bi bi-file-earmark-text me-2" aria-hidden="true"></i>Project Pages</h2>
+                    <h2 class="card-title mb-0"><i class="bi bi-file-earmark-text me-2" aria-hidden="true"></i>Project Pages</h2>
                     <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addPageModal">
                         <i class="bi bi-plus-lg me-1" aria-hidden="true"></i> Add Page
                     </button>
@@ -264,9 +264,9 @@
                 <div class="modal-dialog modal-lg">
                     <div class="modal-content">
                         <div class="modal-header bg-light">
-                            <h5 class="modal-title" id="addPageModalLabel">
+                            <h2 class="modal-title" id="addPageModalLabel">
                                 <i class="bi bi-file-earmark-text me-2"></i>Add New Page
-                            </h5>
+                            </h2>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
@@ -309,7 +309,7 @@
             {% if project.project_type.supports_standards %}
             <div class="card mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h2 class="h5 mb-0"><i class="bi bi-exclamation-triangle me-2" aria-hidden="true"></i>Issues</h2>
+                    <h2 class="card-title mb-0"><i class="bi bi-exclamation-triangle me-2" aria-hidden="true"></i>Issues</h2>
                     <div>
                         <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addIssueModal">
                             <i class="bi bi-plus-lg" aria-hidden="true"></i> Create Issue
@@ -371,9 +371,9 @@
                                             <div class="modal-dialog modal-lg">
                                                 <div class="modal-content">
                                                     <div class="modal-header bg-light">
-                                                        <h5 class="modal-title" id="commentsModalLabel{{ issue.id }}">
+                                                        <h2 class="modal-title" id="commentsModalLabel{{ issue.id }}">
                                                             <i class="bi bi-chat-dots me-2"></i>Comments for Issue
-                                                        </h5>
+                                                        </h2>
                                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                     </div>
                                                     <div class="modal-body">
@@ -394,9 +394,9 @@
                                             <div class="modal-dialog">
                                                 <div class="modal-content">
                                                     <div class="modal-header bg-light">
-                                                        <h5 class="modal-title" id="addCommentModalLabel{{ issue.id }}">
+                                                        <h2 class="modal-title" id="addCommentModalLabel{{ issue.id }}">
                                                             <i class="bi bi-chat-dots me-2"></i>Add Comment
-                                                        </h5>
+                                                        </h2>
                                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                     </div>
                                                     <div class="modal-body">
@@ -459,7 +459,7 @@
             {% else %}
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h2 class="h5 mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Project Issues</h2>
+                    <h2 class="card-title mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Project Issues</h2>
                     <a href="{% url 'projects:issue_create' project.id %}" class="btn btn-primary btn-sm">
                         <i class="bi bi-plus-lg me-1"></i> Add Issue
                     </a>
@@ -528,9 +528,9 @@
                                             <div class="modal-dialog modal-lg">
                                                 <div class="modal-content">
                                                     <div class="modal-header bg-light">
-                                                        <h5 class="modal-title" id="commentsModalLabel{{ issue.id }}">
+                                                        <h2 class="modal-title" id="commentsModalLabel{{ issue.id }}">
                                                             <i class="bi bi-chat-dots me-2"></i>Comments for Issue
-                                                        </h5>
+                                                        </h2>
                                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                     </div>
                                                     <div class="modal-body">
@@ -591,14 +591,13 @@
                     {% endif %}
                 </div>
             </div>
-            {% endif %}
         </div>
 
         <!-- Milestones Tab -->
         <div class="tab-pane fade" id="milestones" role="tabpanel" aria-labelledby="milestones-tab">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h2 class="h5 mb-0"><i class="bi bi-flag me-2" aria-hidden="true"></i>Project Milestones</h2>
+                    <h2 class="card-title mb-0"><i class="bi bi-flag me-2" aria-hidden="true"></i>Project Milestones</h2>
                     <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addMilestoneModal">
                         <i class="bi bi-plus-lg me-1" aria-hidden="true"></i> Add Milestone
                     </button>
@@ -687,14 +686,14 @@
         <div class="tab-pane fade" id="export" role="tabpanel" aria-labelledby="export-tab">
             <div class="card">
                 <div class="card-header">
-                    <h2 class="h5 mb-0"><i class="bi bi-download me-2"></i>Export Project Data</h2>
+                    <h2 class="card-title mb-0"><i class="bi bi-download me-2"></i>Export Project Data</h2>
                 </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6">
                             <div class="card mb-3">
                                 <div class="card-body">
-                                    <h3 class="h5 mb-3">Project Report</h3>
+                                    <h3 class="mb-3">Project Report</h3>
                                     <p>Export a comprehensive report of this project including all details, pages, and issues.</p>
                                     <div class="d-grid gap-2">
                                         <button class="btn btn-primary">
@@ -710,7 +709,7 @@
                         <div class="col-md-6">
                             <div class="card mb-3">
                                 <div class="card-body">
-                                    <h3 class="h5 mb-3">Issues Report</h3>
+                                    <h3 class="mb-3">Issues Report</h3>
                                     <p>Export only the issues and their current status for this project.</p>
                                     <div class="d-grid gap-2">
                                         <button class="btn btn-primary">
@@ -986,9 +985,9 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header bg-light">
-                <h5 class="modal-title" id="addIssueModalLabel">
+                <h2 class="modal-title" id="addIssueModalLabel">
                     <i class="bi bi-exclamation-triangle me-2"></i>Create New Issue
-                </h5>
+                </h2>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -1135,9 +1134,9 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-light">
-                <h5 class="modal-title" id="addMilestoneModalLabel">
+                <h2 class="modal-title" id="addMilestoneModalLabel">
                     <i class="bi bi-flag me-2"></i>Add New Milestone
-                </h5>
+                </h2>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -1204,4 +1203,4 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}
