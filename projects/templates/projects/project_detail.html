@@ -546,23 +546,6 @@
                                             </div>
                                         </div>
                                     </td>
-                                    {% if project.project_type.issue_fields %}
-                                        {% for field in project.project_type.issue_fields %}
-                                            <td>
-                                                {% with field_value=issue.dynamic_fields|get_item:field.name %}
-                                                    {% if field.type == 'checkbox' %}
-                                                        {% if field_value %}
-                                                            <i class="bi bi-check-circle-fill text-success"></i>
-                                                        {% else %}
-                                                            <i class="bi bi-x-circle text-muted"></i>
-                                                        {% endif %}
-                                                    {% else %}
-                                                        {{ field_value|default:"-" }}
-                                                    {% endif %}
-                                                {% endwith %}
-                                            </td>
-                                        {% endfor %}
-                                    {% endif %}
                                     <td>
                                         <a href="{% url 'projects:issue_detail' project.id issue.id %}" class="btn btn-sm btn-outline-secondary me-1" aria-label="View issue details">
                                             <i class="bi bi-eye" aria-hidden="true"></i><span class="visually-hidden">View</span>
@@ -1203,4 +1186,5 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}

@@ -55,24 +55,44 @@
                             {% endif %}
                         </div>
                         
-                        <div class="row mb-3">
+                        <div class="row mb-4">
                             <div class="col-md-6">
-                                <label for="{{ form.assigned_staff.id_for_label }}" class="form-label">{{ form.assigned_staff.label }}</label>
-                                {{ form.assigned_staff }}
-                                {% if form.assigned_staff.errors %}
-                                <div class="text-danger">{{ form.assigned_staff.errors }}</div>
-                                {% endif %}
-                                <div class="form-text">{{ form.assigned_staff.help_text }}</div>
-                                <div class="form-text"><strong>Hold Ctrl/Cmd to select multiple staff members</strong></div>
+                                <fieldset>
+                                    <legend class="fs-5">{{ form.assigned_staff.label }}</legend>
+                                    <div class="form-text mb-2">{{ form.assigned_staff.help_text }}</div>
+                                    {% if form.assigned_staff.errors %}
+                                    <div class="text-danger mb-2">{{ form.assigned_staff.errors }}</div>
+                                    {% endif %}
+                                    <div class="checkbox-group border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+                                        {% for checkbox in form.assigned_staff %}
+                                        <div class="form-check mb-1">
+                                            {{ checkbox.tag }}
+                                            <label class="form-check-label" for="{{ checkbox.id_for_label }}">
+                                                {{ checkbox.choice_label }}
+                                            </label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </fieldset>
                             </div>
                             <div class="col-md-6">
-                                <label for="{{ form.assigned_clients.id_for_label }}" class="form-label">{{ form.assigned_clients.label }}</label>
-                                {{ form.assigned_clients }}
-                                {% if form.assigned_clients.errors %}
-                                <div class="text-danger">{{ form.assigned_clients.errors }}</div>
-                                {% endif %}
-                                <div class="form-text">{{ form.assigned_clients.help_text }}</div>
-                                <div class="form-text"><strong>Hold Ctrl/Cmd to select multiple client team members</strong></div>
+                                <fieldset>
+                                    <legend class="fs-5">{{ form.assigned_clients.label }}</legend>
+                                    <div class="form-text mb-2">{{ form.assigned_clients.help_text }}</div>
+                                    {% if form.assigned_clients.errors %}
+                                    <div class="text-danger mb-2">{{ form.assigned_clients.errors }}</div>
+                                    {% endif %}
+                                    <div class="checkbox-group border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+                                        {% for checkbox in form.assigned_clients %}
+                                        <div class="form-check mb-1">
+                                            {{ checkbox.tag }}
+                                            <label class="form-check-label" for="{{ checkbox.id_for_label }}">
+                                                {{ checkbox.choice_label }}
+                                            </label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </fieldset>
                             </div>
                         </div>
                         
@@ -180,4 +200,4 @@
         }
     });
 </script>
-{% endblock %} 
+{% endblock %}
