@@ -1,0 +1,43 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Client Reassignment Notification{% endblock %}
+
+{% block content %}
+<h2>Client Reassignment Notice</h2>
+
+<p>Hello {{ previous_poc.first_name }},</p>
+
+<p>This is to inform you that you have been reassigned from the following client account:</p>
+
+<div class="info-box">
+    <div class="details">
+        <div class="details-item">
+            <span class="details-label">Client:</span> {{ client.company_name }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Contact:</span> {{ client.contact_name }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">New Point of Contact:</span> {{ new_poc.first_name }} {{ new_poc.last_name }}
+        </div>
+    </div>
+</div>
+
+<p>Effective immediately, {{ new_poc.first_name }} {{ new_poc.last_name }} will be taking over as the primary point of contact for {{ client.company_name }}. Please ensure that you've shared all relevant information, documents, and project status updates with {{ new_poc.first_name }} to facilitate a smooth transition.</p>
+
+<p>If you maintain any ongoing communications with this client, please inform them that {{ new_poc.first_name }} will be their new point of contact moving forward, and direct them to reach out to {{ new_poc.first_name }} at <a href="mailto:{{ new_poc.email }}">{{ new_poc.email }}</a> for any future inquiries.</p>
+
+<p>We appreciate your dedication and the work you've done with {{ client.company_name }} thus far.</p>
+
+{% if client_url %}
+<p>You can review the client details one last time if needed:</p>
+<p style="text-align: center;">
+    <a href="{{ client_url }}" class="button">View Client Details</a>
+</p>
+{% endif %}
+
+<p>Thank you for your cooperation in ensuring a smooth handover.</p>
+
+<p>Best regards,<br>
+The Management Team</p>
+{% endblock %}

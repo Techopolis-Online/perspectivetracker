@@ -1,0 +1,59 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Your Perspective Tracker Point of Contact{% endblock %}
+
+{% block content %}
+<h2>Welcome to Perspective Tracker</h2>
+
+<p>Hello {{ client.contact_name }},</p>
+
+<p>Thank you for choosing Techopolis Online Solutions for your project needs. We're excited to work with you!</p>
+
+<p>We want to introduce you to your dedicated Point of Contact (POC) at Techopolis who will be your primary resource for all project communications and support:</p>
+
+<div class="info-box">
+    <div class="details">
+        <div class="details-item">
+            <span class="details-label">Your Point of Contact:</span> {{ poc.first_name }} {{ poc.last_name }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Position:</span> {{ poc.job_title|default:"Project Manager" }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Email:</span> <a href="mailto:{{ poc.email }}">{{ poc.email }}</a>
+        </div>
+        {% if poc.phone_number %}
+        <div class="details-item">
+            <span class="details-label">Phone:</span> {{ poc.phone_number }}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<p>{{ poc.first_name }} will be your primary contact throughout our working relationship and will:</p>
+
+<ul>
+    <li>Keep you updated on your project's progress</li>
+    <li>Address any questions or concerns you may have</li>
+    <li>Coordinate communication between your team and ours</li>
+    <li>Ensure your project needs are being met effectively</li>
+</ul>
+
+<p>Please feel free to reach out to {{ poc.first_name }} at any time with questions or updates about your project needs.</p>
+
+{% if login_url %}
+<p>You can also access your project information directly through our client portal:</p>
+
+<p style="text-align: center;">
+    <a href="{{ login_url }}" class="button">Access Client Portal</a>
+</p>
+
+<p>If the button doesn't work, you can copy and paste this URL into your browser:</p>
+<p>{{ login_url }}</p>
+{% endif %}
+
+<p>We look forward to a successful partnership!</p>
+
+<p>Best regards,<br>
+The Techopolis Team</p>
+{% endblock %}

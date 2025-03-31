@@ -24,7 +24,7 @@
                         <p>Are you sure you want to delete the client "{{ client.company_name }}"? This action cannot be undone.</p>
                         <p>All associated notes and data will be permanently deleted.</p>
                     </div>
-
+                    
                     <div class="card mb-4">
                         <div class="card-header">
                             <h2 class="h5 card-title mb-0">Client Information</h2>
@@ -52,7 +52,7 @@
                     <form method="post">
                         {% csrf_token %}
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <a href="{% url 'client_detail' client.pk %}" class="btn btn-outline-secondary me-md-2">Cancel</a>
+                            <a href="{% url 'clients:client_detail' client.pk %}" class="btn btn-outline-secondary me-md-2">Cancel</a>
                             <button type="submit" class="btn btn-danger">Delete</button>
                         </div>
                     </form>
@@ -61,4 +61,4 @@
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}

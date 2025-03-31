@@ -1,0 +1,61 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}New Client Assignment{% endblock %}
+
+{% block content %}
+<h2>New Client Assignment</h2>
+
+<p>Hello {{ new_poc.first_name }},</p>
+
+<p>We're pleased to inform you that you've been assigned as the new Point of Contact (POC) for the following client:</p>
+
+<div class="info-box">
+    <div class="details">
+        <div class="details-item">
+            <span class="details-label">Client:</span> {{ client.company_name }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Primary Contact:</span> {{ client.contact_name }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Contact Email:</span> <a href="mailto:{{ client.email }}">{{ client.email }}</a>
+        </div>
+        {% if client.phone %}
+        <div class="details-item">
+            <span class="details-label">Contact Phone:</span> {{ client.phone }}
+        </div>
+        {% endif %}
+        <div class="details-item">
+            <span class="details-label">Previous POC:</span> {{ previous_poc.first_name }} {{ previous_poc.last_name }}
+        </div>
+    </div>
+</div>
+
+<p>This assignment is effective immediately. {{ previous_poc.first_name }} was previously managing this client relationship, and we recommend reaching out to {{ previous_poc.first_name }} to ensure a smooth transition and to gather any relevant information about ongoing projects and client preferences.</p>
+
+<p>As the new point of contact, your responsibilities include:</p>
+
+<ul>
+    <li>Serving as the primary liaison between {{ client.company_name }} and our team</li>
+    <li>Providing regular updates on project progress</li>
+    <li>Addressing client questions and concerns promptly</li>
+    <li>Managing client expectations and ensuring their satisfaction</li>
+    <li>Coordinating with internal teams to ensure project deliverables meet client needs</li>
+</ul>
+
+<p>Please make sure to introduce yourself to the client within the next 48 hours. The client has already been notified of this change.</p>
+
+{% if client_url %}
+<p>You can view the complete client details and project history here:</p>
+<p style="text-align: center;">
+    <a href="{{ client_url }}" class="button">View Client Details</a>
+</p>
+{% endif %}
+
+<p>If you have any questions about this assignment, please reach out to your manager.</p>
+
+<p>Thank you for taking on this important client relationship. We're confident you'll provide excellent service to {{ client.company_name }}.</p>
+
+<p>Best regards,<br>
+The Management Team</p>
+{% endblock %}

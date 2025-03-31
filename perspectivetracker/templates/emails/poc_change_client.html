@@ -1,0 +1,57 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Your Point of Contact Has Changed{% endblock %}
+
+{% block content %}
+<h2>Point of Contact Change Notification</h2>
+
+<p>Hello {{ client.contact_name }},</p>
+
+<p>We're writing to inform you that your dedicated Point of Contact (POC) at Techopolis has changed.</p>
+
+<div class="info-box">
+    <div class="details">
+        <div class="details-item">
+            <span class="details-label">Previous Point of Contact:</span> {{ previous_poc.first_name }} {{ previous_poc.last_name }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">New Point of Contact:</span> {{ new_poc.first_name }} {{ new_poc.last_name }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Position:</span> {{ new_poc.job_title|default:"Project Manager" }}
+        </div>
+        <div class="details-item">
+            <span class="details-label">Email:</span> <a href="mailto:{{ new_poc.email }}">{{ new_poc.email }}</a>
+        </div>
+        {% if new_poc.phone_number %}
+        <div class="details-item">
+            <span class="details-label">Phone:</span> {{ new_poc.phone_number }}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<p>This change is effective immediately. {{ previous_poc.first_name }} {% if previous_poc.job_title %}has taken on new responsibilities within our organization{% else %}is no longer with our organization{% endif %}, and {{ new_poc.first_name }} will now be overseeing your account and projects.</p>
+
+<p>{{ new_poc.first_name }} has been fully briefed on your account history and current projects, ensuring a seamless transition. As your new POC, {{ new_poc.first_name }} will:</p>
+
+<ul>
+    <li>Continue to provide regular updates on your project's progress</li>
+    <li>Address any questions or concerns promptly</li>
+    <li>Coordinate communication between your team and ours</li>
+    <li>Ensure your project needs are being met effectively</li>
+</ul>
+
+<p>{{ new_poc.first_name }} will be reaching out to you shortly to introduce themselves and discuss your ongoing projects. In the meantime, please feel free to contact {{ new_poc.first_name }} directly with any questions or concerns.</p>
+
+{% if client_url %}
+<p style="text-align: center;">
+    <a href="{{ client_url }}" class="button">View Account Details</a>
+</p>
+{% endif %}
+
+<p>Thank you for your understanding as we make this transition. We remain committed to providing you with the highest level of service.</p>
+
+<p>Best regards,<br>
+The Techopolis Team</p>
+{% endblock %}

@@ -1064,3 +1064,99 @@ def send_role_welcome_email(user, role):
     result = send_email(subject, template, context, [recipient_email])
     logger.info(f"Role welcome email sending result for {user.email}: {result}")
     return result
+
+
+def send_poc_assignment_email(request, client):
+    """
+    Send email notification when a client is assigned a Point of Contact (POC).
+    
+    Args:
+        request: HTTP request object
+        client: Client instance that has a POC assigned
+    
+    Returns:
+        bool: True if email was sent successfully
+    """
+    if not client.point_of_contact or not client.email:
+        return False
+    
+    # Build client portal URL
+    login_url = request.build_absolute_uri('/users/login/')
+    
+    context = {
+        'client': client,
+        'poc': client.point_of_contact,
+        'login_url': login_url,
+        'company_name': 'Techopolis Online Solutions',
+        'current_year': datetime.datetime.now().year,
+    }
+    
+    return send_email(
+        f"Welcome to Techopolis: Your Point of Contact",
+        'emails/poc_assignment.html',
+        context,
+        [client.email]
+    )
+
+
+def send_poc_change_email(request, client, previous_poc):
+    """
+    Send email notification when a client's Point of Contact (POC) is changed.
+    
+    Args:
+        request: HTTP request object
+        client: Client instance whose POC has changed
+        previous_poc: Previous POC (CustomUser instance)
+    
+    Returns:
+        bool: True if email was sent successfully
+    """
+    if not client.point_of_contact or not client.email:
+        return False
+    
+    # Build client portal URL
+    login_url = request.build_absolute_uri('/users/login/')
+    client_url = request.build_absolute_uri(
+        reverse('clients:client_detail', kwargs={'pk': client.pk})
+    )
+    
+    context = {
+        'client': client,
+        'previous_poc': previous_poc,
+        'new_poc': client.point_of_contact,
+        'login_url': login_url,
+        'client_url': client_url,
+        'company_name': 'Techopolis Online Solutions',
+        'current_year': datetime.datetime.now().year,
+    }
+    
+    # Also send notification to the previous POC
+    if previous_poc and previous_poc.email:
+        prev_poc_context = context.copy()
+        prev_poc_context['is_previous_poc'] = True
+        
+        send_email(
+            f"Client Reassignment: {client.company_name}",
+            'emails/poc_change_previous.html',
+            prev_poc_context,
+            [previous_poc.email]
+        )
+    
+    # Send notification to the new POC
+    new_poc_context = context.copy()
+    new_poc_context['is_new_poc'] = True
+    
+    send_email(
+        f"New Client Assignment: {client.company_name}",
+        'emails/poc_change_new.html',
+        new_poc_context,
+        [client.point_of_contact.email]
+    )
+    
+    # Send notification to the client
+    return send_email(
+        f"Your Point of Contact Has Changed: {previous_poc.get_full_name()} → {client.point_of_contact.get_full_name()}",
+        'emails/poc_change_client.html',
+        context,
+        [client.email]
+    )

@@ -68,6 +68,16 @@ def client_create(request):
         form = ClientForm(request.POST)
         if form.is_valid():
             client = form.save()
+            
+            # Send POC assignment email to the client
+            from perspectivetracker.utils import send_poc_assignment_email
+            try:
+                send_poc_assignment_email(request, client)
+                messages.info(request, f"POC assignment notification email sent to {client.email}.")
+            except Exception as e:
+                logger.error(f"Error sending POC assignment email: {str(e)}")
+                messages.warning(request, f"Client created, but couldn't send POC notification email.")
+            
             messages.success(request, f"Client '{client.company_name}' created successfully!")
             
             # If it's an AJAX request, return a JSON response
@@ -85,8 +95,8 @@ def client_create(request):
     
     context = {
         'form': form,
+        'staff_users': staff_users,
         'title': 'Add New Client',
-        'staff_users': staff_users
     }
     
     return render(request, 'clients/client_form.html', context)
@@ -177,9 +187,23 @@ def client_update(request, pk):
     )
     
     if request.method == 'POST':
+        # Store the old POC for comparison
+        old_poc = client.point_of_contact
+        
         form = ClientForm(request.POST, instance=client)
         if form.is_valid():
-            form.save()
+            updated_client = form.save()
+            
+            # Check if POC changed and send notification email if it did
+            if updated_client.point_of_contact != old_poc:
+                from perspectivetracker.utils import send_poc_assignment_email
+                try:
+                    send_poc_assignment_email(request, updated_client)
+                    messages.info(request, f"POC assignment notification email sent to {updated_client.email}.")
+                except Exception as e:
+                    logger.error(f"Error sending POC assignment email: {str(e)}")
+                    messages.warning(request, f"Client updated, but couldn't send POC notification email.")
+            
             messages.success(request, f"Client '{client.company_name}' updated successfully!")
             
             # If it's an AJAX request, return a JSON response
@@ -187,7 +211,7 @@ def client_update(request, pk):
                 return JsonResponse({'success': True})
             
             # Otherwise, redirect to the client detail page
-            return redirect('client_detail', pk=client.pk)
+            return redirect('clients:client_detail', pk=client.pk)
         else:
             # If it's an AJAX request, return form errors
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
