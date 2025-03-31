@@ -16,7 +16,7 @@
 {% if comments %}
     {% for comment in comments %}
         {% if comment.comment_type == 'external' or can_see_internal %}
-        <div class="comment mb-3 p-3 {% if comment.comment_type == 'internal' %}bg-light border-start border-4 border-warning{% else %}border rounded{% endif %}">
+        <div class="comment mb-3 p-3 {% if comment.comment_type == 'internal' %}bg-light border-start border-4 border-warning{% else %}border rounded{% endif %} shadow-sm">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <div class="d-flex align-items-center">
                     <div class="avatar-circle {% if comment.comment_type == 'internal' %}bg-warning text-dark{% else %}bg-primary text-white{% endif %} me-2" style="width: 36px; height: 36px; font-size: 0.9rem;">
@@ -30,7 +30,28 @@
                         <div class="text-muted small">{{ comment.created_at|date:"M d, Y H:i" }}</div>
                     </div>
                 </div>
+                {% if comment.status_change %}
+                <span class="badge {% if comment.new_status == 'ready_for_testing' %}bg-info{% elif comment.new_status == 'in_progress' or comment.new_status == 'in_remediation' %}bg-warning{% elif comment.new_status == 'resolved' or comment.new_status == 'pass' %}bg-success{% elif comment.new_status == 'closed' %}bg-secondary{% else %}bg-danger{% endif %} px-3 py-2">
+                    Status: {{ comment.get_new_status_display }}
+                </span>
+                {% endif %}
             </div>
+            
+            {% if comment.status_change %}
+            <div class="status-change-info bg-light rounded p-2 mb-2">
+                <small class="text-muted">
+                    <i class="bi bi-arrow-right-circle me-1"></i> Changed status from 
+                    <span class="badge {% if comment.old_status == 'ready_for_testing' %}bg-info{% elif comment.old_status == 'in_progress' or comment.old_status == 'in_remediation' %}bg-warning{% elif comment.old_status == 'resolved' or comment.old_status == 'pass' %}bg-success{% elif comment.old_status == 'closed' %}bg-secondary{% else %}bg-danger{% endif %} text-white">
+                        {{ comment.get_old_status_display }}
+                    </span> 
+                    to 
+                    <span class="badge {% if comment.new_status == 'ready_for_testing' %}bg-info{% elif comment.new_status == 'in_progress' or comment.new_status == 'in_remediation' %}bg-warning{% elif comment.new_status == 'resolved' or comment.new_status == 'pass' %}bg-success{% elif comment.new_status == 'closed' %}bg-secondary{% else %}bg-danger{% endif %} text-white">
+                        {{ comment.get_new_status_display }}
+                    </span>
+                </small>
+            </div>
+            {% endif %}
+            
             <div class="comment-text">
                 {{ comment.text|linebreaks }}
             </div>

@@ -334,7 +334,7 @@
                             </thead>
                             <tbody>
                                 {% for issue in issues %}
-                                <tr class="clickable-row" data-href="{% url 'projects:issue_detail' project.id issue.id %}">
+                                <tr class="clickable-row issue-row-{{ issue.id }}" data-href="{% url 'projects:issue_detail' project.id issue.id %}">
                                     <td>{{ issue.page.name }}</td>
                                     <td>
                                         <a href="{% url 'projects:issue_detail' project.id issue.id %}" class="text-decoration-none">
@@ -368,90 +368,93 @@
                                         
                                         <!-- Comments Modal -->
                                         <div class="modal fade" id="commentsModal{{ issue.id }}" tabindex="-1" aria-labelledby="commentsModalLabel{{ issue.id }}" aria-hidden="true">
-                                            <div class="modal-dialog modal-lg">
+                                            <div class="modal-dialog modal-fullscreen">
                                                 <div class="modal-content">
-                                                    <div class="modal-header bg-light">
-                                                        <h2 class="modal-title" id="commentsModalLabel{{ issue.id }}">
-                                                            <i class="bi bi-chat-dots me-2"></i>Comments for Issue
+                                                    <div class="modal-header bg-primary text-white">
+                                                        <h2 class="modal-title fs-4" id="commentsModalLabel{{ issue.id }}">
+                                                            <i class="bi bi-chat-dots me-2"></i>Issue #{{ issue.id }} - {{ issue.issue_description|truncatechars:50 }}
                                                         </h2>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                                                     </div>
-                                                    <div class="modal-body">
-                                                        {% include 'projects/includes/comments_list.html' with comments=issue.comments.all can_see_internal=user|can_see_internal_comments %}
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                                        <button type="button" class="btn btn-primary" id="showCommentForm{{ issue.id }}">
-                                                            <i class="bi bi-plus-circle me-1"></i>Add Comment
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Add Comment Modal -->
-                                        <div class="modal fade" id="addCommentModal{{ issue.id }}" tabindex="-1" aria-labelledby="addCommentModalLabel{{ issue.id }}" aria-hidden="true">
-                                            <div class="modal-dialog">
-                                                <div class="modal-content">
-                                                    <div class="modal-header bg-light">
-                                                        <h2 class="modal-title" id="addCommentModalLabel{{ issue.id }}">
-                                                            <i class="bi bi-chat-dots me-2"></i>Add Comment
-                                                        </h2>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        <form method="post" action="{% url 'projects:issue_detail' project.id issue.id %}" id="addCommentForm{{ issue.id }}" class="comment-form">
-                                                            {% csrf_token %}
-                                                            <div class="mb-3">
-                                                                <label for="id_text{{ issue.id }}" class="form-label">Comment:</label>
-                                                                <textarea class="form-control" id="id_text{{ issue.id }}" name="text" rows="4" required></textarea>
-                                                            </div>
-                                                            
-                                                            <div class="mb-3">
-                                                                <div class="form-check">
-                                                                    <input class="form-check-input" type="checkbox" id="id_change_status{{ issue.id }}" name="change_status">
-                                                                    <label class="form-check-label" for="id_change_status{{ issue.id }}">
-                                                                        Change Issue Status
-                                                                    </label>
+                                                    <div class="modal-body p-0">
+                                                        <div class="container-fluid h-100">
+                                                            <div class="row h-100">
+                                                                <div class="col-md-8 py-3">
+                                                                    <div class="status-indicator p-2 mb-3 rounded shadow-sm d-flex justify-content-between align-items-center">
+                                                                        <span class="badge {% if issue.current_status == 'ready_for_testing' %}bg-info{% elif issue.current_status == 'in_progress' %}bg-warning{% elif issue.current_status == 'resolved' %}bg-success{% elif issue.current_status == 'closed' %}bg-secondary{% else %}bg-danger{% endif %} status-badge px-3 py-2" data-issue-id="{{ issue.id }}">
+                                                                            {{ issue.get_current_status_display }}
+                                                                        </span>
+                                                                        <div>
+                                                                            <a href="{% url 'projects:issue_detail' project.id issue.id %}" class="btn btn-sm btn-outline-secondary">
+                                                                                <i class="bi bi-eye me-1"></i>View Full Details
+                                                                            </a>
+                                                                        </div>
+                                                                    </div>
+                                                                    
+                                                                    <div class="comments-container p-3 bg-white rounded shadow-sm" style="max-height: 75vh; overflow-y: auto;">
+                                                                        <h5 class="border-bottom pb-2 mb-3">Comments ({{ issue.comments.count }})</h5>
+                                                                        {% include 'projects/includes/comments_list.html' with comments=issue.comments.all can_see_internal=user|can_see_internal_comments issue=issue %}
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-4 bg-light py-3">
+                                                                    <!-- Add Comment Form -->
+                                                                    <div class="sticky-top pt-2">
+                                                                        <div class="card shadow-sm">
+                                                                            <div class="card-header bg-primary text-white">
+                                                                                <h5 class="card-title mb-0"><i class="bi bi-plus-circle me-2"></i>Add Comment</h5>
+                                                                            </div>
+                                                                            <div class="card-body">
+                                                                                <form method="post" action="{% url 'projects:issue_detail' project.id issue.id %}" id="addCommentForm{{ issue.id }}" class="comment-form">
+                                                                                    {% csrf_token %}
+                                                                                    
+                                                                                    <!-- Status Update Section -->
+                                                                                    <div class="mb-3">
+                                                                                        <label for="issueStatus{{ issue.id }}_comment" class="form-label fw-bold">Change Status:</label>
+                                                                                        <select class="form-select" id="issueStatus{{ issue.id }}_comment" name="new_status">
+                                                                                            <option value="">No change</option>
+                                                                                            <option value="pass" {% if issue.current_status == 'pass' %}selected{% endif %}>Pass</option>
+                                                                                            <option value="fail" {% if issue.current_status == 'fail' %}selected{% endif %}>Fail</option>
+                                                                                            <option value="qa" {% if issue.current_status == 'qa' %}selected{% endif %}>QA</option>
+                                                                                            <option value="in_remediation" {% if issue.current_status == 'in_remediation' %}selected{% endif %}>In Remediation</option>
+                                                                                            <option value="ready_for_testing" {% if issue.current_status == 'ready_for_testing' %}selected{% endif %}>Ready For Testing</option>
+                                                                                        </select>
+                                                                                        <div class="form-text">
+                                                                                            <i class="bi bi-info-circle me-1"></i> Current status: <strong>{{ issue.get_current_status_display }}</strong>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    
+                                                                                    <div class="mb-3">
+                                                                                        <label for="id_text{{ issue.id }}" class="form-label fw-bold">Comment:</label>
+                                                                                        <textarea class="form-control" id="id_text{{ issue.id }}" name="text" rows="6" placeholder="Type your comment here..." required></textarea>
+                                                                                    </div>
+                                                                                    
+                                                                                    {% if user.is_superuser or user.role.name == 'admin' or user.role.name == 'staff' %}
+                                                                                    <div class="mb-3">
+                                                                                        <label for="id_comment_type{{ issue.id }}" class="form-label fw-bold">Comment Type:</label>
+                                                                                        <select class="form-select" id="id_comment_type{{ issue.id }}" name="comment_type">
+                                                                                            <option value="external">External (visible to all)</option>
+                                                                                            <option value="internal">Internal (staff only)</option>
+                                                                                        </select>
+                                                                                        <div class="form-text small">Internal comments are only visible to staff and administrators.</div>
+                                                                                    </div>
+                                                                                    {% else %}
+                                                                                    <input type="hidden" name="comment_type" value="external">
+                                                                                    {% endif %}
+                                                                                    
+                                                                                    <input type="hidden" name="change_status" value="true">
+                                                                                    
+                                                                                    <div class="d-grid">
+                                                                                        <button type="button" class="btn btn-primary submit-comment" data-form-id="addCommentForm{{ issue.id }}">
+                                                                                            <i class="bi bi-send me-1"></i>Save Comment & Update Status
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </form>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                            
-                                                            <div class="mb-3 status-select-container{{ issue.id }}" style="display: none;">
-                                                                <label for="id_new_status{{ issue.id }}" class="form-label">New Status:</label>
-                                                                <select class="form-select" id="id_new_status{{ issue.id }}" name="new_status">
-                                                                    {% if project.project_type.status_choices %}
-                                                                        {% for choice in project.project_type.status_choices %}
-                                                                            <option value="{{ choice.0 }}" {% if choice.0 == issue.current_status %}selected{% endif %}>{{ choice.1 }}</option>
-                                                                        {% endfor %}
-                                                                    {% else %}
-                                                                        <option value="fail" {% if issue.current_status == 'fail' %}selected{% endif %}>Fail</option>
-                                                                        <option value="pass" {% if issue.current_status == 'pass' %}selected{% endif %}>Pass</option>
-                                                                        <option value="qa" {% if issue.current_status == 'qa' %}selected{% endif %}>QA</option>
-                                                                        <option value="in_remediation" {% if issue.current_status == 'in_remediation' %}selected{% endif %}>In Remediation</option>
-                                                                        <option value="ready_for_testing" {% if issue.current_status == 'ready_for_testing' %}selected{% endif %}>Ready For Testing</option>
-                                                                        <option value="resolved" {% if issue.current_status == 'resolved' %}selected{% endif %}>Resolved</option>
-                                                                        <option value="closed" {% if issue.current_status == 'closed' %}selected{% endif %}>Closed</option>
-                                                                    {% endif %}
-                                                                </select>
-                                                            </div>
-                                                            
-                                                            {% if user.is_superuser or user.role.name == 'admin' or user.role.name == 'staff' %}
-                                                            <div class="mb-3">
-                                                                <label for="id_comment_type{{ issue.id }}" class="form-label">Comment Type:</label>
-                                                                <select class="form-select" id="id_comment_type{{ issue.id }}" name="comment_type">
-                                                                    <option value="external">External (visible to all)</option>
-                                                                    <option value="internal">Internal (staff only)</option>
-                                                                </select>
-                                                                <div class="form-text">Internal comments are only visible to staff and administrators.</div>
-                                                            </div>
-                                                            {% else %}
-                                                            <input type="hidden" name="comment_type" value="external">
-                                                            {% endif %}
-                                                        </form>
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                        <button type="button" class="btn btn-primary submit-comment" data-form-id="addCommentForm{{ issue.id }}">Save Comment</button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -520,7 +523,7 @@
                             </thead>
                             <tbody>
                                 {% for issue in issues %}
-                                <tr class="clickable-row" data-href="{% url 'projects:issue_detail' project.id issue.id %}">
+                                <tr class="clickable-row issue-row-{{ issue.id }}" data-href="{% url 'projects:issue_detail' project.id issue.id %}">
                                     <td>{{ issue.page.name }}</td>
                                     <td>
                                         <a href="{% url 'projects:issue_detail' project.id issue.id %}" class="text-decoration-none">
@@ -554,22 +557,93 @@
                                         
                                         <!-- Comments Modal -->
                                         <div class="modal fade" id="commentsModal{{ issue.id }}" tabindex="-1" aria-labelledby="commentsModalLabel{{ issue.id }}" aria-hidden="true">
-                                            <div class="modal-dialog modal-lg">
+                                            <div class="modal-dialog modal-fullscreen">
                                                 <div class="modal-content">
-                                                    <div class="modal-header bg-light">
-                                                        <h2 class="modal-title" id="commentsModalLabel{{ issue.id }}">
-                                                            <i class="bi bi-chat-dots me-2"></i>Comments for Issue
+                                                    <div class="modal-header bg-primary text-white">
+                                                        <h2 class="modal-title fs-4" id="commentsModalLabel{{ issue.id }}">
+                                                            <i class="bi bi-chat-dots me-2"></i>Issue #{{ issue.id }} - {{ issue.issue_description|truncatechars:50 }}
                                                         </h2>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                                                     </div>
-                                                    <div class="modal-body">
-                                                        {% include 'projects/includes/comments_list.html' with comments=issue.comments.all can_see_internal=user|can_see_internal_comments %}
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                                        <button type="button" class="btn btn-primary" id="showCommentForm{{ issue.id }}">
-                                                            <i class="bi bi-plus-circle me-1"></i>Add Comment
-                                                        </button>
+                                                    <div class="modal-body p-0">
+                                                        <div class="container-fluid h-100">
+                                                            <div class="row h-100">
+                                                                <div class="col-md-8 py-3">
+                                                                    <div class="status-indicator p-2 mb-3 rounded shadow-sm d-flex justify-content-between align-items-center">
+                                                                        <span class="badge {% if issue.current_status == 'ready_for_testing' %}bg-info{% elif issue.current_status == 'in_progress' %}bg-warning{% elif issue.current_status == 'resolved' %}bg-success{% elif issue.current_status == 'closed' %}bg-secondary{% else %}bg-danger{% endif %} status-badge px-3 py-2" data-issue-id="{{ issue.id }}">
+                                                                            {{ issue.get_current_status_display }}
+                                                                        </span>
+                                                                        <div>
+                                                                            <a href="{% url 'projects:issue_detail' project.id issue.id %}" class="btn btn-sm btn-outline-secondary">
+                                                                                <i class="bi bi-eye me-1"></i>View Full Details
+                                                                            </a>
+                                                                        </div>
+                                                                    </div>
+                                                                    
+                                                                    <div class="comments-container p-3 bg-white rounded shadow-sm" style="max-height: 75vh; overflow-y: auto;">
+                                                                        <h5 class="border-bottom pb-2 mb-3">Comments ({{ issue.comments.count }})</h5>
+                                                                        {% include 'projects/includes/comments_list.html' with comments=issue.comments.all can_see_internal=user|can_see_internal_comments issue=issue %}
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-4 bg-light py-3">
+                                                                    <!-- Add Comment Form -->
+                                                                    <div class="sticky-top pt-2">
+                                                                        <div class="card shadow-sm">
+                                                                            <div class="card-header bg-primary text-white">
+                                                                                <h5 class="card-title mb-0"><i class="bi bi-plus-circle me-2"></i>Add Comment</h5>
+                                                                            </div>
+                                                                            <div class="card-body">
+                                                                                <form method="post" action="{% url 'projects:issue_detail' project.id issue.id %}" id="addCommentForm{{ issue.id }}" class="comment-form">
+                                                                                    {% csrf_token %}
+                                                                                    
+                                                                                    <!-- Status Update Section -->
+                                                                                    <div class="mb-3">
+                                                                                        <label for="issueStatus{{ issue.id }}_comment" class="form-label fw-bold">Change Status:</label>
+                                                                                        <select class="form-select" id="issueStatus{{ issue.id }}_comment" name="new_status">
+                                                                                            <option value="">No change</option>
+                                                                                            <option value="pass" {% if issue.current_status == 'pass' %}selected{% endif %}>Pass</option>
+                                                                                            <option value="fail" {% if issue.current_status == 'fail' %}selected{% endif %}>Fail</option>
+                                                                                            <option value="qa" {% if issue.current_status == 'qa' %}selected{% endif %}>QA</option>
+                                                                                            <option value="in_remediation" {% if issue.current_status == 'in_remediation' %}selected{% endif %}>In Remediation</option>
+                                                                                            <option value="ready_for_testing" {% if issue.current_status == 'ready_for_testing' %}selected{% endif %}>Ready For Testing</option>
+                                                                                        </select>
+                                                                                        <div class="form-text">
+                                                                                            <i class="bi bi-info-circle me-1"></i> Current status: <strong>{{ issue.get_current_status_display }}</strong>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    
+                                                                                    <div class="mb-3">
+                                                                                        <label for="id_text{{ issue.id }}" class="form-label fw-bold">Comment:</label>
+                                                                                        <textarea class="form-control" id="id_text{{ issue.id }}" name="text" rows="6" placeholder="Type your comment here..." required></textarea>
+                                                                                    </div>
+                                                                                    
+                                                                                    {% if user.is_superuser or user.role.name == 'admin' or user.role.name == 'staff' %}
+                                                                                    <div class="mb-3">
+                                                                                        <label for="id_comment_type{{ issue.id }}" class="form-label fw-bold">Comment Type:</label>
+                                                                                        <select class="form-select" id="id_comment_type{{ issue.id }}" name="comment_type">
+                                                                                            <option value="external">External (visible to all)</option>
+                                                                                            <option value="internal">Internal (staff only)</option>
+                                                                                        </select>
+                                                                                        <div class="form-text small">Internal comments are only visible to staff and administrators.</div>
+                                                                                    </div>
+                                                                                    {% else %}
+                                                                                    <input type="hidden" name="comment_type" value="external">
+                                                                                    {% endif %}
+                                                                                    
+                                                                                    <input type="hidden" name="change_status" value="true">
+                                                                                    
+                                                                                    <div class="d-grid">
+                                                                                        <button type="button" class="btn btn-primary submit-comment" data-form-id="addCommentForm{{ issue.id }}">
+                                                                                            <i class="bi bi-send me-1"></i>Save Comment & Update Status
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </form>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -756,10 +830,58 @@
 
 .comment {
     transition: all 0.2s ease;
+    border-radius: 8px;
 }
 
 .comment:hover {
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+}
+
+/* Modal customization for light background */
+.modal-fullscreen {
+    padding: 0 !important;
+}
+
+.modal-content {
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    border: none;
+    overflow: hidden;
+}
+
+.modal-backdrop {
+    background-color: rgba(13, 16, 23, 0.5) !important;
+}
+
+.modal-header {
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid rgba(0,0,0,0.125);
+}
+
+.modal-body {
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+    padding: 0;
+}
+
+.comments-container {
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+.status-indicator {
+    background-color: #f8f9fa;
+    border: 1px solid rgba(0,0,0,0.125);
+}
+
+.status-badge {
+    font-size: 0.85rem;
+    padding: 0.4em 0.6em;
+    font-weight: 500;
+}
+
+.btn-close:focus {
+    box-shadow: none;
+    outline: none;
 }
 
 /* Tab styling */
@@ -782,38 +904,40 @@
     background-color: transparent;
 }
 
-/* Modal styling fixes */
-.modal {
-    z-index: 1050;
-}
-
-.modal-backdrop {
-    z-index: 1040;
-    opacity: 0.5 !important;
-}
-
-.modal-content {
+/* More comment styling */
+.comment {
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
     background-color: #fff;
-    border-radius: 0.3rem;
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.status-change-info {
+    background-color: rgba(0,0,0,0.03);
+    border-left: 3px solid #6c757d;
+}
+
+.comment-text {
+    font-size: 1rem;
+    line-height: 1.5;
     color: #212529;
 }
 
-.modal-header {
-    border-bottom: 1px solid #dee2e6;
-    padding: 1rem;
+/* Make form elements more consistent */
+.form-select, .form-control {
+    border-radius: 6px;
+    border: 1px solid rgba(0,0,0,0.2);
 }
 
-.modal-body {
-    max-height: 70vh;
-    overflow-y: auto;
-    padding: 1rem;
+.form-select:focus, .form-control:focus {
+    border-color: rgba(13, 110, 253, 0.5);
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.1);
 }
 
-.modal-footer {
-    border-top: 1px solid #dee2e6;
-    padding: 1rem;
+/* Make badges stand out better */
+.badge {
+    font-weight: 500;
+    letter-spacing: 0.02em;
 }
 </style>
 
@@ -982,144 +1106,120 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle comment form submissions via AJAX
     document.querySelectorAll('.submit-comment').forEach(function(btn) {
         btn.addEventListener('click', function() {
-            const formId = this.getAttribute('data-form-id');
+            // Get form ID from data attribute
+            const formId = this.getAttribute('data-form-id') || this.closest('form').id;
             const form = document.getElementById(formId);
             
-            if (form) {
-                // Prevent default form submission
-                const submitEvent = new Event('submit', { cancelable: true });
-                form.dispatchEvent(submitEvent);
-                
-                if (!submitEvent.defaultPrevented) {
-                    // Extract issue ID from the form ID
-                    const issueIdMatch = formId.match(/addCommentForm(\d+)/);
-                    const issueId = issueIdMatch ? issueIdMatch[1] : null;
+            if (!form) {
+                console.error('Form not found:', formId);
+                showAlert('danger', 'Error: Form not found');
+                return;
+            }
+            
+            // Add loading state to button
+            const originalHtml = this.innerHTML;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+            this.disabled = true;
+            
+            // Extract issue ID from the form ID
+            const issueIdMatch = formId.match(/addCommentForm(\d+)/);
+            const issueId = issueIdMatch ? issueIdMatch[1] : null;
+            
+            if (!issueId) {
+                console.error('Could not determine issue ID from form ID:', formId);
+                showAlert('danger', 'Error: Could not determine issue ID');
+                this.innerHTML = originalHtml;
+                this.disabled = false;
+                return;
+            }
+            
+            const formData = new FormData(form);
+            
+            // Always change status if there's a selected status
+            const statusSelect = form.querySelector('[name="new_status"]');
+            const newStatus = statusSelect ? statusSelect.value : null;
+            
+            if (newStatus) {
+                formData.set('change_status', 'true');
+            }
+            
+            // Submit form via AJAX
+            fetch(form.getAttribute('action'), {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => {
+                if (response.status === 403) {
+                    throw new Error('Permission denied: You do not have permission to add comments.');
+                }
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    showAlert('success', data.message || 'Comment added successfully!');
                     
-                    if (!issueId) {
-                        console.error('Could not determine issue ID from form ID:', formId);
-                        showAlert('danger', 'Error: Could not determine issue ID');
-                        return;
+                    // Reset the form
+                    form.reset();
+                    
+                    // If status was changed, update the status badge in the UI
+                    if (newStatus && data.new_status_display) {
+                        // Find status badges for this issue
+                        const statusBadges = document.querySelectorAll(`.status-badge[data-issue-id="${issueId}"]`);
+                        if (statusBadges.length > 0) {
+                            statusBadges.forEach(badge => {
+                                badge.textContent = data.new_status_display;
+                                
+                                // Update badge class based on status
+                                badge.className = 'badge status-badge ';
+                                if (newStatus === 'ready_for_testing') badge.className += 'bg-info';
+                                else if (newStatus === 'in_progress' || newStatus === 'in_remediation') badge.className += 'bg-warning';
+                                else if (newStatus === 'resolved' || newStatus === 'pass') badge.className += 'bg-success';
+                                else if (newStatus === 'closed') badge.className += 'bg-secondary';
+                                else badge.className += 'bg-danger';
+                            });
+                        }
+
+                        // Update ready for testing checkbox if present
+                        const readyCheckbox = document.querySelector(`input[data-issue-id="${issueId}"].ready-for-testing-checkbox`);
+                        if (readyCheckbox) {
+                            readyCheckbox.checked = newStatus === 'ready_for_testing';
+                        }
                     }
                     
-                    const formData = new FormData(form);
-                    
-                    // Check if status change is requested
-                    const statusCheckbox = form.querySelector('[name="change_status"]');
-                    const isStatusChange = statusCheckbox ? statusCheckbox.checked : false;
-                    const statusSelect = form.querySelector('[name="new_status"]');
-                    const newStatus = isStatusChange && statusSelect ? statusSelect.value : null;
-                    
-                    // Submit form via AJAX
-                    fetch(form.getAttribute('action'), {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
+                    // Update the comments in the comments modal
+                    const commentsModal = document.getElementById(`commentsModal${issueId}`);
+                    if (commentsModal) {
+                        const commentsContainer = commentsModal.querySelector('.comments-container');
+                        if (commentsContainer && data.comments_html) {
+                            commentsContainer.innerHTML = data.comments_html;
                         }
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok');
+                        
+                        // Update the comment count
+                        const commentCountElem = document.querySelector(`[data-bs-target="#commentsModal${issueId}"] .badge`);
+                        if (commentCountElem && data.comment_count) {
+                            commentCountElem.innerHTML = `<i class="bi bi-chat-dots me-1"></i> ${data.comment_count}`;
                         }
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (data.success) {
-                            showAlert('success', 'Comment added successfully!');
-                            
-                            // Close the add comment modal
-                            const addCommentModal = document.getElementById(`addCommentModal${issueId}`);
-                            if (addCommentModal) {
-                                try {
-                                    const addCommentModalInstance = bootstrap.Modal.getInstance(addCommentModal);
-                                    if (addCommentModalInstance) addCommentModalInstance.hide();
-                                    else new bootstrap.Modal(addCommentModal).hide();
-                                } catch (e) {
-                                    console.error('Error closing comment modal:', e);
-                                    addCommentModal.style.display = 'none';
-                                    addCommentModal.classList.remove('show');
-                                }
-                            }
-                            
-                            // Reset the form
-                            form.reset();
-                            
-                            // If status was changed, update the status badge in the UI
-                            if (isStatusChange && data.new_status_display) {
-                                // Find issue rows that contain this issue ID in their href
-                                const statusBadges = document.querySelectorAll(`.status-badge[data-issue-id="${issueId}"]`);
-                                if (statusBadges.length > 0) {
-                                    statusBadges.forEach(badge => {
-                                        badge.textContent = data.new_status_display;
-                                        
-                                        // Update badge class based on status
-                                        badge.className = 'badge status-badge ';
-                                        if (newStatus === 'ready_for_testing') badge.className += 'bg-info';
-                                        else if (newStatus === 'in_progress' || newStatus === 'in_remediation') badge.className += 'bg-warning';
-                                        else if (newStatus === 'resolved' || newStatus === 'pass') badge.className += 'bg-success';
-                                        else if (newStatus === 'closed') badge.className += 'bg-secondary';
-                                        else badge.className += 'bg-danger';
-                                    });
-                                } else {
-                                    // Try finding by row data-href
-                                    const rows = document.querySelectorAll(`tr[data-href*="issues/${issueId}"]`);
-                                    rows.forEach(row => {
-                                        const badge = row.querySelector('.status-badge');
-                                        if (badge) {
-                                            badge.textContent = data.new_status_display;
-                                            
-                                            // Update badge class based on status
-                                            badge.className = 'badge status-badge ';
-                                            if (newStatus === 'ready_for_testing') badge.className += 'bg-info';
-                                            else if (newStatus === 'in_progress' || newStatus === 'in_remediation') badge.className += 'bg-warning';
-                                            else if (newStatus === 'resolved' || newStatus === 'pass') badge.className += 'bg-success';
-                                            else if (newStatus === 'closed') badge.className += 'bg-secondary';
-                                            else badge.className += 'bg-danger';
-                                        }
-                                    });
-                                }
-
-                                // Update ready for testing checkbox if present
-                                const readyCheckbox = document.querySelector(`input[data-issue-id="${issueId}"].ready-for-testing-checkbox`);
-                                if (readyCheckbox) {
-                                    readyCheckbox.checked = newStatus === 'ready_for_testing';
-                                }
-                            }
-                            
-                            // Update the comments in the comments modal
-                            const commentsModal = document.getElementById(`commentsModal${issueId}`);
-                            if (commentsModal) {
-                                const commentsContainer = commentsModal.querySelector('.comments-container');
-                                if (commentsContainer && data.comments_html) {
-                                    commentsContainer.innerHTML = data.comments_html;
-                                }
-                                
-                                // Update the comment count
-                                const commentCountElem = document.querySelector(`[data-bs-target="#commentsModal${issueId}"] .badge`);
-                                if (commentCountElem && data.comment_count) {
-                                    commentCountElem.textContent = data.comment_count;
-                                }
-                                
-                                // Show the comments modal
-                                try {
-                                    const modal = new bootstrap.Modal(commentsModal);
-                                    modal.show();
-                                } catch (e) {
-                                    console.error('Error showing comments modal:', e);
-                                    commentsModal.style.display = 'block';
-                                    commentsModal.classList.add('show');
-                                }
-                            }
-                        } else {
-                            showAlert('danger', data.message || 'Error adding comment');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        showAlert('danger', 'There was a problem submitting your comment');
-                    });
+                    }
+                } else {
+                    showAlert('danger', data.message || 'Error adding comment');
                 }
-            }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('danger', error.message || 'There was a problem submitting your comment');
+            })
+            .finally(() => {
+                // Reset button state
+                this.innerHTML = originalHtml;
+                this.disabled = false;
+            });
         });
     });
     
@@ -1331,6 +1431,86 @@ document.addEventListener('DOMContentLoaded', function() {
                     addCommentModal.classList.add('show');
                     document.body.classList.add('modal-open');
                 }
+            }
+        });
+    });
+
+    // Handle modal styling
+    const modalButtons = document.querySelectorAll('[data-bs-toggle="modal"]');
+    modalButtons.forEach(button => {
+        const targetId = button.getAttribute('data-bs-target');
+        const modalElement = document.querySelector(targetId);
+        
+        if (modalElement) {
+            const modal = new bootstrap.Modal(modalElement, {
+                backdrop: 'static' // Prevents closing when clicking outside
+            });
+            
+            // Fix backdrop styling
+            modalElement.addEventListener('show.bs.modal', function() {
+                setTimeout(() => {
+                    const backdrops = document.querySelectorAll('.modal-backdrop');
+                    backdrops.forEach(backdrop => {
+                        backdrop.classList.add('light-backdrop');
+                    });
+                }, 10);
+            });
+        }
+    });
+
+    $('.comment-form').submit(function(e) {
+        e.preventDefault();
+        const form = $(this);
+        const url = form.attr('action');
+        const formData = form.serialize();
+        const issueId = form.attr('id').replace('addCommentForm', '');
+        
+        $.ajax({
+            type: 'POST',
+            url: url,
+            data: formData,
+            success: function(response) {
+                if (response.success) {
+                    // Update comments list
+                    $(`#commentsModal${issueId} .comments-section`).html(response.comments_html);
+                    
+                    // Update status badge if status was changed
+                    if (response.status_changed) {
+                        $(`.issue-row-${issueId} .status-badge`).html(response.status_badge_html);
+                    }
+                    
+                    // Show success message
+                    const alertHtml = `
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="bi bi-check-circle me-1"></i> ${response.message}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    `;
+                    form.before(alertHtml);
+                    
+                    // Reset form
+                    form[0].reset();
+                    $('.status-change-section').hide();
+                } else {
+                    // Show error message
+                    const alertHtml = `
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="bi bi-exclamation-triangle me-1"></i> ${response.message}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    `;
+                    form.before(alertHtml);
+                }
+            },
+            error: function(xhr, status, error) {
+                // Show error message
+                const alertHtml = `
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="bi bi-exclamation-triangle me-1"></i> An error occurred. Please try again.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                `;
+                form.before(alertHtml);
             }
         });
     });
@@ -1562,4 +1742,93 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 {% if project.project_type.supports_standards %}
 {% endif %}
+{% endblock %}
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Clickable rows
+    $('.clickable-row').click(function() {
+        window.location = $(this).data('href');
+    });
+    
+    // Handle submit button clicks
+    $('.submit-comment').click(function() {
+        const form = $(this).closest('form');
+        
+        // Show loading state
+        const submitBtn = $(this);
+        const originalText = submitBtn.html();
+        submitBtn.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...');
+        submitBtn.prop('disabled', true);
+        
+        const url = form.attr('action');
+        const formData = form.serialize();
+        const issueId = form.attr('id').replace('addCommentForm', '');
+        
+        $.ajax({
+            type: 'POST',
+            url: url,
+            data: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Update comments list
+                    const commentsContainer = form.closest('.modal-content').find('.comments-section');
+                    if (response.comments_html && commentsContainer.length) {
+                        commentsContainer.html(response.comments_html);
+                    }
+                    
+                    // Update status badge if status was changed
+                    if (response.status_changed) {
+                        $(`.issue-row-${issueId} .status-badge`).html(response.status_badge_html);
+                    }
+                    
+                    // Show success message
+                    const alertHtml = `
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="bi bi-check-circle me-1"></i> ${response.message}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    `;
+                    form.before(alertHtml);
+                    
+                    // Reset form
+                    form[0].reset();
+                    
+                    // Auto-dismiss the alert after 3 seconds
+                    setTimeout(() => {
+                        form.prev('.alert').alert('close');
+                    }, 3000);
+                } else {
+                    // Show error message
+                    const alertHtml = `
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="bi bi-exclamation-triangle me-1"></i> ${response.message || 'There was a problem saving your comment.'}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    `;
+                    form.before(alertHtml);
+                }
+            },
+            error: function(xhr, status, error) {
+                // Show error message
+                const alertHtml = `
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="bi bi-exclamation-triangle me-1"></i> An error occurred. Please try again.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                `;
+                form.before(alertHtml);
+            },
+            complete: function() {
+                // Reset button state
+                submitBtn.html(originalText);
+                submitBtn.prop('disabled', false);
+            }
+        });
+    });
+});
+</script>
 {% endblock %}

@@ -173,37 +173,80 @@
             
             <!-- Comments Section -->
             <div id="comments" class="card mt-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="card-header d-flex justify-content-between align-items-center bg-primary text-white">
                     <h2 class="h5 mb-0"><i class="bi bi-chat-dots me-2"></i>Comments ({{ comments.count }})</h2>
                 </div>
-                <div class="card-body">
-                    <!-- Comment Form -->
-                    <form method="post" class="mb-4" id="issueCommentForm">
-                        {% csrf_token %}
-                        <div class="mb-3">
-                            {{ comment_form.text }}
-                            {% if comment_form.text.errors %}
-                                <div class="invalid-feedback d-block">{{ comment_form.text.errors }}</div>
-                            {% endif %}
+                <div class="card-body p-0">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <!-- Comments List -->
+                            <div class="col-md-8 py-3">
+                                <div class="comments-list p-3 bg-white rounded" id="commentsList" style="max-height: 65vh; overflow-y: auto;">
+                                    {% include 'projects/includes/comments_list.html' with comments=comments can_see_internal=can_see_internal issue=issue %}
+                                </div>
+                            </div>
+                            
+                            <!-- Comment Form -->
+                            <div class="col-md-4 bg-light py-3">
+                                <div class="sticky-top pt-2">
+                                    <div class="card shadow-sm">
+                                        <div class="card-header bg-primary text-white">
+                                            <h5 class="card-title mb-0"><i class="bi bi-plus-circle me-2"></i>Add Comment</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <form method="post" class="mb-4" id="issueCommentForm">
+                                                {% csrf_token %}
+                                                
+                                                <!-- Status Update Section -->
+                                                <div class="mb-3">
+                                                    <label for="new_status" class="form-label fw-bold">Change Status:</label>
+                                                    <select class="form-select" id="new_status" name="new_status">
+                                                        <option value="">No change</option>
+                                                        <option value="pass" {% if issue.current_status == 'pass' %}selected{% endif %}>Pass</option>
+                                                        <option value="fail" {% if issue.current_status == 'fail' %}selected{% endif %}>Fail</option>
+                                                        <option value="qa" {% if issue.current_status == 'qa' %}selected{% endif %}>QA</option>
+                                                        <option value="in_remediation" {% if issue.current_status == 'in_remediation' %}selected{% endif %}>In Remediation</option>
+                                                        <option value="ready_for_testing" {% if issue.current_status == 'ready_for_testing' %}selected{% endif %}>Ready For Testing</option>
+                                                    </select>
+                                                    <div class="form-text">
+                                                        <i class="bi bi-info-circle me-1"></i> Current status: <strong>{{ issue.get_current_status_display }}</strong>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="mb-3">
+                                                    <label for="{{ comment_form.text.id_for_label }}" class="form-label fw-bold">Comment:</label>
+                                                    {{ comment_form.text }}
+                                                    {% if comment_form.text.errors %}
+                                                        <div class="invalid-feedback d-block">{{ comment_form.text.errors }}</div>
+                                                    {% endif %}
+                                                </div>
+                                                
+                                                {% if can_see_internal %}
+                                                <div class="mb-3">
+                                                    <label for="{{ comment_form.comment_type.id_for_label }}" class="form-label fw-bold">Comment Type:</label>
+                                                    {{ comment_form.comment_type }}
+                                                    {% if comment_form.comment_type.errors %}
+                                                        <div class="invalid-feedback d-block">{{ comment_form.comment_type.errors }}</div>
+                                                    {% endif %}
+                                                    <div class="form-text small">Internal comments are only visible to staff and administrators.</div>
+                                                </div>
+                                                {% else %}
+                                                    {{ comment_form.comment_type }}
+                                                {% endif %}
+                                                
+                                                <input type="hidden" name="change_status" value="true">
+                                                
+                                                <div class="d-grid">
+                                                    <button type="button" id="submitComment" class="btn btn-primary">
+                                                        <i class="bi bi-send me-1"></i>Save Comment & Update Status
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        {% if can_see_internal %}
-                        <div class="mb-3">
-                            <label for="{{ comment_form.comment_type.id_for_label }}" class="form-label">Comment Type:</label>
-                            {{ comment_form.comment_type }}
-                            {% if comment_form.comment_type.errors %}
-                                <div class="invalid-feedback d-block">{{ comment_form.comment_type.errors }}</div>
-                            {% endif %}
-                            <div class="form-text">Internal comments are only visible to staff and administrators.</div>
-                        </div>
-                        {% else %}
-                            {{ comment_form.comment_type }}
-                        {% endif %}
-                        <button type="button" id="submitComment" class="btn btn-primary">Add Comment</button>
-                    </form>
-                    
-                    <!-- Comments List -->
-                    <div class="comments-list" id="commentsList">
-                        {% include 'projects/includes/comments_list.html' with comments=comments can_see_internal=can_see_internal issue=issue %}
                     </div>
                 </div>
             </div>
@@ -265,8 +308,17 @@
                 const formData = new FormData(commentForm);
                 
                 // Add a loading state to the button
+                const originalHtml = this.innerHTML;
                 this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
                 this.disabled = true;
+                
+                // Check if status change is requested
+                const statusSelect = commentForm.querySelector('[name="new_status"]');
+                const newStatus = statusSelect ? statusSelect.value : null;
+                
+                if (newStatus) {
+                    formData.set('change_status', 'true');
+                }
                 
                 fetch(window.location.href, {
                     method: 'POST',
@@ -288,7 +340,7 @@
                 .then(data => {
                     if (data.success) {
                         // Show success message
-                        showAlert('success', data.message);
+                        showAlert('success', data.message || 'Comment added successfully!');
                         
                         // Reset the form
                         commentForm.reset();
@@ -296,6 +348,25 @@
                         // Update the comments list
                         if (data.html) {
                             document.getElementById('commentsList').innerHTML = data.html;
+                        }
+                        
+                        // Update status badge if status was changed
+                        if (newStatus && data.new_status_display) {
+                            const statusBadge = document.querySelector('.status-badge');
+                            if (statusBadge) {
+                                statusBadge.textContent = data.new_status_display;
+                                
+                                // Update badge class based on status
+                                statusBadge.className = 'badge status-badge ';
+                                if (newStatus === 'ready_for_testing') statusBadge.className += 'bg-info';
+                                else if (newStatus === 'in_progress' || newStatus === 'in_remediation') statusBadge.className += 'bg-warning';
+                                else if (newStatus === 'resolved' || newStatus === 'pass') statusBadge.className += 'bg-success';
+                                else if (newStatus === 'closed') statusBadge.className += 'bg-secondary';
+                                else statusBadge.className += 'bg-danger';
+                            }
+                            
+                            // Scroll to top of comments to see the new comment
+                            document.getElementById('commentsList').scrollTop = 0;
                         }
                     } else {
                         showAlert('danger', data.message || 'An error occurred');
@@ -307,7 +378,7 @@
                 })
                 .finally(() => {
                     // Reset button state
-                    this.innerHTML = 'Add Comment';
+                    this.innerHTML = originalHtml;
                     this.disabled = false;
                 });
             });
