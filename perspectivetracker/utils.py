@@ -1160,3 +1160,87 @@ def send_poc_change_email(request, client, previous_poc):
         context,
         [client.email]
     )
+
+
+def send_status_change_notification_email(request, issue, previous_status_value, new_status, comment=None, recipient_list=None):
+    """
+    Send email notification when an issue's status is changed.
+    
+    Args:
+        request: HTTP request object
+        issue: Issue instance that had its status changed
+        previous_status_value: Previous status value (string)
+        new_status: New status value (string)
+        comment: Comment instance associated with the status change, if any
+        recipient_list (list, optional): List of recipient email addresses.
+            If None, sends to assigned user and project team.
+    
+    Returns:
+        bool: True if email was sent successfully
+    """
+    if recipient_list is None:
+        recipient_list = []
+        # Add assigned user if exists
+        if issue.assigned_to:
+            recipient_list.append(issue.assigned_to.email)
+        # Add project team members
+        for user in issue.project.assigned_to.all():
+            if user.email not in recipient_list and user.email != request.user.email:
+                recipient_list.append(user.email)
+        
+        # Add additional stakeholders if configured
+        # (This could be extended based on project settings)
+                
+    if not recipient_list:
+        return False
+        
+    issue_url = request.build_absolute_uri(
+        reverse('projects:issue_detail', kwargs={'project_id': issue.project.pk, 'pk': issue.pk})
+    )
+    
+    # Get display values for statuses
+    issue_status_choices = dict(issue._meta.get_field('current_status').choices)
+    previous_status_display = issue_status_choices.get(previous_status_value, previous_status_value)
+    new_status_display = issue_status_choices.get(new_status, new_status)
+    
+    context = {
+        'issue': issue,
+        'project': issue.project,
+        'updater': request.user,
+        'issue_url': issue_url,
+        'previous_status_display': previous_status_display,
+        'new_status_display': new_status_display,
+        'comment': comment,
+        'recipient': None,  # Will be set for each recipient
+        'assigned_to': issue.assigned_to
+    }
+    
+    # Check if issue was marked as ready for testing
+    if new_status == 'ready_for_testing':
+        subject = f'Issue Ready for Testing: {issue.project.name} - {issue.issue_description[:50]}'
+    else:
+        subject = f'Issue Status Changed: {issue.project.name} - {issue.issue_description[:50]}'
+    
+    # Send personalized emails to each recipient
+    success = True
+    for recipient_email in recipient_list:
+        # Try to find the recipient user
+        try:
+            from users.models import CustomUser
+            recipient = CustomUser.objects.get(email=recipient_email)
+            # Update context with recipient for personalization
+            context['recipient'] = recipient
+        except:
+            # If user not found, continue without personalization
+            context['recipient'] = None
+        
+        # Send the email
+        result = send_email(
+            subject,
+            'emails/status_change_notification.html',
+            context,
+            [recipient_email]
+        )
+        success = success and result
+    
+    return success

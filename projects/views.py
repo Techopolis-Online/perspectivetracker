@@ -15,7 +15,8 @@ from perspectivetracker.utils import (
     send_milestone_created_email,
     send_milestone_updated_email,
     send_milestone_completed_email,
-    send_assignment_notification_email
+    send_assignment_notification_email,
+    send_status_change_notification_email
 )
 import logging
 
@@ -1172,7 +1173,7 @@ def issue_detail(request, project_id, pk):
             status_changed = False
             old_status_value = issue.current_status
             new_status = None
-            
+
             if 'change_status' in request.POST and request.POST.get('new_status'):
                 new_status = request.POST.get('new_status')
                 if new_status != old_status_value:
@@ -1184,10 +1185,10 @@ def issue_detail(request, project_id, pk):
                     # Update the issue status
                     issue.current_status = new_status
                     issue.save()
-            
+
             # Save the comment
             comment.save()
-            
+
             # Record the status change modification if applicable
             if status_changed:
                 IssueModification.objects.create(
@@ -1199,7 +1200,16 @@ def issue_detail(request, project_id, pk):
                     new_value=new_status,
                     comment=comment
                 )
-            
+                
+                # Send status change notification email
+                send_status_change_notification_email(
+                    request=request,
+                    issue=issue,
+                    previous_status_value=old_status_value,
+                    new_status=new_status,
+                    comment=comment
+                )
+
             # Also record comment as a modification
             IssueModification.objects.create(
                 issue=issue,
@@ -1213,7 +1223,7 @@ def issue_detail(request, project_id, pk):
             # Send email notification
             send_comment_notification_email(request, comment)
             
-            # Check if this is an AJAX request
+            # Always handle AJAX requests consistently
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 # Determine if user can see internal comments
                 can_see_internal = request.user.is_superuser or (
@@ -1244,7 +1254,8 @@ def issue_detail(request, project_id, pk):
                         'status_changed': True,
                         'new_status': issue.current_status,
                         'new_status_display': issue.get_current_status_display(),
-                        'previous_status': old_status_value
+                        'previous_status': old_status_value,
+                        'status_badge_html': f'<span class="badge {'bg-info' if issue.current_status == 'ready_for_testing' else 'bg-warning' if issue.current_status == 'in_remediation' else 'bg-success' if issue.current_status == 'pass' else 'bg-danger' if issue.current_status == 'fail' else 'bg-primary' if issue.current_status == 'qa' else 'bg-secondary' if issue.current_status == 'closed' else 'bg-secondary'} status-badge">{issue.get_current_status_display()}</span>'
                     })
                 
                 return JsonResponse(response_data)
@@ -1325,6 +1336,15 @@ def issue_update_status(request, project_id, pk):
             # Send email notification for the comment
             send_comment_notification_email(request, comment)
             
+            # Send status change notification email
+            send_status_change_notification_email(
+                request=request,
+                issue=updated_issue,
+                previous_status_value=old_status_value,
+                new_status=updated_issue.current_status,
+                comment=comment
+            )
+            
             # Also send issue updated email
             updated_fields = [f"Status changed from '{old_status}' to '{updated_issue.get_current_status_display()}'"]
             send_issue_updated_email(request, updated_issue, updated_fields)
@@ -1375,7 +1395,7 @@ def mark_issue_ready_for_testing(request, project_id, pk):
            hasattr(request.user, 'role') and 
            request.user.role and 
            request.user.role.name != 'standard')):
-        return HttpResponseForbidden("You don't have permission to mark this issue as ready for testing.")
+        return HttpResponseForbidden("You don't have permission to mark issues as ready for testing.")
     
     # Store the old status for the response
     old_status = issue.get_current_status_display()
@@ -1393,7 +1413,7 @@ def mark_issue_ready_for_testing(request, project_id, pk):
         comment_type='external',
         status_changed=True,
         previous_status=old_status_value,
-        new_status='ready_for_testing',
+        new_status=issue.current_status,
         milestone=issue.milestone
     )
     
@@ -1404,16 +1424,30 @@ def mark_issue_ready_for_testing(request, project_id, pk):
         modified_by=request.user,
         modification_type='status_change',
         previous_value=old_status_value,
-        new_value='ready_for_testing',
+        new_value=issue.current_status,
         comment=comment
     )
     
-    # Return JSON response
-    return JsonResponse({
-        'success': True,
-        'message': 'Issue marked as Ready for Testing.',
-        'old_status': old_status
-    })
+    # Send status change notification email
+    send_status_change_notification_email(
+        request=request,
+        issue=issue,
+        previous_status_value=old_status_value,
+        new_status=issue.current_status,
+        comment=comment
+    )
+    
+    # Return response based on request type
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({
+            'success': True,
+            'message': f"Issue marked as Ready for Testing",
+            'new_status': issue.current_status,
+            'new_status_display': issue.get_current_status_display()
+        })
+    else:
+        messages.success(request, "Issue marked as Ready for Testing.")
+        return redirect('projects:issue_detail', project_id=project.id, pk=issue.pk)
 
 @login_required
 def issues_needing_testing(request, project_id, milestone_id):
