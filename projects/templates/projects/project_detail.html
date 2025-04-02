@@ -360,11 +360,9 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#commentsModal{{ issue.id }}">
-                                            <span class="badge bg-secondary">
-                                                <i class="bi bi-chat-dots me-1"></i> {{ issue.comments.count }}
-                                            </span>
-                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#commentsModal{{ issue.id }}">
+                                            <i class="bi bi-chat-dots me-1"></i> {{ issue.comments.count }}
+                                        </button>
                                         
                                         <!-- Comments Modal -->
                                         <div class="modal fade" id="commentsModal{{ issue.id }}" tabindex="-1" aria-labelledby="commentsModalLabel{{ issue.id }}" aria-hidden="true">
@@ -549,11 +547,9 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#commentsModal{{ issue.id }}">
-                                            <span class="badge bg-secondary">
-                                                <i class="bi bi-chat-dots me-1"></i> {{ issue.comments.count }}
-                                            </span>
-                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#commentsModal{{ issue.id }}">
+                                            <i class="bi bi-chat-dots me-1"></i> {{ issue.comments.count }}
+                                        </button>
                                         
                                         <!-- Comments Modal -->
                                         <div class="modal fade" id="commentsModal{{ issue.id }}" tabindex="-1" aria-labelledby="commentsModalLabel{{ issue.id }}" aria-hidden="true">
