@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import HttpResponseForbidden, JsonResponse
+from django.http import HttpResponseForbidden, JsonResponse, HttpResponse
 from django.db.models import Count, Q
 from .models import ProjectType, Project, Standard, Violation, ProjectViolation, ProjectStandard, Page, Milestone, Issue, Comment, IssueModification
 from users.views import admin_required, staff_required
@@ -18,6 +18,8 @@ from perspectivetracker.utils import (
     send_assignment_notification_email,
     send_status_change_notification_email
 )
+import pandas as pd
+from io import BytesIO
 import logging
 
 logger = logging.getLogger(__name__)
@@ -1580,3 +1582,148 @@ def edit_issue_comment(request, project_id, issue_id, comment_id):
         'project': project,
     }
     return render(request, 'projects/includes/comment_form.html', context)
+
+@login_required
+def export_project_to_excel(request, pk):
+    """Export project data to Excel with multiple sheets"""
+    project = get_object_or_404(Project, pk=pk)
+    
+    # Check if user has access to this project
+    if not (request.user.is_superuser or 
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']) or
+            request.user in project.assigned_to.all()):
+        return HttpResponseForbidden("You don't have permission to access this project.")
+    
+    # Create Excel writer
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        # Project Details Sheet
+        project_data = {
+            'Field': [
+                'Name', 'Client', 'Project Type', 'Status', 'Created At', 'Updated At',
+                'Team Members', 'Notes'
+            ],
+            'Value': [
+                project.name,
+                project.client.company_name if project.client else '',
+                project.project_type.name if project.project_type else '',
+                project.get_status_display(),
+                project.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                project.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+                ', '.join([user.get_full_name() for user in project.assigned_to.all()]),
+                project.notes or ''
+            ]
+        }
+        pd.DataFrame(project_data).to_excel(writer, sheet_name='Project Details', index=False)
+        
+        # Pages Sheet
+        pages = Page.objects.filter(project=project)
+        pages_data = []
+        for page in pages:
+            pages_data.append({
+                'Name': page.name,
+                'URL': page.url,
+                'Status': getattr(page, 'status', ''),
+                'Last Checked': getattr(page, 'last_checked', '').strftime('%Y-%m-%d %H:%M:%S') if hasattr(page, 'last_checked') and page.last_checked else '',
+                'Notes': getattr(page, 'notes', '') or '',
+                'Created At': page.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'Updated At': page.updated_at.strftime('%Y-%m-%d %H:%M:%S')
+            })
+        pd.DataFrame(pages_data).to_excel(writer, sheet_name='Pages', index=False)
+        
+        # Issues Sheet
+        issues = Issue.objects.filter(project=project)
+        issues_data = []
+        for issue in issues:
+            issues_data.append({
+                'Description': issue.issue_description,
+                'Status': issue.get_current_status_display(),
+                'Severity': getattr(issue, 'get_severity_display', lambda: '')() if hasattr(issue, 'severity') else '',
+                'Page': issue.page.name if issue.page else '',
+                'Milestone': issue.milestone.name if issue.milestone else '',
+                'Assigned To': issue.assigned_to.get_full_name() if issue.assigned_to else '',
+                'Steps to Reproduce': getattr(issue, 'steps_to_reproduce', '') or '',
+                'User Impact': getattr(issue, 'user_impact', '') or '',
+                'User Impact Description': getattr(issue, 'user_impact_description', '') or '',
+                'Created By': issue.created_by.get_full_name() if issue.created_by else '',
+                'Created At': issue.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'Updated At': issue.updated_at.strftime('%Y-%m-%d %H:%M:%S')
+            })
+        pd.DataFrame(issues_data).to_excel(writer, sheet_name='Issues', index=False)
+        
+        # Milestones Sheet
+        milestones = Milestone.objects.filter(project=project)
+        milestones_data = []
+        for milestone in milestones:
+            milestones_data.append({
+                'Name': milestone.name,
+                'Description': getattr(milestone, 'description', '') or '',
+                'Due Date': milestone.due_date.strftime('%Y-%m-%d') if milestone.due_date else '',
+                'Completed Date': getattr(milestone, 'completed_date', '').strftime('%Y-%m-%d') if hasattr(milestone, 'completed_date') and milestone.completed_date else '',
+                'Status': milestone.get_status_display(),
+                'Type': getattr(milestone, 'milestone_type', '') if hasattr(milestone, 'milestone_type') else '',
+                'Assigned To': milestone.assigned_to.get_full_name() if milestone.assigned_to else '',
+                'Created By': milestone.created_by.get_full_name() if milestone.created_by else '',
+                'Notes': getattr(milestone, 'notes', '') or '',
+                'Created At': milestone.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'Updated At': milestone.updated_at.strftime('%Y-%m-%d %H:%M:%S')
+            })
+        pd.DataFrame(milestones_data).to_excel(writer, sheet_name='Milestones', index=False)
+        
+        # Comments Sheet
+        comments = Comment.objects.filter(issue__project=project)
+        comments_data = []
+        for comment in comments:
+            comments_data.append({
+                'Issue': comment.issue.issue_description[:50] + '...' if len(comment.issue.issue_description) > 50 else comment.issue.issue_description,
+                'Author': comment.author.get_full_name() if comment.author else '',
+                'Type': comment.get_comment_type_display(),
+                'Text': comment.text,
+                'Status Changed': 'Yes' if comment.status_changed else 'No',
+                'Previous Status': comment.previous_status if comment.status_changed else '',
+                'New Status': comment.new_status if comment.status_changed else '',
+                'Created At': comment.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'Updated At': comment.updated_at.strftime('%Y-%m-%d %H:%M:%S')
+            })
+        pd.DataFrame(comments_data).to_excel(writer, sheet_name='Comments', index=False)
+        
+        # Project Standards Sheet
+        if hasattr(project, 'standards'):
+            standards = project.standards.all()
+            standards_data = []
+            for standard in standards:
+                standards_data.append({
+                    'Name': standard.name,
+                    'Description': getattr(standard, 'description', '') or '',
+                    'Version': getattr(standard, 'version', '') or '',
+                    'Status': getattr(standard, 'get_status_display', lambda: '')() if hasattr(standard, 'status') else '',
+                    'Created At': standard.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                    'Updated At': standard.updated_at.strftime('%Y-%m-%d %H:%M:%S')
+                })
+            pd.DataFrame(standards_data).to_excel(writer, sheet_name='Standards', index=False)
+        
+        # Violations Sheet
+        if hasattr(project, 'violations'):
+            violations = project.violations.all()
+            violations_data = []
+            for violation in violations:
+                violations_data.append({
+                    'Standard': violation.standard.name if violation.standard else '',
+                    'Name': violation.name,
+                    'Description': getattr(violation, 'description', '') or '',
+                    'Severity': getattr(violation, 'get_severity_display', lambda: '')() if hasattr(violation, 'severity') else '',
+                    'Status': getattr(violation, 'get_status_display', lambda: '')() if hasattr(violation, 'status') else '',
+                    'Created At': violation.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                    'Updated At': violation.updated_at.strftime('%Y-%m-%d %H:%M:%S')
+                })
+            pd.DataFrame(violations_data).to_excel(writer, sheet_name='Violations', index=False)
+    
+    # Prepare response
+    output.seek(0)
+    response = HttpResponse(
+        output.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{project.name}_export.xlsx"'
+    
+    return response

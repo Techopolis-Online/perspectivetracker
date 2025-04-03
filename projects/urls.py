@@ -68,4 +68,5 @@ urlpatterns = [
     path('<int:project_id>/issues/<int:pk>/comment/', views.issue_comment, name='issue_comment'),
     path('<int:project_id>/issues/<int:issue_id>/comments/<int:comment_id>/edit/', views.edit_issue_comment, name='edit_issue_comment'),
     path('<int:project_id>/issues/<int:issue_id>/comments/<int:comment_id>/delete/', views.delete_comment, name='delete_comment'),
+    path('<int:pk>/export/', views.export_project_to_excel, name='export_project'),
 ] 

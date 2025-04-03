@@ -1,77 +1,59 @@
+{% load static %}
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Perspective Tracker{% endblock %}</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             line-height: 1.6;
             color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
             max-width: 600px;
             margin: 0 auto;
             padding: 20px;
         }
         .header {
             text-align: center;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #4CAF50;
-            padding-bottom: 10px;
+            padding: 20px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .header img {
+            max-height: 50px;
+            margin-bottom: 10px;
         }
         .content {
-            background-color: #f9f9f9;
-            padding: 20px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-        }
-        .button {
-            display: inline-block;
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 20px;
-            text-decoration: none;
-            border-radius: 5px;
-            margin-top: 10px;
+            padding: 20px 0;
         }
         .footer {
-            margin-top: 20px;
-            font-size: 12px;
-            color: #777;
             text-align: center;
-            border-top: 1px solid #ddd;
-            padding-top: 10px;
-        }
-        .info-box {
-            background-color: #e9f7ef;
-            border-left: 4px solid #4CAF50;
-            padding: 10px 15px;
-            margin: 15px 0;
-        }
-        .details {
-            margin: 15px 0;
-        }
-        .details-item {
-            margin-bottom: 5px;
-        }
-        .details-label {
-            font-weight: bold;
+            padding: 20px 0;
+            border-top: 1px solid #eee;
+            font-size: 12px;
+            color: #666;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Perspective Tracker</h1>
-        <p>by {{ company_name|default:"Techopolis Online Solutions" }}</p>
-    </div>
-    
-    <div class="content">
-        {% block content %}{% endblock %}
-    </div>
-    
-    <div class="footer">
-        <p>This is an automated message from Perspective Tracker. Please do not reply to this email.</p>
-        <p>If you need assistance, please contact us at <a href="mailto:tracker@techopolis.app">tracker@techopolis.app</a></p>
-        <p>&copy; {% now "Y" %} {{ company_name|default:"Techopolis Online Solutions" }}. All rights reserved.</p>
+    <div class="container">
+        <div class="header">
+            <img src="{% static 'Techopolis.png' %}" alt="Techopolis Logo">
+            <h1>Perspective Tracker</h1>
+        </div>
+        
+        <div class="content">
+            {% block content %}{% endblock %}
+        </div>
+        
+        <div class="footer">
+            <p>This email was sent by Perspective Tracker, a product of Techopolis Online Solutions LLC.</p>
+            <p>&copy; {% now "Y" %} Techopolis Online Solutions LLC. All rights reserved.</p>
+        </div>
     </div>
 </body>
 </html> 

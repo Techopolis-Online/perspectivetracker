@@ -118,6 +118,63 @@
                 </div>
             </div>
 
+            <!-- Standards Section (for Accessibility Projects) -->
+            {% if project.project_type.supports_standards %}
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2 class="card-title mb-0"><i class="bi bi-list-check me-2"></i>Project Standards</h2>
+                    {% if user.is_superuser or user.role.name == 'admin' %}
+                    <a href="{% url 'projects:project_standard_create' project.id %}" class="btn btn-primary btn-sm">
+                        <i class="bi bi-plus-lg me-1"></i> Add New
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if project_standards %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Standard</th>
+                                    <th>Version</th>
+                                    <th>Added By</th>
+                                    <th>Date Added</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for project_standard in project_standards %}
+                                <tr>
+                                    <td>{{ project_standard.standard.name }}</td>
+                                    <td>{{ project_standard.standard.version }}</td>
+                                    <td>{{ project_standard.created_by.get_full_name }}</td>
+                                    <td>{{ project_standard.created_at|date:"M d, Y" }}</td>
+                                    <td>
+                                        {% if user.is_superuser or user.role.name == 'admin' %}
+                                        <a href="{% url 'projects:project_standard_delete' project_standard.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to remove this standard from the project?');">
+                                            <i class="bi bi-trash"></i> Remove
+                                        </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <p class="mb-0">No standards have been added to this project yet.</p>
+                        {% if user.is_superuser or user.role.name == 'admin' %}
+                        <a href="{% url 'projects:project_standard_create' project.id %}" class="btn btn-primary btn-sm mt-2">
+                            <i class="bi bi-plus-lg me-1"></i> Add New
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Team Members -->
             <div class="card mb-4">
                 <div class="card-header">
@@ -311,6 +368,11 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h2 class="card-title mb-0"><i class="bi bi-exclamation-triangle me-2" aria-hidden="true"></i>Issues</h2>
                     <div>
+                        {% if user.is_superuser or user.role.name == 'admin' %}
+                        <a href="{% url 'projects:project_standard_create' project.id %}" class="btn btn-sm btn-outline-primary me-2">
+                            <i class="bi bi-plus-lg" aria-hidden="true"></i> Add Standard
+                        </a>
+                        {% endif %}
                         <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addIssueModal">
                             <i class="bi bi-plus-lg" aria-hidden="true"></i> Create Issue
                         </button>
@@ -779,28 +841,9 @@
                                     <h3 class="mb-3">Project Report</h3>
                                     <p>Export a comprehensive report of this project including all details, pages, and issues.</p>
                                     <div class="d-grid gap-2">
-                                        <button class="btn btn-primary">
-                                            <i class="bi bi-file-earmark-pdf me-2"></i>Export as PDF
-                                        </button>
-                                        <button class="btn btn-outline-primary">
+                                        <a href="{% url 'projects:export_project' project.id %}" class="btn btn-primary">
                                             <i class="bi bi-file-earmark-excel me-2"></i>Export as Excel
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card mb-3">
-                                <div class="card-body">
-                                    <h3 class="mb-3">Issues Report</h3>
-                                    <p>Export only the issues and their current status for this project.</p>
-                                    <div class="d-grid gap-2">
-                                        <button class="btn btn-primary">
-                                            <i class="bi bi-file-earmark-pdf me-2"></i>Export as PDF
-                                        </button>
-                                        <button class="btn btn-outline-primary">
-                                            <i class="bi bi-file-earmark-excel me-2"></i>Export as Excel
-                                        </button>
+                                        </a>
                                     </div>
                                 </div>
                             </div>
