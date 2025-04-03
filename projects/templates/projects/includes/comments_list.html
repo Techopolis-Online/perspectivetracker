@@ -1,6 +1,6 @@
 {% if issue %}
 <div class="mb-3">
-    <h6 class="text-muted mb-3">Issue: {{ issue.issue_description|truncatechars:100 }}</h6>
+    <p class="text-muted mb-3">Issue: {{ issue.issue_description|truncatechars:100 }}</p>
     <div class="d-flex mb-2">
         <span class="badge {% if issue.current_status == 'fail' %}bg-danger{% elif issue.current_status == 'in_remediation' %}bg-warning text-dark{% elif issue.current_status == 'pass' %}bg-success{% else %}bg-secondary{% endif %} me-2">
             {{ issue.get_current_status_display }}
@@ -13,52 +13,87 @@
 <hr>
 {% endif %}
 
+<div id="comments-list" aria-label="Comments for this issue">
 {% if comments %}
     {% for comment in comments %}
-        {% if comment.comment_type != 'internal' or can_see_internal %}
-            <div class="comment mb-3 p-3 border rounded" id="comment-{{ comment.id }}">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div class="d-flex align-items-center">
-                        <div class="avatar-circle bg-primary text-white me-2">
-                            {{ comment.author.first_name|first }}{{ comment.author.last_name|first }}
-                        </div>
-                        <div>
-                            <div class="fw-bold">{{ comment.author.get_full_name }}</div>
-                            <div class="text-muted small">{{ comment.created_at|date:"M d, Y H:i" }}</div>
-                        </div>
-                    </div>
-                    {% if user == comment.author or user.is_superuser or user.role.name == 'admin' %}
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-sm btn-outline-primary edit-comment" data-comment-id="{{ comment.id }}">
-                            <i class="bi bi-pencil"></i>
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-danger delete-comment" data-comment-id="{{ comment.id }}">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </div>
+        {% if comment.comment_type == 'internal' and not can_see_internal %}
+        {% else %}
+        <div id="comment-{{ comment.id }}" class="comment p-3 mb-3 bg-light rounded shadow-sm" role="article">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <p class="mb-1 fw-bold" id="comment-heading-{{ comment.id }}">
+                        <span class="badge {% if comment.comment_type == 'internal' %}bg-warning text-dark{% else %}bg-info{% endif %} me-2">
+                            {{ comment.get_comment_type_display }}
+                        </span>
+                        {{ comment.author.get_full_name }}
+                    </p>
+                    <small class="text-muted">{{ comment.created_at|date:"F j, Y, g:i a" }}</small>
+                </div>
+                <div class="btn-group" role="group" aria-label="Comment actions">
+                    {% if comment.author == user or user.is_superuser or user.role.name == 'admin' %}
+                    <button type="button" class="btn btn-sm btn-outline-primary edit-comment" 
+                            data-comment-id="{{ comment.id }}" 
+                            data-edit-url="{% url 'projects:edit_issue_comment' issue.project.id issue.id comment.id %}"
+                            aria-label="Edit comment by {{ comment.author.get_full_name }}">
+                        <i class="bi bi-pencil" aria-hidden="true"></i>
+                        <span class="visually-hidden">Edit</span>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger delete-comment" 
+                            data-comment-id="{{ comment.id }}" 
+                            data-delete-url="{% url 'projects:delete_comment' issue.project.id issue.id comment.id %}"
+                            aria-label="Delete comment by {{ comment.author.get_full_name }}">
+                        <i class="bi bi-trash" aria-hidden="true"></i>
+                        <span class="visually-hidden">Delete</span>
+                    </button>
                     {% endif %}
                 </div>
-                {% if comment.status_changed %}
-                <div class="mt-2">
-                    <small class="text-muted">
-                        Status changed from <span class="badge bg-secondary">{{ comment.previous_status }}</span> 
-                        to <span class="badge bg-primary">{{ comment.new_status }}</span>
-                    </small>
-                </div>
-                {% endif %}
-                <div class="mt-2 comment-text">
-                    {{ comment.text|linebreaks }}
-                </div>
             </div>
+            <div class="comment-text" aria-labelledby="comment-heading-{{ comment.id }}">
+                {{ comment.text|linebreaks }}
+            </div>
+            {% if comment.status_change %}
+            <div class="status-change-info p-2 mt-2 rounded">
+                <i class="bi bi-arrow-right-circle me-1" aria-hidden="true"></i>
+                <span>Status changed to <strong>{{ comment.get_status_change_display }}</strong></span>
+            </div>
+            {% endif %}
+        </div>
         {% endif %}
     {% empty %}
-        <div class="text-center text-muted py-4">
-            <i class="bi bi-chat-dots display-4"></i>
-            <p class="mt-2">No comments yet. Be the first to comment!</p>
+        <div class="text-center py-4">
+            <p class="text-muted mb-0">No comments yet. Be the first to comment!</p>
         </div>
     {% endfor %}
 {% else %}
     <div class="alert alert-info">
         <p class="mb-0">No comments yet for this issue.</p>
     </div>
-{% endif %} 
+{% endif %}
+</div>
+
+<script>
+$(document).ready(function() {
+    // Handle edit comment button click
+    $('.edit-comment').on('click', function() {
+        const button = $(this);
+        const commentId = button.data('comment-id');
+        const editUrl = button.data('edit-url');
+        const commentDiv = button.closest('.comment');
+        const commentText = commentDiv.find('.comment-text');
+        
+        // Hide the comment text and show loading state
+        commentText.hide();
+        commentDiv.append('<div class="text-center py-3"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading edit form...</span></div></div>');
+        
+        // Load the edit form
+        $.get(editUrl, function(response) {
+            commentDiv.find('.spinner-border').remove();
+            commentDiv.append(response);
+        }).fail(function() {
+            commentDiv.find('.spinner-border').remove();
+            commentText.show();
+            alert('Error loading edit form');
+        });
+    });
+});
+</script> 

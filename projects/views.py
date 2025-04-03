@@ -1503,3 +1503,80 @@ def issue_comment(request, project_id, pk):
     
     # Otherwise redirect to the issue detail page
     return redirect('projects:issue_detail', project_id=project_id, pk=pk)
+
+@login_required
+def delete_comment(request, project_id, issue_id, comment_id):
+    """Delete a comment"""
+    comment = get_object_or_404(Comment, id=comment_id, issue_id=issue_id)
+    
+    # Check if user has permission to delete this comment
+    if not (request.user.is_superuser or 
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']) or
+            request.user == comment.author):
+        return JsonResponse({'success': False, 'message': 'You do not have permission to delete this comment.'})
+    
+    if request.method == 'POST':
+        try:
+            comment.delete()
+            return JsonResponse({'success': True, 'message': 'Comment deleted successfully.'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request method.'})
+
+@login_required
+def edit_issue_comment(request, project_id, issue_id, comment_id):
+    """Edit an existing comment"""
+    project = get_object_or_404(Project, pk=project_id)
+    issue = get_object_or_404(Issue, pk=issue_id, project=project)
+    comment = get_object_or_404(Comment, id=comment_id, issue=issue)
+    
+    # Check if user has permission to edit this comment
+    if not (request.user.is_superuser or 
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']) or
+            request.user == comment.author):
+        return JsonResponse({'success': False, 'message': 'You do not have permission to edit this comment.'})
+    
+    if request.method == 'POST':
+        form = CommentForm(request.POST, instance=comment, user=request.user, issue=issue)
+        if form.is_valid():
+            form.save()
+            
+            # Determine if user can see internal comments
+            can_see_internal = request.user.is_superuser or (
+                hasattr(request.user, 'role') and 
+                request.user.role and 
+                request.user.role.name in ['admin', 'staff']
+            )
+            
+            # Render the comments list to HTML
+            from django.template.loader import render_to_string
+            comments_html = render_to_string('projects/includes/comments_list.html', {
+                'comments': issue.comments.all(),
+                'can_see_internal': can_see_internal,
+                'issue': issue,
+                'project': project,
+            })
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Comment updated successfully.',
+                'comments_html': comments_html,
+                'comment_count': issue.comments.count()
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'message': 'Error updating comment.',
+                'errors': form.errors
+            })
+    
+    # For GET requests, return the form HTML
+    form = CommentForm(instance=comment, user=request.user, issue=issue)
+    context = {
+        'form': form,
+        'comment': comment,
+        'issue': issue,
+        'project': project,
+    }
+    return render(request, 'projects/includes/comment_form.html', context)

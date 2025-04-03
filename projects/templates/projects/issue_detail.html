@@ -253,6 +253,8 @@
         </div>
     </div>
 </div>
+
+<footer class="bg-light mt-5 py-3">
 {% endblock %}
 
 {% block extra_css %}
@@ -280,167 +282,204 @@
 
 {% block extra_js %}
 <script>
-    // Helper function to show alerts
-    function showAlert(type, message) {
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-        alertDiv.setAttribute('role', 'alert');
-        alertDiv.innerHTML = `
-            <strong>${type === 'success' ? 'Success!' : 'Error!'}</strong> ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        `;
-        document.querySelector('.container').prepend(alertDiv);
+    // Wait for both jQuery and document to be ready
+    $(document).ready(function() {
+        console.log('Document ready and jQuery loaded'); // Debug log
         
-        // Auto-dismiss after 5 seconds
-        setTimeout(() => {
-            const bsAlert = new bootstrap.Alert(alertDiv);
-            bsAlert.close();
-        }, 5000);
-    }
+        // Helper function to show alerts
+        function showAlert(type, message) {
+            console.log('Showing alert:', type, message); // Debug log
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.setAttribute('role', 'alert');
+            alertDiv.innerHTML = `
+                <strong>${type === 'success' ? 'Success!' : 'Error!'}</strong> ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            document.querySelector('.container').prepend(alertDiv);
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                const bsAlert = new bootstrap.Alert(alertDiv);
+                bsAlert.close();
+            }, 5000);
+        }
 
-    document.addEventListener('DOMContentLoaded', function() {
-        // Handle comment form submission
-        const commentForm = document.getElementById('issueCommentForm');
-        const submitButton = document.getElementById('submitComment');
-        
-        if (commentForm && submitButton) {
-            submitButton.addEventListener('click', function() {
-                const formData = new FormData(commentForm);
-                
-                // Add a loading state to the button
-                const originalHtml = this.innerHTML;
-                this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
-                this.disabled = true;
-                
-                // Check if status change is requested
-                const statusSelect = commentForm.querySelector('[name="new_status"]');
-                const newStatus = statusSelect ? statusSelect.value : null;
-                
-                if (newStatus) {
-                    formData.set('change_status', 'true');
+        // Get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
                 }
+            }
+            return cookieValue;
+        }
+
+        const csrftoken = getCookie('csrftoken');
+        console.log('CSRF Token:', csrftoken); // Debug log
+
+        // Handle comment deletion
+        $(document).on('click', '.delete-comment', function(e) {
+            e.preventDefault();
+            console.log('Delete comment clicked'); // Debug log
+            
+            const commentId = $(this).data('comment-id');
+            const deleteUrl = $(this).data('delete-url');
+            console.log('Comment ID:', commentId, 'Delete URL:', deleteUrl); // Debug log
+            
+            if (window.confirm('Are you sure you want to delete this comment?')) {
+                console.log('User confirmed deletion'); // Debug log
                 
-                fetch(window.location.href, {
+                $.ajax({
+                    url: deleteUrl,
                     method: 'POST',
-                    body: formData,
                     headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        'X-CSRFToken': csrftoken
+                    },
+                    success: function(response) {
+                        console.log('Delete response:', response); // Debug log
+                        if (response.success) {
+                            $(`#comment-${commentId}`).fadeOut(300, function() {
+                                $(this).remove();
+                                showAlert('success', 'Comment deleted successfully');
+                            });
+                        } else {
+                            showAlert('danger', response.message || 'Failed to delete comment');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Delete error:', error); // Debug log
+                        showAlert('danger', 'An error occurred while deleting the comment');
                     }
-                })
-                .then(response => {
-                    if (response.status === 403) {
-                        throw new Error('Permission denied: You do not have permission to add comments.');
-                    }
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
+                });
+            }
+        });
+
+        // Handle comment form submission
+        $('#submitComment').on('click', function() {
+            const form = $('#issueCommentForm');
+            const formData = new FormData(form[0]);
+            
+            // Add a loading state to the button
+            const submitBtn = $(this);
+            const originalHtml = submitBtn.html();
+            submitBtn.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...');
+            submitBtn.prop('disabled', true);
+            
+            // Check if status change is requested
+            const newStatus = $('#new_status').val();
+            if (newStatus) {
+                formData.set('change_status', 'true');
+            }
+            
+            $.ajax({
+                url: window.location.href,
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrftoken
+                },
+                success: function(response) {
+                    if (response.success) {
                         // Show success message
-                        showAlert('success', data.message || 'Comment added successfully!');
+                        showAlert('success', response.message || 'Comment added successfully!');
                         
                         // Reset the form
-                        commentForm.reset();
+                        form[0].reset();
                         
                         // Update the comments list
-                        if (data.html) {
-                            document.getElementById('commentsList').innerHTML = data.html;
+                        if (response.html) {
+                            $('#commentsList').html(response.html);
                         }
                         
                         // Update status badge if status was changed
-                        if (newStatus && data.new_status_display) {
-                            const statusBadge = document.querySelector('.status-badge');
-                            if (statusBadge) {
-                                statusBadge.textContent = data.new_status_display;
+                        if (newStatus && response.new_status_display) {
+                            const statusBadge = $('.status-badge');
+                            if (statusBadge.length) {
+                                statusBadge.text(response.new_status_display);
                                 
                                 // Update badge class based on status
-                                statusBadge.className = 'badge status-badge ';
-                                if (newStatus === 'ready_for_testing') statusBadge.className += 'bg-info';
-                                else if (newStatus === 'in_progress' || newStatus === 'in_remediation') statusBadge.className += 'bg-warning';
-                                else if (newStatus === 'resolved' || newStatus === 'pass') statusBadge.className += 'bg-success';
-                                else if (newStatus === 'closed') statusBadge.className += 'bg-secondary';
-                                else statusBadge.className += 'bg-danger';
+                                statusBadge.removeClass().addClass('badge status-badge');
+                                if (newStatus === 'ready_for_testing') statusBadge.addClass('bg-info');
+                                else if (newStatus === 'in_progress' || newStatus === 'in_remediation') statusBadge.addClass('bg-warning');
+                                else if (newStatus === 'resolved' || newStatus === 'pass') statusBadge.addClass('bg-success');
+                                else if (newStatus === 'closed') statusBadge.addClass('bg-secondary');
+                                else statusBadge.addClass('bg-danger');
                             }
                             
                             // Scroll to top of comments to see the new comment
-                            document.getElementById('commentsList').scrollTop = 0;
+                            $('#commentsList').scrollTop(0);
                         }
                     } else {
-                        showAlert('danger', data.message || 'An error occurred');
+                        showAlert('danger', response.message || 'An error occurred');
                     }
-                })
-                .catch(error => {
+                },
+                error: function(xhr, status, error) {
                     console.error('Error:', error);
-                    showAlert('danger', error.message);
-                })
-                .finally(() => {
+                    showAlert('danger', 'An error occurred while saving the comment');
+                },
+                complete: function() {
                     // Reset button state
-                    this.innerHTML = originalHtml;
-                    this.disabled = false;
-                });
+                    submitBtn.html(originalHtml);
+                    submitBtn.prop('disabled', false);
+                }
             });
-        }
+        });
 
         // Add event listener to Ready for Testing checkbox
-        const checkbox = document.querySelector('.ready-for-testing-checkbox');
-        if (checkbox) {
-            checkbox.addEventListener('change', function(e) {
-                // Get the issue ID and project ID from data attributes
-                const issueId = this.dataset.issueId;
-                const projectId = this.dataset.projectId;
-                
-                // Create form data
-                const formData = new FormData();
-                formData.append('ready_for_testing', this.checked);
-                
-                // Send AJAX request
-                fetch(`/projects/${projectId}/issues/${issueId}/mark_ready_for_testing/`, {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    }
-                })
-                .then(response => {
-                    if (response.status === 403) {
-                        throw new Error('Permission denied: You do not have permission to perform this action.');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    // Update the UI based on the response
-                    if (data.success) {
+        $('.ready-for-testing-checkbox').on('change', function() {
+            const issueId = $(this).data('issue-id');
+            const projectId = $(this).data('project-id');
+            const isChecked = $(this).is(':checked');
+            
+            $.ajax({
+                url: `/projects/${projectId}/issues/${issueId}/mark_ready_for_testing/`,
+                method: 'POST',
+                data: {
+                    ready_for_testing: isChecked
+                },
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrftoken
+                },
+                success: function(response) {
+                    if (response.success) {
                         // Update the status badge
-                        const statusBadge = document.querySelector('.status-badge');
-                        if (statusBadge) {
-                            statusBadge.textContent = 'Ready for Testing';
-                            statusBadge.className = 'badge bg-info status-badge';
+                        const statusBadge = $('.status-badge');
+                        if (statusBadge.length) {
+                            statusBadge.text('Ready for Testing');
+                            statusBadge.removeClass().addClass('badge bg-info status-badge');
                         }
                         
                         // Show success message
-                        showAlert('success', data.message);
+                        showAlert('success', response.message);
                         
                         // Hide the checkbox
-                        this.closest('.form-check').style.display = 'none';
+                        $(this).closest('.form-check').hide();
                     } else {
                         // Show error message
-                        showAlert('danger', data.message || 'An error occurred');
+                        showAlert('danger', response.message || 'An error occurred');
                         // Reset checkbox state
-                        this.checked = false;
+                        $(this).prop('checked', false);
                     }
-                })
-                .catch(error => {
+                },
+                error: function(xhr, status, error) {
                     console.error('Error:', error);
-                    showAlert('danger', error.message);
+                    showAlert('danger', 'An error occurred while updating the status');
                     // Reset checkbox state
-                    this.checked = false;
-                });
+                    $(this).prop('checked', false);
+                }
             });
-        }
+        });
     });
 </script>
 {% endblock %} 

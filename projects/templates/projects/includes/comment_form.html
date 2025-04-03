@@ -1,0 +1,65 @@
+{% load static %}
+
+<div class="comment-edit-form-container" role="region" aria-labelledby="edit-comment-heading">
+    <p id="edit-comment-heading" class="fw-bold mb-3">Edit Comment</p>
+    
+    <form method="post" class="comment-edit-form" data-comment-id="{{ comment.id }}">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="id_comment_type" class="form-label">Comment Type</label>
+            {{ form.comment_type }}
+        </div>
+        <div class="mb-3">
+            <label for="id_text" class="form-label">Comment</label>
+            {{ form.text }}
+        </div>
+        <div class="mb-3">
+            <label for="id_milestone" class="form-label">Milestone</label>
+            {{ form.milestone }}
+        </div>
+        <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-secondary cancel-edit">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+    </form>
+</div>
+
+<script>
+$(document).ready(function() {
+    // Handle form submission
+    $('.comment-edit-form').on('submit', function(e) {
+        e.preventDefault();
+        const form = $(this);
+        const commentId = form.data('comment-id');
+        
+        $.ajax({
+            url: form.attr('action'),
+            method: 'POST',
+            data: form.serialize(),
+            success: function(response) {
+                if (response.success) {
+                    // Update the comments list
+                    $('#comments-list').html(response.comments_html);
+                    // Update comment count
+                    $('.comment-count').text(response.comment_count);
+                    // Close the edit form
+                    form.closest('.comment').find('.comment-text').show();
+                    form.closest('.comment-edit-form-container').remove();
+                } else {
+                    alert(response.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                alert('Error updating comment: ' + error);
+            }
+        });
+    });
+    
+    // Handle cancel button
+    $('.cancel-edit').on('click', function() {
+        const formContainer = $(this).closest('.comment-edit-form-container');
+        formContainer.closest('.comment').find('.comment-text').show();
+        formContainer.remove();
+    });
+});
+</script> 

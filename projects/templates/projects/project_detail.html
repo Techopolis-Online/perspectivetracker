@@ -1740,91 +1740,169 @@ document.addEventListener('DOMContentLoaded', function() {
 {% endif %}
 {% endblock %}
 {% block extra_js %}
+<!-- Load jQuery first -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
 <script>
-$(document).ready(function() {
-    // Clickable rows
-    $('.clickable-row').click(function() {
-        window.location = $(this).data('href');
-    });
-    
-    // Handle submit button clicks
-    $('.submit-comment').click(function() {
-        const form = $(this).closest('form');
-        
-        // Show loading state
-        const submitBtn = $(this);
-        const originalText = submitBtn.html();
-        submitBtn.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...');
-        submitBtn.prop('disabled', true);
-        
-        const url = form.attr('action');
-        const formData = form.serialize();
-        const issueId = form.attr('id').replace('addCommentForm', '');
-        
-        $.ajax({
-            type: 'POST',
-            url: url,
-            data: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            success: function(response) {
-                if (response.success) {
-                    // Update comments list
-                    const commentsContainer = form.closest('.modal-content').find('.comments-section');
-                    if (response.comments_html && commentsContainer.length) {
-                        commentsContainer.html(response.comments_html);
+    // Wait for both jQuery and document to be ready
+    $(document).ready(function() {
+        // Get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
                     }
-                    
-                    // Update status badge if status was changed
-                    if (response.status_changed) {
-                        $(`.issue-row-${issueId} .status-badge`).html(response.status_badge_html);
-                    }
-                    
-                    // Show success message
-                    const alertHtml = `
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <i class="bi bi-check-circle me-1"></i> ${response.message}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    `;
-                    form.before(alertHtml);
-                    
-                    // Reset form
-                    form[0].reset();
-                    
-                    // Auto-dismiss the alert after 3 seconds
-                    setTimeout(() => {
-                        form.prev('.alert').alert('close');
-                    }, 3000);
-                } else {
-                    // Show error message
-                    const alertHtml = `
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <i class="bi bi-exclamation-triangle me-1"></i> ${response.message || 'There was a problem saving your comment.'}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    `;
-                    form.before(alertHtml);
                 }
-            },
-            error: function(xhr, status, error) {
-                // Show error message
-                const alertHtml = `
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <i class="bi bi-exclamation-triangle me-1"></i> An error occurred. Please try again.
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                `;
-                form.before(alertHtml);
-            },
-            complete: function() {
-                // Reset button state
-                submitBtn.html(originalText);
-                submitBtn.prop('disabled', false);
+            }
+            return cookieValue;
+        }
+
+        const csrftoken = getCookie('csrftoken');
+
+        // Initialize all modals with proper accessibility settings
+        $('.modal').each(function() {
+            const modal = $(this);
+            modal.attr({
+                'role': 'dialog',
+                'aria-modal': 'true',
+                'aria-labelledby': modal.find('.modal-title').attr('id')
+            });
+            
+            // Set up keyboard trap
+            modal.on('shown.bs.modal', function() {
+                const focusableElements = modal.find('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+                const firstFocusable = focusableElements.first();
+                const lastFocusable = focusableElements.last();
+                
+                // Focus first element
+                firstFocusable.focus();
+                
+                // Trap focus within modal
+                modal.on('keydown', function(e) {
+                    if (e.key === 'Tab') {
+                        if (e.shiftKey) {
+                            if (document.activeElement === firstFocusable[0]) {
+                                e.preventDefault();
+                                lastFocusable.focus();
+                            }
+                        } else {
+                            if (document.activeElement === lastFocusable[0]) {
+                                e.preventDefault();
+                                firstFocusable.focus();
+                            }
+                        }
+                    }
+                });
+            });
+            
+            // Clean up on modal hide
+            modal.on('hidden.bs.modal', function() {
+                modal.off('keydown');
+            });
+        });
+
+        // Handle comment deletion in modals
+        $(document).on('click', '.delete-comment', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const commentId = $(this).data('comment-id');
+            const deleteUrl = $(this).data('delete-url');
+            const modalId = $(this).closest('.modal').attr('id');
+            const modal = $(`#${modalId}`);
+            const issueId = modalId.replace('commentsModal', '');
+            
+            if (window.confirm('Are you sure you want to delete this comment?')) {
+                $.ajax({
+                    url: deleteUrl,
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            // Find the comment in the current modal
+                            const commentElement = $(`#comment-${commentId}`);
+                            if (commentElement.length) {
+                                commentElement.fadeOut(300, function() {
+                                    $(this).remove();
+                                    
+                                    // Update comment count in the modal
+                                    const commentsContainer = commentElement.closest('.comments-container');
+                                    if (commentsContainer.length) {
+                                        const commentCount = commentsContainer.find('.comment').length;
+                                        const commentCountBadge = commentsContainer.prev('h5');
+                                        if (commentCountBadge.length) {
+                                            commentCountBadge.text(`Comments (${commentCount})`);
+                                        }
+                                        
+                                        // Update the comment count in the table
+                                        const tableCommentButton = $(`[data-bs-target="#${modalId}"]`);
+                                        if (tableCommentButton.length) {
+                                            const badge = tableCommentButton.find('.badge');
+                                            if (badge.length) {
+                                                badge.text(commentCount);
+                                            }
+                                        }
+                                        
+                                        // Update the comment count in the issue row
+                                        const issueRow = $(`.issue-row-${issueId}`);
+                                        if (issueRow.length) {
+                                            const rowCommentButton = issueRow.find(`[data-bs-target="#${modalId}"]`);
+                                            if (rowCommentButton.length) {
+                                                const rowBadge = rowCommentButton.find('.badge');
+                                                if (rowBadge.length) {
+                                                    rowBadge.text(commentCount);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
+                                    // Keep modal open and focus on the next comment or the add comment form
+                                    const nextComment = commentsContainer.find('.comment').first();
+                                    if (nextComment.length) {
+                                        nextComment.focus();
+                                    } else {
+                                        const addCommentForm = modal.find('textarea').first();
+                                        if (addCommentForm.length) {
+                                            addCommentForm.focus();
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error:', error);
+                        // Show error message within the modal
+                        const alertDiv = $('<div class="alert alert-danger alert-dismissible fade show" role="alert">' +
+                            '<strong>Error!</strong> An error occurred while deleting the comment' +
+                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                            '</div>');
+                        
+                        const modalBody = modal.find('.modal-body');
+                        if (modalBody.length) {
+                            alertDiv.insertBefore(modalBody.find('.comments-container'));
+                            
+                            // Auto-dismiss the alert after 3 seconds
+                            setTimeout(function() {
+                                alertDiv.alert('close');
+                            }, 3000);
+                        }
+                    }
+                });
             }
         });
+
+        // Prevent modal from closing when clicking outside
+        $('.modal').modal({
+            backdrop: 'static',
+            keyboard: false
+        });
     });
-});
 </script>
 {% endblock %}
