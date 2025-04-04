@@ -20,9 +20,9 @@ def split(value, delimiter):
 @register.filter
 def can_see_internal_comments(user):
     """Check if a user can see internal comments."""
-    return user.is_superuser or (hasattr(user, 'role') and user.role and user.role.name in ['admin', 'staff'])
+    return user.is_superuser or (hasattr(user, 'role') and user.role and user.role.name == 'admin')
 
 @register.filter
 def can_mark_ready_for_testing(user):
     """Check if a user can mark issues as ready for testing."""
-    return user.is_superuser or (user.is_authenticated and hasattr(user, 'role') and user.role and user.role.name != 'standard') 
+    return user.is_superuser or (user.is_authenticated and hasattr(user, 'role') and user.role and user.role.name == 'admin') 

@@ -73,6 +73,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'social_django.middleware.SocialAuthExceptionMiddleware',
+    'users.middleware.Auth0SyncMiddleware',
 ]
 
 ROOT_URLCONF = 'perspectivetracker.urls'

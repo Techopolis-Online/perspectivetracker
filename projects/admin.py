@@ -15,19 +15,26 @@ class ProjectViolationInline(admin.TabularInline):
 
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ('name', 'client', 'project_type', 'status')
-    list_filter = ('status', 'project_type', 'client')
-    search_fields = ('name', 'client__company_name')
-    raw_id_fields = ('client', 'created_by')
+    list_display = ('name', 'client', 'status', 'created_at')
+    list_filter = ('status', 'client', 'created_at')
+    search_fields = ('name', 'description', 'client__name')
+    raw_id_fields = ('client', 'created_by', 'assigned_to')
     filter_horizontal = ('assigned_to',)
-    date_hierarchy = 'created_at'
-    inlines = [ProjectViolationInline]
     
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        if request.user.is_superuser or (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']):
+        if request.user.is_superuser or (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin'):
             return qs
         return qs.filter(assigned_to=request.user)
+    
+    def has_add_permission(self, request):
+        return request.user.is_superuser or (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin')
+    
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser or (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin')
+    
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser or (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin')
 
 class ViolationInline(admin.TabularInline):
     model = Violation
@@ -44,7 +51,7 @@ class StandardAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        if request.user.is_superuser or (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin']):
+        if request.user.is_superuser or (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin'):
             return qs
         return qs.none()
     
@@ -66,7 +73,7 @@ class ViolationAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        if request.user.is_superuser or (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin']):
+        if request.user.is_superuser or (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin'):
             return qs
         return qs.none()
     
@@ -81,17 +88,26 @@ class ViolationAdmin(admin.ModelAdmin):
 
 @admin.register(ProjectViolation)
 class ProjectViolationAdmin(admin.ModelAdmin):
-    list_display = ('project', 'violation', 'status', 'assigned_to', 'created_at')
-    list_filter = ('status', 'created_at', 'project__project_type')
+    list_display = ('project', 'violation', 'status', 'created_at')
+    list_filter = ('status', 'violation__standard', 'project', 'created_at')
     search_fields = ('project__name', 'violation__name', 'notes', 'location')
     raw_id_fields = ('project', 'violation', 'created_by', 'assigned_to')
     date_hierarchy = 'created_at'
     
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        if request.user.is_superuser or (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']):
+        if request.user.is_superuser or (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin'):
             return qs
         return qs.filter(project__assigned_to=request.user) | qs.filter(assigned_to=request.user)
+    
+    def has_add_permission(self, request):
+        return request.user.is_superuser or (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin')
+    
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser or (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin')
+    
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser or (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin')
 
 @admin.register(ProjectStandard)
 class ProjectStandardAdmin(admin.ModelAdmin):
@@ -102,15 +118,15 @@ class ProjectStandardAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        if request.user.is_superuser or (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin']):
+        if request.user.is_superuser or (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin'):
             return qs
         return qs.filter(project__assigned_to=request.user)
     
     def has_add_permission(self, request):
-        return request.user.is_superuser or (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff'])
+        return request.user.is_superuser or (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin')
     
     def has_change_permission(self, request, obj=None):
-        return request.user.is_superuser or (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff'])
+        return request.user.is_superuser or (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin')
     
     def has_delete_permission(self, request, obj=None):
-        return request.user.is_superuser or (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff'])
+        return request.user.is_superuser or (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin')

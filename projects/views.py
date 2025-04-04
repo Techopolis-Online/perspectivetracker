@@ -70,7 +70,7 @@ def project_detail(request, pk):
     
     # Check if user has access to this project
     if not (request.user.is_superuser or 
-            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']) or
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin') or
             request.user in project.assigned_to.all()):
         return HttpResponseForbidden("You don't have permission to access this project.")
     
@@ -94,7 +94,7 @@ def project_detail(request, pk):
     
     # Separate staff and client team members
     staff_members = [member for member in team_members if member.is_superuser or 
-                    (hasattr(member, 'role') and member.role and member.role.name in ['admin', 'staff'])]
+                    (hasattr(member, 'role') and member.role and member.role.name == 'admin')]
     staff_members.sort(key=lambda x: x.first_name)
     
     client_members = [member for member in team_members if hasattr(member, 'role') and 
@@ -427,7 +427,7 @@ def project_violation_create(request, project_id):
     
     # Check if user has access to this project
     if not (request.user.is_superuser or 
-            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']) or
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin') or
             request.user in project.assigned_to.all()):
         return HttpResponseForbidden("You don't have permission to access this project.")
     
@@ -465,7 +465,7 @@ def project_violation_update(request, pk):
     
     # Check if user has access to this project
     if not (request.user.is_superuser or 
-            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']) or
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin') or
             request.user in project.assigned_to.all() or
             request.user == project_violation.assigned_to):
         return HttpResponseForbidden("You don't have permission to update this issue.")
@@ -495,7 +495,7 @@ def project_violation_delete(request, pk):
     
     # Check if user has access to this project
     if not (request.user.is_superuser or 
-            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff'])):
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin')):
         return HttpResponseForbidden("You don't have permission to delete this issue.")
     
     if request.method == 'POST':
@@ -516,7 +516,7 @@ def project_standard_create(request, project_id):
     
     # Check if user has access to this project
     if not (request.user.is_superuser or 
-            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']) or
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin') or
             request.user in project.assigned_to.all()):
         return HttpResponseForbidden("You don't have permission to access this project.")
     
@@ -552,7 +552,7 @@ def project_standard_delete(request, pk):
     
     # Check if user has access to this project
     if not (request.user.is_superuser or 
-            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']) or
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin') or
             request.user in project.assigned_to.all()):
         return HttpResponseForbidden("You don't have permission to remove this standard.")
     
@@ -717,7 +717,7 @@ def page_create(request, project_id):
     
     # Check if user has permission to add pages to this project
     if not (request.user.is_superuser or 
-            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']) or
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin') or
             request.user in project.assigned_to.all()):
         return HttpResponseForbidden("You don't have permission to add pages to this project.")
     
@@ -748,7 +748,7 @@ def page_update(request, pk):
     
     # Check if user has permission to edit this page
     if not (request.user.is_superuser or 
-            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']) or
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin') or
             request.user in project.assigned_to.all()):
         return HttpResponseForbidden("You don't have permission to edit this page.")
     
@@ -800,7 +800,7 @@ def milestone_create(request, project_id):
     
     # Check if user has permission to add milestones to this project
     if not (request.user.is_superuser or 
-            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff'])):
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin')):
         return HttpResponseForbidden("You don't have permission to add milestones to this project.")
     
     if request.method == 'POST':
@@ -834,7 +834,7 @@ def milestone_update(request, pk):
     
     # Check if user has permission to edit this milestone
     if not (request.user.is_superuser or 
-            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff'])):
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin')):
         return HttpResponseForbidden("You don't have permission to edit this milestone.")
     
     if request.method == 'POST':
@@ -1009,7 +1009,7 @@ def issue_create(request, project_id):
     
     # Check if user has access to this project
     if not (request.user.is_superuser or 
-            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']) or
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin') or
             request.user in project.assigned_to.all()):
         return HttpResponseForbidden("You don't have permission to access this project.")
     
@@ -1044,7 +1044,7 @@ def issue_edit(request, project_id, pk):
     
     # Check if user has access to this project
     if not (request.user.is_superuser or 
-            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']) or
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin') or
             request.user in project.assigned_to.all()):
         return HttpResponseForbidden("You don't have permission to access this project.")
     
@@ -1120,7 +1120,7 @@ def issue_delete(request, project_id, pk):
     
     # Check if user has access to this project
     if not (request.user.is_superuser or 
-            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff'])):
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin')):
         return HttpResponseForbidden("You don't have permission to delete this issue.")
     
     if request.method == 'POST':
@@ -1155,7 +1155,7 @@ def issue_detail(request, project_id, pk):
     
     # Check if user has access to this project
     if not (request.user.is_superuser or 
-            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']) or
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin') or
             request.user in project.assigned_to.all()):
         return HttpResponseForbidden("You don't have permission to access this project.")
     
@@ -1298,7 +1298,7 @@ def issue_update_status(request, project_id, pk):
     
     # Check if user has access to this project
     if not (request.user.is_superuser or 
-            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']) or
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin') or
             request.user in project.assigned_to.all()):
         return HttpResponseForbidden("You don't have permission to access this project.")
     
@@ -1387,7 +1387,7 @@ def mark_issue_ready_for_testing(request, project_id, pk):
     
     # Check if user has access to this project
     if not (request.user.is_superuser or 
-            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff', 'client']) or
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin') or
             request.user in project.assigned_to.all()):
         return HttpResponseForbidden("You don't have permission to access this project.")
     
@@ -1457,9 +1457,9 @@ def issues_needing_testing(request, project_id, milestone_id):
     project = get_object_or_404(Project, pk=project_id)
     milestone = get_object_or_404(Milestone, pk=milestone_id)
     
-    # Check if user has access to this project and is staff/admin/superuser
+    # Check if user has access to this project and is admin/superuser
     if not (request.user.is_superuser or 
-            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff'])):
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin')):
         return HttpResponseForbidden("You don't have permission to access this page.")
     
     # Get all issues that need testing for this project
@@ -1480,7 +1480,7 @@ def issue_comment(request, project_id, pk):
     
     # Check if user has access to this project
     if not (request.user.is_superuser or 
-            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']) or
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin') or
             request.user in project.assigned_to.all()):
         return HttpResponseForbidden("You don't have permission to comment on this issue.")
     
@@ -1513,7 +1513,7 @@ def delete_comment(request, project_id, issue_id, comment_id):
     
     # Check if user has permission to delete this comment
     if not (request.user.is_superuser or 
-            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']) or
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin') or
             request.user == comment.author):
         return JsonResponse({'success': False, 'message': 'You do not have permission to delete this comment.'})
     
@@ -1535,7 +1535,7 @@ def edit_issue_comment(request, project_id, issue_id, comment_id):
     
     # Check if user has permission to edit this comment
     if not (request.user.is_superuser or 
-            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']) or
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin') or
             request.user == comment.author):
         return JsonResponse({'success': False, 'message': 'You do not have permission to edit this comment.'})
     
@@ -1590,7 +1590,7 @@ def export_project_to_excel(request, pk):
     
     # Check if user has access to this project
     if not (request.user.is_superuser or 
-            (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']) or
+            (hasattr(request.user, 'role') and request.user.role and request.user.role.name == 'admin') or
             request.user in project.assigned_to.all()):
         return HttpResponseForbidden("You don't have permission to access this project.")
     

@@ -99,6 +99,7 @@ class CustomUser(AbstractUser):
                                              related_name='additional_direct_reports',
                                              help_text="Additional managers for this user")
     no_manager = models.BooleanField(default=False, help_text="Check if this user does not require a manager")
+    manually_modified = models.BooleanField(default=False, help_text="Indicates if user was manually modified in admin")
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []

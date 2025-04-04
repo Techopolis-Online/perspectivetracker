@@ -103,8 +103,8 @@ def logout_view(request):
 
 def has_role(user, role_name):
     """Check if user has the specified role"""
-    # Superusers always have admin privileges
-    if user.is_superuser and role_name == Role.ADMIN:
+    # Superusers and admins have all permissions
+    if user.is_superuser or (user.is_authenticated and user.role and user.role.name == Role.ADMIN):
         return True
     return user.is_authenticated and user.role and user.role.name == role_name
 
@@ -118,6 +118,14 @@ def admin_required(view_func):
 
 def staff_required(view_func):
     """Decorator for views that require staff role"""
+    def wrapper(request, *args, **kwargs):
+        if request.user.is_superuser or (hasattr(request.user, 'role') and request.user.role and request.user.role.name in ['admin', 'staff']):
+            return view_func(request, *args, **kwargs)
+        return HttpResponseForbidden("You don't have permission to access this page.")
+    return wrapper
+
+def staff_or_admin_required(view_func):
+    """Decorator for views that require either staff or admin role"""
     def wrapper(request, *args, **kwargs):
         if has_role(request.user, Role.ADMIN) or has_role(request.user, Role.STAFF):
             return view_func(request, *args, **kwargs)
