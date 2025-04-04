@@ -1129,8 +1129,9 @@ def issue_delete(request, project_id, pk):
         return redirect('projects:project_detail', pk=project.id)
     
     context = {
-        'object': issue,
+        'issue': issue,
         'project': project,
+        'project_id': project_id,  # Explicitly add project_id to the context
     }
     return render(request, 'projects/issue_confirm_delete.html', context)
 
