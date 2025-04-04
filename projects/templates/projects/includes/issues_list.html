@@ -1,0 +1,37 @@
+{% for issue in issues %}
+<tr class="issue-row-{{ issue.id }}">
+    <td>
+        <span class="badge {% if issue.current_status == 'ready_for_testing' %}bg-info{% elif issue.current_status == 'in_remediation' %}bg-warning{% elif issue.current_status == 'pass' %}bg-success{% elif issue.current_status == 'fail' %}bg-danger{% elif issue.current_status == 'qa' %}bg-primary{% elif issue.current_status == 'closed' %}bg-secondary{% else %}bg-secondary{% endif %} status-badge">
+            {{ issue.get_current_status_display }}
+        </span>
+    </td>
+    <td>{{ issue.milestone.name }}</td>
+    <td>{{ issue.page.name }}</td>
+    <td>{{ issue.issue_description|truncatechars:50 }}</td>
+    <td>
+        {% if issue.assigned_to %}
+            {{ issue.assigned_to.get_full_name|default:issue.assigned_to.email }}
+        {% else %}
+            <span class="text-muted">Unassigned</span>
+        {% endif %}
+    </td>
+    <td>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#commentsModal{{ issue.id }}">
+            <i class="bi bi-chat-dots me-1"></i> {{ issue.comments.count }}
+        </button>
+    </td>
+    <td>
+        <a href="{% url 'projects:issue_detail' project.id issue.id %}" class="btn btn-sm btn-outline-secondary me-1" aria-label="View issue details">
+            <i class="bi bi-eye" aria-hidden="true"></i><span class="visually-hidden">View</span>
+        </a>
+        <a href="{% url 'projects:issue_edit' project.id issue.id %}" class="btn btn-sm btn-outline-primary me-1" aria-label="Edit issue">
+            <i class="bi bi-pencil" aria-hidden="true"></i><span class="visually-hidden">Edit</span>
+        </a>
+        {% if user.is_superuser or user.role.name == 'admin' %}
+        <a href="{% url 'projects:issue_delete' project.id issue.id %}" class="btn btn-sm btn-outline-danger" aria-label="Delete issue">
+            <i class="bi bi-trash" aria-hidden="true"></i><span class="visually-hidden">Delete</span>
+        </a>
+        {% endif %}
+    </td>
+</tr>
+{% endfor %} 
